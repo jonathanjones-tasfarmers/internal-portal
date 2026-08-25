@@ -83,12 +83,20 @@
     <p class="sp-section-label">Tools</p>
     <div class="sp-card-grid">
       <!--
-        href points at the Hub page (relative "/pages/..." path), NOT at
-        lickblock-internal-portal.html directly — clicking this card takes
-        the visitor to the Lick Block Tracker Hub PAGE (header + iframe
-        together), same as the nav link in staff-portal-header-home.html.
+        BUG FIX 2026-08-25: this card lives inside an iframe served from
+        jonathanjones-tasfarmers.github.io (this file's own GitHub Pages
+        origin) but embedded into a Hub page on a totally different domain
+        (lel-staff-portal-indie520d1a051c0.hub.arcgis.com). A relative href
+        like "/pages/2c5bc815..." resolves against the IFRAME's origin, not
+        the Hub page's — so clicking it was trying to load
+        https://jonathanjones-tasfarmers.github.io/pages/2c5bc815... (a
+        404), not the actual Hub page. Fixed with an absolute URL to the
+        real Hub site, plus target="_top" so the click breaks out of the
+        iframe and navigates the whole browser tab there, instead of
+        (uselessly, and possibly blocked by Hub's own clickjacking
+        protection) trying to load a Hub page inside this iframe.
       -->
-      <a href="/pages/2c5bc815dd4f4a63a924f9fadd086495" class="sp-tool-card">
+      <a href="https://lel-staff-portal-indie520d1a051c0.hub.arcgis.com/pages/2c5bc815dd4f4a63a924f9fadd086495" target="_top" class="sp-tool-card">
         <div class="sp-tool-icon">
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="1.5"></rect><path d="M3 11h18"></path><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
         </div>
