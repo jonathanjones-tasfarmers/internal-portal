@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!--
+  LEL Staff Portal — "Pipeline health" embed.
+
+  Added 2026-08-25 (round 8), same architecture as reorder-glance-
+  embed.html and for the same reason: a Hub Text/Code block cannot run
+  any JavaScript (confirmed exhaustively — see that file's own top
+  comment), so anything needing a live fetch has to be a genuine
+  standalone page, hosted externally, added via a Hub EMBED (iframe)
+  content block rather than pasted as Text.
+
+  Deploy: upload to the same GitHub repo as lickblock-internal-portal.html
+  and reorder-glance-embed.html (jonathanjones-tasfarmers/internal-portal).
+  In Hub's Home page editor, add an EMBED block between the milestone
+  tracker and the Tools section, pointing at this file's hosted URL,
+  sized to roughly 160-200px tall (grows a little if more pipelines are
+  added later).
+
+  WHY NOT LEL_Run_Log: every pipeline script (00, 01, 02, 03, 04, 06, 09)
+  already logs its own run status to a shared LEL_Run_Log table via
+  lel_run_log.py — script name, timestamp, status, records processed,
+  warnings, errors, duration. That would be the obvious source for a
+  health panel. Jono asked to avoid it if possible, since it's currently
+  a private/org item and making it anonymously queryable (the only way a
+  Hub-embedded page can read it, same as every other live tile on this
+  site) would mean either changing its sharing level or wiring up
+  authenticated access neither of which this build does.
+
+  WHAT THIS DOES INSTEAD: infers pipeline health from the freshness of
+  each pipeline's own OUTPUT data, using services already public and
+  already queried elsewhere on the live site (page-2-farms.html,
+  page-5-data.html) — no sharing changes needed, nothing new to expose.
+  For each domain: fetch the single most recent record's date field,
+  compare against "now". This can't distinguish "script ran but produced
+  zero new rows" from "script didn't run" in every edge case, but for the
+  question staff actually ask ("is the data on the site current?") it's
+  the direct answer, not a proxy for one.
+
+  Four domains chosen deliberately — NOT five. LEL_LickBlock_Placements
+  and LEL_Lick_Block_Orders were left out: those are farm-visit / order
+  event logs (sparse by nature, blocks get placed every ~40 days per
+  REORDER_LEAD_DAYS), so an old timestamp there reflects real-world farm
+  activity, not a broken pipeline. LEL_Lick_Block_Usage_History IS
+  included instead, since that table gets a fresh rolled-up row per farm/
+  treatment every time the daily pipeline runs, regardless of whether a
+  physical placement happened that day — a much cleaner automation
+  signal.
+
+  Freshness thresholds (edit STALE_HOURS/OVERDUE_HOURS below to retune):
+  these four pipelines run together daily via run_lel_pipelines.sh, so
+    OK       <= 36 hours since the newest record  (today's run happened)
+    WARNING  36-72 hours                            (missed ~1 day, check it)
+    OVERDUE  > 72 hours                              (missed 2+ days, look now)
+  36h (not 24h) gives headroom for a run that happens later in the day
+  than usual without flagging amber for no reason; 72h (not 48h) allows
+  for one missed day without immediately reading as broken.
+-->
+<meta name="robots" content="noindex, nofollow">
+<title>Pipeline health</title>
+<style>
+  :root{
+    --tf-navy-900:#041221;
+    --tf-slate-400:#a9b8c4;
+    --tf-slate-300:oklch(from var(--tf-slate-400) calc(l + 0.08) c h);
+    --tf-slate-200:oklch(from var(--tf-slate-400) calc(l + 0.14) c h);
+    --tf-slate-100:oklch(from var(--tf-slate-400) calc(l + 0.19) c h);
+    --tf-slate-600:oklch(from var(--tf-slate-400) calc(l - 0.18) c h);
+    --tf-seafeed:#3aa989;
+    --tf-red:#c0392b;
+    --tf-warning:#c98a2e;
+    --tf-white:#ffffff;
+    --surface-page:#faf9f6;
+    --surface-card:var(--tf-white);
+    --text-heading:var(--tf-navy-900);
+    --text-body:oklch(from var(--tf-navy-900) calc(l + 0.06) calc(c - 0.005) h);
+    --text-muted:var(--tf-slate-600);
+    --border-subtle:var(--tf-slate-200);
+    --border-default:var(--tf-slate-300);
+    --radius-lg:12px;
+    --shadow-sm:0 1px 2px rgba(4,18,33,0.08);
+    --font-display:Tahoma,Verdana,sans-serif;
+    --font-body:Verdana,Tahoma,sans-serif;
+  }
+  html, body { margin: 0; background: var(--surface-page); }
+  body { font-family: var(--font-body); color: var(--text-body); -webkit-font-smoothing:antialiased; padding: 16px 32px 12px; box-sizing: border-box; }
+
+  .sp-section-label { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; margin: 0 0 14px 2px; }
+  .sp-health-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+  .sp-health-card { background: var(--surface-card); border: 1px solid var(--border-subtle); border-left: 4px solid var(--border-default); border-radius: var(--radius-lg); padding: 14px 16px; box-sizing: border-box; }
+  .sp-health-card.overdue { border-left-color: var(--tf-red); }
+  .sp-health-card.warning { border-left-color: var(--tf-warning); }
+  .sp-health-card.ok { border-left-color: var(--tf-seafeed); }
+  .sp-health-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .sp-health-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--tf-slate-400); }
+  .sp-health-dot.ok { background: var(--tf-seafeed); }
+  .sp-health-dot.warning { background: var(--tf-warning); }
+  .sp-health-dot.overdue { background: var(--tf-red); }
+  .sp-health-label { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: var(--text-heading); margin: 0; }
+  .sp-health-value { font-size: 13px; color: var(--text-body); margin: 0; }
+  .sp-health-value.overdue { color: var(--tf-red); font-weight: 700; }
+  .sp-health-value.warning { color: var(--tf-warning); font-weight: 700; }
+  .sp-health-meta { font-size: 11px; color: var(--text-muted); margin: 3px 0 0; }
+  .sp-empty-note { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<p class="sp-section-label">Pipeline health</p>
+<div class="sp-health-grid" id="sp-health-grid">
+  <p class="sp-empty-note">Checking pipelines&hellip;</p>
+</div>
+
+<script>
+(function(){
+  var EMISSIONS_URL   = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Emissions_Data_view/FeatureServer/0/query";
+  var ECON_URL         = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Economics_Data/FeatureServer/0/query";
+  var PRODUCTIVITY_URL = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/OptiWeigh_Cattle_Weights/FeatureServer/0/query";
+  var USAGE_HISTORY_URL = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lick_Block_Usage_History/FeatureServer/0/query";
+
+  var STALE_HOURS = 36;
+  var OVERDUE_HOURS = 72;
+
+  var DOMAINS = [
+    { label: "OptiWeigh liveweight", url: PRODUCTIVITY_URL, dateField: "snapshot_date", scripts: "00 / 01" },
+    { label: "Emissions",            url: EMISSIONS_URL,    dateField: "record_date",   scripts: "03" },
+    { label: "Economics",            url: ECON_URL,          dateField: "calculation_date", scripts: "04" },
+    { label: "Lick block usage",     url: USAGE_HISTORY_URL, dateField: "snapshot_date", scripts: "02 / 06" }
+  ];
+
+  function q(url, params){
+    return fetch(url + "?" + new URLSearchParams(params)).then(function(res){ return res.json(); }).then(function(data){
+      if (data.error) throw new Error(data.error.message || "Query failed");
+      return data;
+    });
+  }
+
+  function fetchLatest(domain){
+    return q(domain.url, {
+      where: "1=1",
+      outFields: domain.dateField,
+      orderByFields: domain.dateField + " DESC",
+      resultRecordCount: "1",
+      f: "json"
+    }).then(function(data){
+      var ms = data.features.length ? data.features[0].attributes[domain.dateField] : null;
+      return { domain: domain, latestMs: ms };
+    }).catch(function(err){
+      console.error(domain.label + ' fetch failed:', err);
+      return { domain: domain, latestMs: null, fetchFailed: true };
+    });
+  }
+
+  function fmtRelative(hours){
+    if (hours < 1) return "just now";
+    if (hours < 24) return Math.round(hours) + (Math.round(hours) === 1 ? " hour ago" : " hours ago");
+    var days = Math.round(hours / 24);
+    return days + (days === 1 ? " day ago" : " days ago");
+  }
+  function fmtDate(ms){
+    return new Date(ms).toLocaleString('en-AU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  }
+
+  Promise.all(DOMAINS.map(fetchLatest)).then(function(results){
+    var grid = document.getElementById('sp-health-grid');
+
+    grid.innerHTML = results.map(function(r){
+      if (r.fetchFailed || r.latestMs == null) {
+        return '<div class="sp-health-card">' +
+          '<div class="sp-health-top"><span class="sp-health-dot"></span><p class="sp-health-label">' + r.domain.label + '</p></div>' +
+          '<p class="sp-health-value">No data yet</p>' +
+          '<p class="sp-health-meta">Scripts ' + r.domain.scripts + '</p>' +
+          '</div>';
+      }
+      var hours = (Date.now() - r.latestMs) / 3600000;
+      var status = hours > OVERDUE_HOURS ? 'overdue' : (hours > STALE_HOURS ? 'warning' : 'ok');
+      var statusText = status === 'overdue' ? 'Overdue — check it now' : (status === 'warning' ? 'Running late' : 'Up to date');
+      return '<div class="sp-health-card ' + status + '">' +
+        '<div class="sp-health-top"><span class="sp-health-dot ' + status + '"></span><p class="sp-health-label">' + r.domain.label + '</p></div>' +
+        '<p class="sp-health-value ' + status + '">' + statusText + '</p>' +
+        '<p class="sp-health-meta">Last updated ' + fmtRelative(hours) + ' &middot; ' + fmtDate(r.latestMs) + '</p>' +
+        '<p class="sp-health-meta">Scripts ' + r.domain.scripts + '</p>' +
+        '</div>';
+    }).join('');
+  }).catch(function(err){
+    console.error('Pipeline health check failed:', err);
+    document.getElementById('sp-health-grid').innerHTML = '<p class="sp-empty-note">Could not check pipeline health.</p>';
+  });
+})();
+</script>
+
+</body>
+</html>
