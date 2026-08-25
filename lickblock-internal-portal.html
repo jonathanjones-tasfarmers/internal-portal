@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!--
+  LEL Lick Block Usage Portal — internal, Jono / Bronte / Tas only.
+
+  Built 2026-08-24, per Jono's request. Same access pattern as
+  farmer-portal-template.html: unlisted, unauthenticated (plain fetch(),
+  no login) — the link itself is the access control, don't publish it
+  anywhere public. noindex/nofollow below so it never turns up in search.
+
+  DATA SOURCES — two of the three tables this reads already existed
+  before this build, created by hand in ArcGIS Online on 2026-08-10 for
+  farmer-portal-template.html's own reorder tool:
+    - LEL_Lick_Block_Usage_History — append-only, one row per (farm,
+      treatment) per day. Was stale from 13 Aug (the pipeline writing to
+      it had been quietly refactored away) until 06. Lick_Block_Portal_
+      Feed.py resumed feeding it 2026-08-24, plus added two new fields
+      this portal needs that the old version never had: head_count and
+      avg_consumption_g_per_hd_day.
+    - LEL_Lick_Block_Orders — edited directly by Jono/Bronte in ArcGIS
+      Online from order invoices. Read-only here; this page does the same
+      on-hand / days-to-empty / reorder-by maths client-side that
+      farmer-portal-template.html already does (REORDER_LEAD_DAYS=40,
+      matched exactly for consistency with that page).
+    - LEL_LickBlock_Placements — NEW table, one row per individual block
+      placement (the "list" Jono asked for), fed by the same new script.
+      PLACEMENTS_URL below needs its real item's REST endpoint once Jono
+      creates it — see the setup guide. Degrades gracefully (shows a
+      clear "not set up yet" message) if that fetch 404s.
+
+  Farms are NOT hardcoded — the farm list on this page is whatever
+  distinct trial_site values show up in LEL_Lick_Block_Usage_History, so
+  a new farm (e.g. TRT Pastoral) appears automatically once it starts
+  logging lick block visits, no code change needed here.
+-->
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#041221">
+<title>Lick Block Usage | LEL internal</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --tf-navy-900:#041221;
+    --tf-navy-800:oklch(from var(--tf-navy-900) calc(l + 0.08) c h);
+    --tf-slate-400:#a9b8c4;
+    --tf-slate-300:oklch(from var(--tf-slate-400) calc(l + 0.08) c h);
+    --tf-slate-200:oklch(from var(--tf-slate-400) calc(l + 0.14) c h);
+    --tf-slate-100:oklch(from var(--tf-slate-400) calc(l + 0.19) c h);
+    --tf-slate-600:oklch(from var(--tf-slate-400) calc(l - 0.18) c h);
+    --tf-seafeed:#3aa989;
+    --tf-red:#c0392b;
+    --tf-white:#ffffff;
+    --tf-warning:#c98a2e;
+    --surface-page:#faf9f6;
+    --surface-sunken:var(--tf-slate-100);
+    --surface-card:var(--tf-white);
+    --text-heading:var(--tf-navy-900);
+    --text-body:oklch(from var(--tf-navy-900) calc(l + 0.06) calc(c - 0.005) h);
+    --text-muted:var(--tf-slate-600);
+    --border-subtle:var(--tf-slate-200);
+    --border-default:var(--tf-slate-300);
+    --radius-lg:12px; --radius-md:10px; --radius-sm:6px;
+    --shadow-sm:0 1px 2px rgba(4,18,33,0.08);
+    --font-display:Tahoma,Verdana,sans-serif;
+    --font-body:Verdana,Tahoma,sans-serif;
+  }
+  html, body { margin: 0; background: var(--surface-page); }
+  body { font-family: var(--font-body); color: var(--text-body); -webkit-font-smoothing:antialiased; }
+  .lbp-page { max-width: 1320px; margin: 0 auto; padding: 0 32px 64px; box-sizing: border-box; }
+  @media (max-width: 720px) { .lbp-page { padding: 0 16px 48px; } }
+
+  .lbp-masthead { background: var(--tf-navy-900); padding: 26px 32px; margin-bottom: 24px; }
+  @media (max-width: 720px) { .lbp-masthead { padding: 20px 16px; } }
+  .lbp-masthead-inner { max-width: 1320px; margin: 0 auto; }
+  .lbp-masthead h1 { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--tf-white); margin: 0 0 4px; }
+  .lbp-masthead p { font-family: var(--font-display); font-size: 12.5px; color: var(--tf-slate-300); margin: 0; }
+  .lbp-masthead .lbp-private-tag { display: inline-block; margin-top: 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--tf-warning); background: rgba(201,138,46,0.14); border: 1px solid rgba(201,138,46,0.35); border-radius: var(--radius-sm); padding: 3px 8px; }
+
+  .lbp-alert-banner { display: flex; align-items: flex-start; gap: 12px; background: rgba(192,57,43,0.08); border: 1px solid rgba(192,57,43,0.28); border-radius: var(--radius-lg); padding: 14px 20px; margin-bottom: 24px; }
+  .lbp-alert-banner svg { flex-shrink: 0; width: 20px; height: 20px; stroke: var(--tf-red); fill: none; stroke-width: 2; margin-top: 1px; }
+  .lbp-alert-banner-text { font-family: var(--font-display); font-size: 13.5px; color: var(--tf-red); line-height: 1.5; }
+  .lbp-alert-banner-text ul { margin: 4px 0 0; padding-left: 18px; }
+
+  .lbp-section-label { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; margin: 0 0 10px 2px; }
+  .lbp-farm-heading { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: var(--text-heading); margin: 28px 0 12px; padding: 4px 0 6px 12px; border-bottom: 1px solid var(--border-subtle); border-left: 4px solid var(--border-default); }
+  .lbp-farm-heading:first-of-type { margin-top: 0; }
+  .lbp-farm-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 7px; vertical-align: middle; }
+  .lbp-farm-name { font-weight: 700; }
+
+  .lbp-card { background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 20px 22px; box-shadow: var(--shadow-sm); box-sizing: border-box; }
+
+  .lbp-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 10px; }
+  .lbp-kpi-card { background: var(--surface-sunken); border-radius: var(--radius-lg); padding: 16px 18px; box-sizing: border-box; border-left: 4px solid var(--border-default); }
+  .lbp-kpi-label { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 6px; }
+  .lbp-kpi-value { font-family: var(--font-display); font-size: 26px; font-weight: 700; color: var(--text-heading); margin: 0; }
+  .lbp-kpi-value.seafeed { color: var(--tf-seafeed); }
+  .lbp-kpi-note { font-family: var(--font-display); font-size: 11.5px; color: var(--text-muted); margin: 6px 0 0; }
+
+  .lbp-reorder-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 560px) { .lbp-reorder-grid { grid-template-columns: 1fr; } }
+  .lbp-reorder-treatment { font-family: var(--font-display); font-size: 13px; font-weight: 700; margin: 0 0 10px; color: var(--text-heading); }
+  .lbp-reorder-treatment.seafeed { color: var(--tf-seafeed); }
+  .lbp-reorder-stats > div { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border-subtle); }
+  .lbp-reorder-stats > div:last-child { border-bottom: none; }
+  .lbp-reorder-stat-label { font-family: var(--font-display); font-size: 12px; color: var(--text-muted); }
+  .lbp-reorder-stat-value { font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--text-heading); }
+  .lbp-reorder-stat-value.seafeed { color: var(--tf-seafeed); }
+  .lbp-reorder-stat-value.overdue { color: var(--tf-red); }
+  .lbp-reorder-note { font-family: var(--font-display); font-size: 11px; color: var(--text-muted); margin-top: 8px; }
+  .lbp-reorder-note.stale { color: var(--tf-red); font-weight: 700; }
+
+  .lbp-chart-card { height: 260px; }
+  .lbp-chart-card canvas { max-height: 210px; }
+  .lbp-chart-empty { font-family: var(--font-display); font-size: 12px; color: var(--text-muted); text-align: center; padding: 60px 0; display: none; }
+
+  .lbp-filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+  .lbp-filters input, .lbp-filters select { font-family: var(--font-body); font-size: 13px; padding: 8px 10px; border: 1px solid var(--border-default); border-radius: var(--radius-sm); background: var(--tf-white); color: var(--text-body); }
+  .lbp-filters input { flex: 1 1 220px; }
+
+  .lbp-table-wrap { overflow-x: auto; }
+  table.lbp-table { width: 100%; border-collapse: collapse; font-family: var(--font-body); font-size: 12.5px; }
+  table.lbp-table th, table.lbp-table td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border-subtle); white-space: nowrap; }
+  table.lbp-table th { font-family: var(--font-display); font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); cursor: pointer; user-select: none; }
+  table.lbp-table th:hover { color: var(--text-heading); }
+  table.lbp-table th .lbp-sort-arrow { font-size: 9px; margin-left: 3px; opacity: 0.6; }
+  table.lbp-table tbody tr:hover { background: var(--surface-sunken); }
+  .lbp-table-empty, .lbp-table-loading { font-family: var(--font-display); font-size: 12px; color: var(--text-muted); padding: 20px 4px; }
+  .lbp-pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-subtle); }
+  .lbp-pagination-note { font-family: var(--font-display); font-size: 11.5px; color: var(--text-muted); }
+  .lbp-pagination-size { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 12px; color: var(--text-muted); }
+  .lbp-pagination-size select { font-family: var(--font-body); font-size: 12.5px; padding: 5px 8px; border: 1px solid var(--border-default); border-radius: var(--radius-sm); background: var(--tf-white); color: var(--text-body); }
+  .lbp-treatment-pill { display: inline-block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; padding: 2px 7px; border-radius: 999px; }
+  .lbp-treatment-pill.seafeed { color: var(--tf-seafeed); background: rgba(58,169,137,0.12); }
+  .lbp-treatment-pill.control { color: var(--tf-slate-600); background: rgba(169,184,196,0.22); }
+
+  .lbp-footer-note { font-family: var(--font-display); font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 40px; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<div class="lbp-masthead">
+  <div class="lbp-masthead-inner">
+    <h1>Lick Block Usage</h1>
+    <p>Low Emissions Livestock trial — internal project team view</p>
+    <span class="lbp-private-tag">Private link — not for sharing</span>
+  </div>
+</div>
+
+<div class="lbp-page">
+
+  <div class="lbp-alert-banner" id="lbp-alert-banner" style="display:none;" role="alert" aria-live="polite">
+    <svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+    <div class="lbp-alert-banner-text" id="lbp-alert-banner-text"></div>
+  </div>
+
+  <p class="lbp-section-label">Average consumption per animal, per treatment</p>
+  <div class="lbp-kpi-grid" id="lbp-kpi-grid">
+    <div class="lbp-table-loading">Loading&hellip;</div>
+  </div>
+
+  <div id="lbp-farm-sections"><!-- one block per farm, built by JS: reorder card + trend chart --></div>
+
+  <p class="lbp-section-label" style="margin-top:32px;">Placement history</p>
+  <div class="lbp-card">
+    <div class="lbp-filters">
+      <input type="text" id="lbp-search" placeholder="Search asset, farm, location type...">
+      <select id="lbp-filter-farm"><option value="">All farms</option></select>
+      <select id="lbp-filter-treatment"><option value="">All treatments</option><option value="seafeed">SeaFeed</option><option value="control">Control</option></select>
+    </div>
+    <div class="lbp-table-wrap">
+      <table class="lbp-table" id="lbp-placements-table">
+        <thead>
+          <tr>
+            <th data-key="placement_time">Date</th>
+            <th data-key="trial_site">Farm</th>
+            <th data-key="treatment">Treatment</th>
+            <th data-key="asset_id">Asset</th>
+            <th data-key="location_type">Type</th>
+            <th data-key="quantity_blocks">Blocks</th>
+            <th data-key="unit_weight_kg">Unit Weight</th>
+            <th data-key="head_count">Head</th>
+            <th data-key="interval_days_since_previous">Interval (days)</th>
+            <th data-key="avg_consumption_g_per_hd_day">g/head/day</th>
+            <th data-key="cost_aud">Cost</th>
+          </tr>
+        </thead>
+        <tbody id="lbp-placements-body">
+          <tr><td colspan="11" class="lbp-table-loading">Loading&hellip;</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="lbp-pagination">
+      <p class="lbp-pagination-note" id="lbp-pagination-note"></p>
+      <div class="lbp-pagination-size">
+        <label for="lbp-page-size">Show</label>
+        <select id="lbp-page-size">
+          <option value="10">10</option>
+          <option value="20">20</option>
+          <option value="50">50</option>
+        </select>
+        <span>items</span>
+      </div>
+    </div>
+  </div>
+
+  <p class="lbp-footer-note">
+    Fed daily by 06. Lick_Block_Portal_Feed.py &middot; Orders logged directly in ArcGIS Online (LEL_Lick_Block_Orders) &middot; Not for external distribution
+  </p>
+
+</div>
+
+<script>
+(function(){
+
+  // ============================================================
+  // CONFIG
+  // ============================================================
+  var USAGE_HISTORY_URL = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lick_Block_Usage_History/FeatureServer/0/query";
+  var ORDERS_URL         = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lick_Block_Orders/FeatureServer/0/query";
+  // NEW table — Jono creates this once (see setup guide), then updates
+  // this URL to match its real REST endpoint. Left as a best-guess based
+  // on the service name AGOL will generate from the item title
+  // "LEL_LickBlock_Placements" — verify once created, since a name clash
+  // with an existing service could make AGOL append a suffix.
+  // The first attempt at this table (published from an Excel upload)
+  // came back read-only ("capabilities":"Query" only, hasStaticData:true)
+  // — ArcGIS Online limitation with file-based publishing, not fixable
+  // from the sharing settings. Rebuilt 2026-08-24 as an empty table via
+  // the same manual "Create new layer" method already proven for
+  // LEL_Lick_Block_Usage_History / LEL_Lick_Block_Orders — confirmed live
+  // with full Create/Delete/Query/Update capabilities.
+  var PLACEMENTS_URL     = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_LickBlock_Placements/FeatureServer/0/query";
+
+  // Matches farmer-portal-template.html's own reorder tool exactly, so
+  // this portal's numbers can't disagree with that one.
+  var REORDER_LEAD_DAYS = 40;
+
+  var MINT = '#3aa989';
+  var SLATE = '#a9b8c4';
+  var RED = '#c0392b';
+
+  // Farm identity colour, added 2026-08-24 (Jono's request — farms were
+  // blending together with no visual distinction in the placements list).
+  // Deliberately NOT mint/slate/red — those already carry fixed meaning
+  // (SeaFeed/good, Control/neutral, overdue/bad) elsewhere on this page,
+  // so reusing one for farm identity would make a Bowood SeaFeed row and
+  // an "overdue" flag look like they mean the same thing. Cycles if a
+  // farm count ever exceeds the palette length; ALL_FARMS (set once the
+  // data loads) is the shared source of truth so a given farm always gets
+  // the same colour in the section heading AND the placements table.
+  var FARM_COLORS = ['#2e6f9e', '#8659a3', '#2e8f8f', '#a3762e', '#5c6bc0'];
+  var ALL_FARMS = [];
+  function farmColor(farm){
+    var idx = ALL_FARMS.indexOf(farm);
+    if (idx === -1) idx = 0;
+    return FARM_COLORS[idx % FARM_COLORS.length];
+  }
+  // Pale tint of a farm's colour, used as a KPI card background so cards
+  // read as "belonging" to a farm at a glance without competing with the
+  // mint/red semantic colours used for values inside the card.
+  function farmTint(farm){
+    var hex = farmColor(farm).replace('#', '');
+    var r = parseInt(hex.substring(0, 2), 16);
+    var g = parseInt(hex.substring(2, 4), 16);
+    var b = parseInt(hex.substring(4, 6), 16);
+    return 'rgba(' + r + ',' + g + ',' + b + ',0.09)';
+  }
+
+  var chartInstances = {};
+
+  function q(url, params){
+    return fetch(url + "?" + new URLSearchParams(params)).then(function(res){ return res.json(); }).then(function(data){
+      if (data.error) throw new Error(data.error.message || "Query failed");
+      return data;
+    });
+  }
+
+  function fetchUsageHistory(){
+    return q(USAGE_HISTORY_URL, {
+      where: "treatment IN ('seafeed','control')",
+      outFields: "snapshot_date,trial_site,treatment,cumulative_blocks_used,blocks_per_day_current,head_count,avg_consumption_g_per_hd_day",
+      orderByFields: "snapshot_date ASC", resultRecordCount: "4000", f: "json"
+    }).then(function(data){ return data.features.map(function(f){ return f.attributes; }); }).catch(function(err){
+      console.error('Usage history fetch failed:', err);
+      return [];
+    });
+  }
+
+  function fetchOrders(){
+    return q(ORDERS_URL, {
+      where: "treatment IN ('seafeed','control')",
+      outFields: "trial_site,treatment,blocks_ordered,order_date",
+      orderByFields: "order_date ASC", resultRecordCount: "1000", f: "json"
+    }).then(function(data){ return data.features.map(function(f){ return f.attributes; }); }).catch(function(err){
+      console.error('Orders fetch failed:', err);
+      return [];
+    });
+  }
+
+  function fetchPlacements(){
+    return q(PLACEMENTS_URL, {
+      where: "1=1",
+      outFields: "placement_time,trial_site,treatment,asset_id,location_type,quantity_blocks,unit_weight_kg,head_count,interval_days_since_previous,avg_consumption_g_per_hd_day,cost_aud",
+      orderByFields: "placement_time DESC", resultRecordCount: "4000", f: "json"
+    }).then(function(data){ return data.features.map(function(f){ return f.attributes; }); }).catch(function(err){
+      console.warn('Placements fetch failed (table may not be created yet):', err);
+      return null; // null = "not available", distinct from [] = "available but empty"
+    });
+  }
+
+  function fmtDate(ms){
+    if (ms == null) return '–';
+    return new Date(ms).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  function fmtNum(v, decimals){
+    if (v == null || isNaN(v)) return '–';
+    return Number(v).toLocaleString('en-AU', { minimumFractionDigits: decimals || 0, maximumFractionDigits: decimals || 0 });
+  }
+  function treatmentLabel(t){ return t === 'seafeed' ? 'SeaFeed' : 'Control'; }
+
+  function lineChart(canvasId, labels, datasets){
+    var styled = datasets.map(function(d){
+      var merged = { spanGaps: true };
+      for (var k in d) merged[k] = d[k];
+      return merged;
+    });
+    return new Chart(document.getElementById(canvasId), {
+      type: 'line',
+      data: { labels: labels, datasets: styled },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: true, position: 'top', align: 'end', labels: { boxWidth: 6, usePointStyle: true, pointStyle: 'circle', font: { size: 10 }, color: '#73818c' } },
+          tooltip: { callbacks: { label: function(ctx){ return (ctx.dataset.label || '') + ': ' + fmtNum(ctx.parsed.y, 0) + ' blocks'; } } }
+        },
+        scales: {
+          x: { ticks: { font: { size: 9 }, maxTicksLimit: 6, color: '#73818c' }, grid: { display: false }, border: { display: false } },
+          y: { beginAtZero: true, ticks: { font: { size: 9 }, color: '#73818c' }, grid: { color: '#eef2f4' }, border: { display: false } }
+        },
+        elements: { point: { radius: 0 }, line: { tension: 0.3, borderWidth: 2 } }
+      }
+    });
+  }
+
+  // ============================================================
+  // LOAD
+  // ============================================================
+  Promise.all([fetchUsageHistory(), fetchOrders(), fetchPlacements()]).then(function(results){
+    var usageHistory = results[0];
+    var orders = results[1];
+    var placements = results[2]; // null if the table isn't set up yet
+
+    var farms = Array.from(new Set(usageHistory.map(function(r){ return r.trial_site; }))).sort();
+    ALL_FARMS = farms; // shared with farmColor() so section headings and the placements table agree on which colour is whose
+
+    renderKpiGrid(usageHistory, farms);
+    renderFarmSections(usageHistory, orders, placements, farms);
+    renderPlacementsTable(placements, farms);
+  }).catch(function(err){
+    console.error('Portal load failed:', err);
+    document.getElementById('lbp-kpi-grid').innerHTML = '<div class="lbp-table-empty">Could not load lick block data — check the browser console and the feature service URLs at the top of this page’s script.</div>';
+  });
+
+  // ------------------------------------------------------------
+  // HEADLINE KPI GRID — latest avg_consumption_g_per_hd_day per
+  // (farm, treatment), the single number Jono asked to headline.
+  // ------------------------------------------------------------
+  function renderKpiGrid(usageHistory, farms){
+    var latestByKey = {};
+    usageHistory.forEach(function(r){
+      var key = r.trial_site + '|' + r.treatment;
+      if (!latestByKey[key] || r.snapshot_date > latestByKey[key].snapshot_date) latestByKey[key] = r;
+    });
+
+    var grid = document.getElementById('lbp-kpi-grid');
+    if (!farms.length) {
+      grid.innerHTML = '<div class="lbp-table-empty">No usage history yet — run 06. Lick_Block_Portal_Feed.py to populate this.</div>';
+      return;
+    }
+
+    var html = '';
+    farms.forEach(function(farm){
+      var color = farmColor(farm);
+      var tint = farmTint(farm);
+      ['seafeed', 'control'].forEach(function(treatment){
+        var r = latestByKey[farm + '|' + treatment];
+        var valueClass = treatment === 'seafeed' ? 'lbp-kpi-value seafeed' : 'lbp-kpi-value';
+        html += '<div class="lbp-kpi-card" style="border-left-color:' + color + ';background:' + tint + ';">' +
+          '<p class="lbp-kpi-label">' + farm + ' — ' + treatmentLabel(treatment) + '</p>' +
+          '<p class="' + valueClass + '">' + (r ? fmtNum(r.avg_consumption_g_per_hd_day, 0) + ' g' : '–') + '</p>' +
+          '<p class="lbp-kpi-note">' + (r ? (r.head_count != null ? r.head_count + ' head · as of ' + fmtDate(r.snapshot_date) : 'as of ' + fmtDate(r.snapshot_date)) : 'No data yet') + '</p>' +
+          '</div>';
+      });
+    });
+    grid.innerHTML = html;
+  }
+
+  // ------------------------------------------------------------
+  // PER-FARM SECTIONS — reorder card + usage trend chart, same
+  // on-hand/days-to-empty/reorder-by maths as farmer-portal-
+  // template.html's reorder tool (REORDER_LEAD_DAYS matched).
+  // ------------------------------------------------------------
+  // Builds a true cumulative-blocks-used series for one farm straight from
+  // the Placements table's full visit history (source of truth for
+  // "when did we first put blocks out"), rather than from the daily
+  // Usage_History rollup — Usage_History is only ever appended to for
+  // "today" by the pipeline (06. Lick_Block_Portal_Feed.py), so its
+  // earliest row for a farm is just whenever the pipeline first ran for
+  // that farm (10 Aug for Bowood, 3 Aug for Eastbourne in the old data),
+  // NOT when blocks actually first went out (confirmed via the live
+  // Placements service: Bowood's first logged placement was 12 May 2026,
+  // Eastbourne's was 14 Aug 2026 — months earlier than Usage_History knew
+  // about). Buckets same-day visits together, then forward-fills each
+  // treatment's running total so the line holds flat between visits
+  // instead of gapping, and stays null (no line) before that treatment's
+  // very first placement at this farm.
+  function buildCumulativeSeries(farmPlacements){
+    var byTreatmentDay = { seafeed: {}, control: {} };
+    farmPlacements.forEach(function(p){
+      var t = p.treatment;
+      if (!byTreatmentDay[t] || p.placement_time == null) return;
+      var dayKey = new Date(p.placement_time).setHours(0, 0, 0, 0);
+      byTreatmentDay[t][dayKey] = (byTreatmentDay[t][dayKey] || 0) + (Number(p.quantity_blocks) || 0);
+    });
+
+    var allDays = {};
+    ['seafeed', 'control'].forEach(function(t){
+      Object.keys(byTreatmentDay[t]).forEach(function(d){ allDays[d] = true; });
+    });
+    var days = Object.keys(allDays).map(Number).sort(function(a, b){ return a - b; });
+
+    var series = { seafeed: [], control: [] };
+    ['seafeed', 'control'].forEach(function(t){
+      var running = 0;
+      var started = false;
+      days.forEach(function(d){
+        if (byTreatmentDay[t][d] != null) { running += byTreatmentDay[t][d]; started = true; }
+        series[t].push(started ? running : null);
+      });
+    });
+    return { days: days, seafeed: series.seafeed, control: series.control };
+  }
+
+  function renderFarmSections(usageHistory, orders, placements, farms){
+    var container = document.getElementById('lbp-farm-sections');
+    if (!farms.length) { container.innerHTML = ''; return; }
+
+    var alertItems = [];
+    var html = '';
+
+    // PASS 1 — build the markup for every farm and set it in ONE shot.
+    // Bug fixed 2026-08-24: this used to call container.innerHTML = html
+    // inside the loop, once per farm — each farm after the first re-wrote
+    // the WHOLE container from the accumulated string, destroying the
+    // previous farm's already-rendered (and, seconds later, already
+    // filled-in) chart canvas and reorder stat elements, resetting them
+    // back to blank template markup. With only two farms this meant
+    // Bowood (sorts first alphabetically) would render correctly, then
+    // get wiped back to empty placeholders the instant Eastbourne's turn
+    // ran — exactly matching "no Bowood data showing". Now markup is
+    // built for every farm first, written to the DOM once, and ONLY THEN
+    // does pass 2 (below) create charts / fill in stats — so nothing
+    // written in pass 2 can ever be clobbered by a later iteration.
+    farms.forEach(function(farm, idx){
+      var chartId = 'lbp-chart-' + idx;
+      var color = farmColor(farm);
+
+      html += '<h2 class="lbp-farm-heading" style="border-left-color:' + color + ';">' + farm + '</h2>' +
+        '<div style="display:grid; grid-template-columns: 1.1fr 1fr; gap:16px;" class="lbp-farm-grid">' +
+        '  <div class="lbp-card">' +
+        '    <p class="lbp-section-label" style="margin-bottom:14px;">Lick block supply</p>' +
+        '    <div class="lbp-reorder-grid">' +
+        '      <div><p class="lbp-reorder-treatment seafeed">SeaFeed</p><div class="lbp-reorder-stats">' +
+        '        <div><span class="lbp-reorder-stat-label">On hand</span><span class="lbp-reorder-stat-value seafeed" id="ro-' + idx + '-sf-onhand">–</span></div>' +
+        '        <div><span class="lbp-reorder-stat-label">Days to empty</span><span class="lbp-reorder-stat-value seafeed" id="ro-' + idx + '-sf-days">–</span></div>' +
+        '        <div><span class="lbp-reorder-stat-label">Reorder by</span><span class="lbp-reorder-stat-value seafeed" id="ro-' + idx + '-sf-date">–</span></div>' +
+        '      </div><p class="lbp-reorder-note" id="ro-' + idx + '-sf-note"></p></div>' +
+        '      <div><p class="lbp-reorder-treatment">Control</p><div class="lbp-reorder-stats">' +
+        '        <div><span class="lbp-reorder-stat-label">On hand</span><span class="lbp-reorder-stat-value" id="ro-' + idx + '-ct-onhand">–</span></div>' +
+        '        <div><span class="lbp-reorder-stat-label">Days to empty</span><span class="lbp-reorder-stat-value" id="ro-' + idx + '-ct-days">–</span></div>' +
+        '        <div><span class="lbp-reorder-stat-label">Reorder by</span><span class="lbp-reorder-stat-value" id="ro-' + idx + '-ct-date">–</span></div>' +
+        '      </div><p class="lbp-reorder-note" id="ro-' + idx + '-ct-note"></p></div>' +
+        '    </div>' +
+        '  </div>' +
+        '  <div class="lbp-card lbp-chart-card">' +
+        '    <p class="lbp-section-label">Cumulative blocks used</p>' +
+        '    <canvas id="' + chartId + '"></canvas>' +
+        '    <p class="lbp-chart-empty" id="' + chartId + '-empty">No usage history yet for this farm.</p>' +
+        '  </div>' +
+        '</div>';
+    });
+
+    container.innerHTML = html;
+
+    // PASS 2 — now every farm's canvas/reorder elements exist in the DOM,
+    // safe to create charts and fill in stats without anything downstream
+    // wiping them out.
+    farms.forEach(function(farm, idx){
+      var chartId = 'lbp-chart-' + idx;
+      var farmHistory = usageHistory.filter(function(r){ return r.trial_site === farm; });
+      var farmOrders = orders.filter(function(r){ return r.trial_site === farm; });
+
+      // --- trend chart ---
+      // Prefer the Placements table (full visit history back to the actual
+      // first block placement) over the Usage_History rollup (only ever
+      // appended to "today" going forward — see buildCumulativeSeries()
+      // comment above). Falls back to the old Usage_History method only if
+      // the Placements table hasn't loaded (e.g. service unreachable).
+      var farmPlacementsForChart = (placements || []).filter(function(p){ return p.trial_site === farm; });
+      if (farmPlacementsForChart.length) {
+        var cum = buildCumulativeSeries(farmPlacementsForChart);
+        chartInstances[chartId] = lineChart(chartId, cum.days.map(fmtDate), [
+          { label: 'SeaFeed', data: cum.seafeed, borderColor: MINT, backgroundColor: 'transparent' },
+          { label: 'Control', data: cum.control, borderColor: SLATE, backgroundColor: 'transparent' }
+        ]);
+      } else if (farmHistory.length) {
+        var byDate = {};
+        farmHistory.forEach(function(r){
+          if (!byDate[r.snapshot_date]) byDate[r.snapshot_date] = {};
+          byDate[r.snapshot_date][r.treatment] = r.cumulative_blocks_used;
+        });
+        var dates = Object.keys(byDate).map(Number).sort(function(a, b){ return a - b; });
+        chartInstances[chartId] = lineChart(chartId, dates.map(fmtDate), [
+          { label: 'SeaFeed', data: dates.map(function(d){ return byDate[d].seafeed != null ? byDate[d].seafeed : null; }), borderColor: MINT, backgroundColor: 'transparent' },
+          { label: 'Control', data: dates.map(function(d){ return byDate[d].control != null ? byDate[d].control : null; }), borderColor: SLATE, backgroundColor: 'transparent' }
+        ]);
+      } else {
+        document.getElementById(chartId + '-empty').style.display = 'block';
+      }
+
+      // --- reorder maths, per treatment ---
+      var latestByTreatment = {};
+      farmHistory.forEach(function(r){
+        if (!latestByTreatment[r.treatment] || r.snapshot_date > latestByTreatment[r.treatment].snapshot_date) latestByTreatment[r.treatment] = r;
+      });
+      var orderedByTreatment = { seafeed: 0, control: 0 };
+      farmOrders.forEach(function(r){
+        if (r.treatment === 'seafeed' || r.treatment === 'control') orderedByTreatment[r.treatment] += (r.blocks_ordered || 0);
+      });
+
+      ['seafeed', 'control'].forEach(function(treatment){
+        var prefix = 'ro-' + idx + '-' + (treatment === 'seafeed' ? 'sf' : 'ct');
+        var onHandEl = document.getElementById(prefix + '-onhand');
+        var daysEl = document.getElementById(prefix + '-days');
+        var dateEl = document.getElementById(prefix + '-date');
+        var noteEl = document.getElementById(prefix + '-note');
+        var latest = latestByTreatment[treatment];
+        var ordered = orderedByTreatment[treatment];
+
+        if (!latest) { noteEl.textContent = 'No usage history yet'; return; }
+        if (!ordered) { noteEl.textContent = 'No orders logged yet in LEL_Lick_Block_Orders'; return; }
+
+        var onHand = ordered - latest.cumulative_blocks_used;
+        onHandEl.textContent = fmtNum(onHand, 0) + ' blocks';
+
+        var rate = latest.blocks_per_day_current;
+        if (!rate || rate <= 0) { noteEl.textContent = 'Not enough consumption data yet to project a rate'; return; }
+
+        var daysToEmpty = onHand / rate;
+        var runOutMs = Date.now() + daysToEmpty * 86400000;
+        var reorderByMs = runOutMs - REORDER_LEAD_DAYS * 86400000;
+        var outOfStock = onHand <= 0;
+        var overdue = reorderByMs <= Date.now() || outOfStock;
+
+        daysEl.textContent = Math.max(0, Math.round(daysToEmpty)) + ' days';
+        dateEl.textContent = fmtDate(reorderByMs);
+        daysEl.classList.toggle('overdue', overdue);
+        dateEl.classList.toggle('overdue', overdue);
+
+        if (outOfStock) { noteEl.textContent = 'Out of stock — order now'; noteEl.classList.add('stale'); }
+        else if (overdue) { noteEl.textContent = 'Past reorder date — order now'; noteEl.classList.add('stale'); }
+        else { noteEl.textContent = 'At current rate (' + rate.toFixed(2) + ' blocks/day)'; }
+
+        if (overdue) alertItems.push(farm + ' — ' + treatmentLabel(treatment) + ': ' + (outOfStock ? 'out of stock' : Math.max(0, Math.round(daysToEmpty)) + ' day(s) of supply left'));
+      });
+    });
+
+    if (alertItems.length) {
+      var banner = document.getElementById('lbp-alert-banner');
+      var text = document.getElementById('lbp-alert-banner-text');
+      text.innerHTML = '<strong>' + alertItems.length + ' lick block ' + (alertItems.length === 1 ? 'order needs' : 'orders need') + ' attention:</strong><ul>' +
+        alertItems.map(function(s){ return '<li>' + s + '</li>'; }).join('') + '</ul>';
+      banner.style.display = 'flex';
+    }
+  }
+
+  // ------------------------------------------------------------
+  // PLACEMENTS TABLE — sortable, filterable, client-side.
+  // ------------------------------------------------------------
+  var placementsState = { rows: [], sortKey: 'placement_time', sortDir: -1, search: '', farm: '', treatment: '', pageSize: 10 };
+
+  function renderPlacementsTable(placements, farms){
+    var farmSelect = document.getElementById('lbp-filter-farm');
+    farms.forEach(function(farm){
+      var opt = document.createElement('option');
+      opt.value = farm; opt.textContent = farm;
+      farmSelect.appendChild(opt);
+    });
+
+    var tbody = document.getElementById('lbp-placements-body');
+    if (placements === null) {
+      tbody.innerHTML = '<tr><td colspan="11" class="lbp-table-empty">Placements list isn’t set up yet — create LEL_LickBlock_Placements in ArcGIS Online and update PLACEMENTS_URL at the top of this page’s script (see the setup guide).</td></tr>';
+      return;
+    }
+    placementsState.rows = placements;
+    if (!placements.length) {
+      tbody.innerHTML = '<tr><td colspan="11" class="lbp-table-empty">No placements logged yet.</td></tr>';
+      return;
+    }
+
+    document.getElementById('lbp-search').addEventListener('input', function(e){ placementsState.search = e.target.value.toLowerCase(); drawPlacementsTable(); });
+    document.getElementById('lbp-filter-farm').addEventListener('change', function(e){ placementsState.farm = e.target.value; drawPlacementsTable(); });
+    document.getElementById('lbp-filter-treatment').addEventListener('change', function(e){ placementsState.treatment = e.target.value; drawPlacementsTable(); });
+    document.getElementById('lbp-page-size').addEventListener('change', function(e){ placementsState.pageSize = parseInt(e.target.value, 10); drawPlacementsTable(); });
+    document.querySelectorAll('#lbp-placements-table th[data-key]').forEach(function(th){
+      th.addEventListener('click', function(){
+        var key = th.getAttribute('data-key');
+        if (placementsState.sortKey === key) placementsState.sortDir *= -1;
+        else { placementsState.sortKey = key; placementsState.sortDir = 1; }
+        drawPlacementsTable();
+      });
+    });
+
+    drawPlacementsTable();
+  }
+
+  function drawPlacementsTable(){
+    var rows = placementsState.rows.filter(function(r){
+      if (placementsState.farm && r.trial_site !== placementsState.farm) return false;
+      if (placementsState.treatment && r.treatment !== placementsState.treatment) return false;
+      if (placementsState.search) {
+        var hay = [r.trial_site, r.treatment, r.asset_id, r.location_type].join(' ').toLowerCase();
+        if (hay.indexOf(placementsState.search) === -1) return false;
+      }
+      return true;
+    });
+
+    var key = placementsState.sortKey, dir = placementsState.sortDir;
+    rows.sort(function(a, b){
+      var av = a[key], bv = b[key];
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      if (typeof av === 'string') return av.localeCompare(bv) * dir;
+      return (av - bv) * dir;
+    });
+
+    document.querySelectorAll('#lbp-placements-table th[data-key]').forEach(function(th){
+      var existing = th.querySelector('.lbp-sort-arrow');
+      if (existing) existing.remove();
+      if (th.getAttribute('data-key') === key) {
+        var arrow = document.createElement('span');
+        arrow.className = 'lbp-sort-arrow';
+        arrow.textContent = dir === 1 ? '▲' : '▼';
+        th.appendChild(arrow);
+      }
+    });
+
+    var tbody = document.getElementById('lbp-placements-body');
+    var noteEl = document.getElementById('lbp-pagination-note');
+    var pageSizeSelect = document.getElementById('lbp-page-size');
+    if (String(placementsState.pageSize) !== pageSizeSelect.value) pageSizeSelect.value = String(placementsState.pageSize);
+
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="11" class="lbp-table-empty">No placements match these filters.</td></tr>';
+      noteEl.textContent = '';
+      return;
+    }
+
+    // Collapsed to pageSize rows by default (10/20/50, Jono's request
+    // 2026-08-24) — the sort/filter above already ran across the FULL
+    // set, so this only trims what's actually rendered, not what's
+    // searched/sorted.
+    var totalCount = rows.length;
+    var visibleRows = rows.slice(0, placementsState.pageSize);
+    noteEl.textContent = 'Showing ' + visibleRows.length.toLocaleString('en-AU') + ' of ' + totalCount.toLocaleString('en-AU') + ' placement(s)' + (totalCount > visibleRows.length ? ' — refine the filters above or show more to see the rest' : '');
+
+    tbody.innerHTML = visibleRows.map(function(r){
+      var color = farmColor(r.trial_site);
+      return '<tr>' +
+        '<td>' + fmtDate(r.placement_time) + '</td>' +
+        '<td><span class="lbp-farm-dot" style="background:' + color + ';"></span><span class="lbp-farm-name" style="color:' + color + ';">' + (r.trial_site || '–') + '</span></td>' +
+        '<td><span class="lbp-treatment-pill ' + r.treatment + '">' + treatmentLabel(r.treatment) + '</span></td>' +
+        '<td>' + (r.asset_id || '–') + '</td>' +
+        '<td>' + (r.location_type || '–') + '</td>' +
+        '<td>' + fmtNum(r.quantity_blocks, 0) + '</td>' +
+        '<td>' + (r.unit_weight_kg != null ? fmtNum(r.unit_weight_kg, 1) + ' kg' : '–') + '</td>' +
+        '<td>' + fmtNum(r.head_count, 0) + '</td>' +
+        '<td>' + (r.interval_days_since_previous != null ? fmtNum(r.interval_days_since_previous, 1) : '–') + '</td>' +
+        '<td>' + (r.avg_consumption_g_per_hd_day != null ? fmtNum(r.avg_consumption_g_per_hd_day, 0) : '–') + '</td>' +
+        '<td>' + (r.cost_aud != null ? '$' + fmtNum(r.cost_aud, 2) : '–') + '</td>' +
+        '</tr>';
+    }).join('');
+  }
+
+})();
+</script>
+</body>
+</html>
