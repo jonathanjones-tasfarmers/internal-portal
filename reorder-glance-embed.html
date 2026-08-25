@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!--
+  LEL Staff Portal — "Reorder at a glance" embed.
+
+  Built 2026-08-25 (round 6), replacing two failed attempts to run this
+  logic as JS pasted directly into the Home page's Text/Code content
+  block:
+
+  Attempt 1: a plain <script> tag. Failed — Hub renders pasted content
+  via innerHTML, and <script> elements inserted that way never execute
+  in any browser (standard, unavoidable web platform behaviour).
+
+  Attempt 2: a hidden <img src="data:," onerror="..."> trick (inline
+  event-handler attributes normally DO fire even from innerHTML-inserted
+  content, so this usually works around the <script> limitation). Also
+  failed — live inspection found Hub's sanitiser strips the onerror
+  attribute AND blanks the data: URI entirely, confirming this Hub site's
+  Text block sanitises out every form of inline script execution, not
+  just <script> tags.
+
+  CONCLUSION: this content block genuinely cannot run JavaScript, full
+  stop. The only proven-working way to run live, data-fetching JS on this
+  site is a real iframe via Hub's own native Embed/Code widget — exactly
+  how the Lick Block Tracker page already works (iframing
+  lickblock-internal-portal.html). This file is that same pattern, sized
+  down to just the reorder cards: a genuine, unsanitised page hosted on
+  GitHub Pages, iframed in via a Hub EMBED block (not pasted as Text) —
+  do NOT paste this file's contents directly into a Text block, it must
+  be added as an actual iframe/embed pointing at this file's hosted URL.
+
+  Deploy: upload to the same GitHub repo as lickblock-internal-portal.html
+  (jonathanjones-tasfarmers/internal-portal). In Hub's Home page editor,
+  add a new EMBED (not Text) content block between the hero and the Tools
+  section, pointing its URL at this file, sized to roughly 220-260px tall
+  (grows a little if more farms/treatments appear later — check it fits
+  after first live load and adjust the embed's height in Hub if needed).
+
+  Same reorder maths as lickblock-internal-portal.html's own reorder
+  cards, and same fetch logic as the now-unused staff-portal-reorder-
+  glance.js (kept for reference/history — this file supersedes it).
+
+  UPDATE 2026-08-25 (round 7): Jono split the Home page content so this
+  embed sits as its own block BETWEEN the hero (staff-portal-home-
+  hero.html) and Tools (staff-portal-home-tools.html) blocks, rather than
+  in the middle of one big pasted file. Body padding below adjusted to
+  32px left/right to match the 32px side padding used in both of those
+  files (was 2px), so the glance cards line up under the hero text and
+  above the Tools cards instead of hugging the iframe's own edge. Height
+  is still whatever you set on the Hub Embed block itself — this file's
+  content just fills whatever box it's given.
+-->
+<meta name="robots" content="noindex, nofollow">
+<title>Reorder at a glance</title>
+<style>
+  :root{
+    --tf-navy-900:#041221;
+    --tf-slate-400:#a9b8c4;
+    --tf-slate-300:oklch(from var(--tf-slate-400) calc(l + 0.08) c h);
+    --tf-slate-200:oklch(from var(--tf-slate-400) calc(l + 0.14) c h);
+    --tf-slate-100:oklch(from var(--tf-slate-400) calc(l + 0.19) c h);
+    --tf-slate-600:oklch(from var(--tf-slate-400) calc(l - 0.18) c h);
+    --tf-seafeed:#3aa989;
+    --tf-red:#c0392b;
+    --tf-warning:#c98a2e;
+    --tf-white:#ffffff;
+    --surface-page:#faf9f6;
+    --surface-card:var(--tf-white);
+    --text-heading:var(--tf-navy-900);
+    --text-body:oklch(from var(--tf-navy-900) calc(l + 0.06) calc(c - 0.005) h);
+    --text-muted:var(--tf-slate-600);
+    --border-subtle:var(--tf-slate-200);
+    --border-default:var(--tf-slate-300);
+    --radius-lg:12px;
+    --shadow-sm:0 1px 2px rgba(4,18,33,0.08);
+    --font-display:Tahoma,Verdana,sans-serif;
+    --font-body:Verdana,Tahoma,sans-serif;
+  }
+  html, body { margin: 0; background: var(--surface-page); }
+  body { font-family: var(--font-body); color: var(--text-body); -webkit-font-smoothing:antialiased; padding: 16px 32px 12px; box-sizing: border-box; }
+
+  .sp-section-label { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; margin: 0 0 14px 2px; }
+  .sp-glance-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+  .sp-glance-card { background: var(--surface-card); border: 1px solid var(--border-subtle); border-left: 4px solid var(--border-default); border-radius: var(--radius-lg); padding: 16px 18px; box-sizing: border-box; }
+  .sp-glance-card.overdue { border-left-color: var(--tf-red); }
+  .sp-glance-card.soon { border-left-color: var(--tf-warning); }
+  .sp-glance-label { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 8px; }
+  .sp-glance-value { font-family: var(--font-display); font-size: 19px; font-weight: 700; color: var(--text-heading); margin: 0; }
+  .sp-glance-value.overdue { color: var(--tf-red); }
+  .sp-glance-value.soon { color: var(--tf-warning); }
+  .sp-glance-note { font-family: var(--font-display); font-size: 11.5px; color: var(--text-muted); margin: 6px 0 0; }
+  .sp-glance-note.stale { color: var(--tf-red); font-weight: 700; }
+  .sp-empty-note { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<p class="sp-section-label">Reorder at a glance</p>
+<div class="sp-glance-grid" id="sp-glance-grid">
+  <p class="sp-empty-note">Loading reorder data&hellip;</p>
+</div>
+
+<script>
+(function(){
+  var USAGE_HISTORY_URL = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lick_Block_Usage_History/FeatureServer/0/query";
+  var ORDERS_URL         = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lick_Block_Orders/FeatureServer/0/query";
+  var REORDER_LEAD_DAYS = 40;
+  var SOON_THRESHOLD_DAYS = 14;
+
+  function q(url, params){
+    return fetch(url + "?" + new URLSearchParams(params)).then(function(res){ return res.json(); }).then(function(data){
+      if (data.error) throw new Error(data.error.message || "Query failed");
+      return data;
+    });
+  }
+  function fetchUsageHistory(){
+    return q(USAGE_HISTORY_URL, {
+      where: "treatment IN ('seafeed','control')",
+      outFields: "snapshot_date,trial_site,treatment,cumulative_blocks_used,blocks_per_day_current",
+      orderByFields: "snapshot_date ASC", resultRecordCount: "4000", f: "json"
+    }).then(function(data){ return data.features.map(function(f){ return f.attributes; }); }).catch(function(err){
+      console.error('Usage history fetch failed:', err);
+      return [];
+    });
+  }
+  function fetchOrders(){
+    return q(ORDERS_URL, {
+      where: "treatment IN ('seafeed','control')",
+      outFields: "trial_site,treatment,blocks_ordered,order_date",
+      orderByFields: "order_date ASC", resultRecordCount: "1000", f: "json"
+    }).then(function(data){ return data.features.map(function(f){ return f.attributes; }); }).catch(function(err){
+      console.error('Orders fetch failed:', err);
+      return [];
+    });
+  }
+  function fmtDate(ms){
+    if (ms == null) return '–';
+    return new Date(ms).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  function treatmentLabel(t){ return t === 'seafeed' ? 'SeaFeed' : 'Control'; }
+
+  Promise.all([fetchUsageHistory(), fetchOrders()]).then(function(results){
+    var usageHistory = results[0], orders = results[1];
+    var grid = document.getElementById('sp-glance-grid');
+    var farms = Array.from(new Set(usageHistory.map(function(r){ return r.trial_site; }))).sort();
+
+    if (!farms.length) {
+      grid.innerHTML = '<p class="sp-empty-note">No usage history yet — run 06. Lick_Block_Portal_Feed.py to populate this.</p>';
+      return;
+    }
+
+    var rows = [];
+    farms.forEach(function(farm){
+      var farmHistory = usageHistory.filter(function(r){ return r.trial_site === farm; });
+      var farmOrders = orders.filter(function(r){ return r.trial_site === farm; });
+      var latestByTreatment = {};
+      farmHistory.forEach(function(r){
+        if (!latestByTreatment[r.treatment] || r.snapshot_date > latestByTreatment[r.treatment].snapshot_date) latestByTreatment[r.treatment] = r;
+      });
+      var orderedByTreatment = { seafeed: 0, control: 0 };
+      farmOrders.forEach(function(r){
+        if (r.treatment === 'seafeed' || r.treatment === 'control') orderedByTreatment[r.treatment] += (r.blocks_ordered || 0);
+      });
+
+      ['seafeed', 'control'].forEach(function(treatment){
+        var latest = latestByTreatment[treatment];
+        var ordered = orderedByTreatment[treatment];
+        var row = { farm: farm, treatment: treatment, status: 'ok', reorderByMs: null, note: '' };
+
+        if (!latest) { row.status = 'nodata'; row.note = 'No usage history yet'; rows.push(row); return; }
+        if (!ordered) { row.status = 'nodata'; row.note = 'No orders logged yet'; rows.push(row); return; }
+
+        var onHand = ordered - latest.cumulative_blocks_used;
+        var rate = latest.blocks_per_day_current;
+        if (!rate || rate <= 0) { row.status = 'nodata'; row.note = 'Not enough data for a rate yet'; rows.push(row); return; }
+
+        var daysToEmpty = onHand / rate;
+        var runOutMs = Date.now() + daysToEmpty * 86400000;
+        var reorderByMs = runOutMs - REORDER_LEAD_DAYS * 86400000;
+        var outOfStock = onHand <= 0;
+        var overdue = reorderByMs <= Date.now() || outOfStock;
+        var soon = !overdue && reorderByMs <= Date.now() + SOON_THRESHOLD_DAYS * 86400000;
+
+        row.reorderByMs = reorderByMs;
+        row.onHand = onHand;
+        row.daysToEmpty = daysToEmpty;
+        row.status = overdue ? 'overdue' : (soon ? 'soon' : 'ok');
+        row.note = outOfStock ? 'Out of stock — order now'
+          : overdue ? 'Past reorder date — order now'
+          : Math.max(0, Math.round(daysToEmpty)) + ' days of supply left';
+        rows.push(row);
+      });
+    });
+
+    rows.sort(function(a, b){
+      if (a.reorderByMs == null && b.reorderByMs == null) return 0;
+      if (a.reorderByMs == null) return 1;
+      if (b.reorderByMs == null) return -1;
+      return a.reorderByMs - b.reorderByMs;
+    });
+
+    grid.innerHTML = rows.map(function(r){
+      var statusClass = r.status === 'overdue' ? 'overdue' : (r.status === 'soon' ? 'soon' : '');
+      var valueText = r.reorderByMs != null ? fmtDate(r.reorderByMs) : '–';
+      return '<div class="sp-glance-card ' + statusClass + '">' +
+        '<p class="sp-glance-label">' + r.farm + ' &mdash; ' + treatmentLabel(r.treatment) + '</p>' +
+        '<p class="sp-glance-value ' + statusClass + '">' + valueText + '</p>' +
+        '<p class="sp-glance-note' + (r.status === 'overdue' ? ' stale' : '') + '">' + r.note + '</p>' +
+        '</div>';
+    }).join('');
+  }).catch(function(err){
+    console.error('Reorder glance failed:', err);
+    document.getElementById('sp-glance-grid').innerHTML = '<p class="sp-empty-note">Could not load reorder data.</p>';
+  });
+})();
+</script>
+
+</body>
+</html>
