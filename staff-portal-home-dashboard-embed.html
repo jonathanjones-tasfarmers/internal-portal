@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!--
+  LEL Staff Portal — "Operations" dashboard embed.
+
+  Built 2026-08-31 as part of the full Home page layout rework (per
+  Jono's call). MERGES reorder-glance-embed.html and pipeline-health-
+  embed.html (both now marked superseded — see their own top comments)
+  into ONE Embed block, for two reasons:
+
+  1. Each Hub Text/Code block genuinely cannot run any JavaScript
+     (confirmed exhaustively — see reorder-glance-embed.html's original
+     top comment for the full story of why), so any live-data section on
+     this site has to be a real iframe via Hub's native Embed widget.
+     Since both pipeline health and reorder status are live-data sections,
+     they were previously two separate stacked embeds. Only content
+     inside the SAME iframe can share a CSS grid, so merging them into one
+     file is what makes an actual side-by-side dashboard layout possible
+     instead of two more full-width blocks stacked in a single column.
+  2. A KPI summary strip (see below) needs numbers derived from BOTH
+     datasets at once (e.g. "reorders needing attention" pulls from the
+     reorder logic; overall pipeline status pulls from the health logic),
+     which is far simpler to compute when both live in one script than
+     coordinating two separate iframes.
+
+  LAYOUT: three rows —
+    1. KPI strip — 3 big-number cards (pipeline status, next reorder due,
+       reorders needing attention). Per the dashboard-design skill: the
+       NUMBER is the hero here, biggest/boldest thing on each card, a
+       small label above and optional note below, nothing competing with
+       it.
+    2. Two-column row (stacks to one column under 860px): Pipeline Health
+       cards on the left, Reorder at a Glance cards on the right.
+
+  DATA SOURCES — unchanged from the two files this replaces:
+    - Pipeline health: latest record date from OptiWeigh liveweight,
+      Emissions, Economics (3 separate small queries), plus Lick Block
+      Usage History — which is now read ONCE and reused for both its
+      health check (max snapshot_date) AND the full reorder computation,
+      instead of two separate fetches like the old two-embed setup.
+    - Reorder logic: LEL_Lick_Block_Usage_History + LEL_Lick_Block_Orders,
+      same maths as before (REORDER_LEAD_DAYS / SOON_THRESHOLD_DAYS).
+    - WHY NOT LEL_Run_Log for pipeline health: see pipeline-health-
+      embed.html's original comment — Jono asked to avoid it while it's a
+      private/org item; this infers health from live public data instead.
+
+  Deploy: upload to the same GitHub repo as lickblock-internal-portal.html
+  (jonathanjones-tasfarmers/internal-portal). In Hub's Home page editor,
+  REMOVE the old reorder-glance and pipeline-health Embed blocks, and add
+  ONE new EMBED block in their place, pointing at this file's hosted URL.
+  Suggested starting height: 620px on desktop (KPI row ~110px + two
+  columns of cards that currently wrap to 2 rows each at ~220px min-width
+  + labels/padding). This will need to grow a little as more farms come
+  online (more cards per column) — check it fits after first live load
+  and adjust the Embed block's height in Hub if content looks clipped or
+  there's a big empty gap at the bottom.
+-->
+<meta name="robots" content="noindex, nofollow">
+<title>Operations dashboard</title>
+<style>
+  :root{
+    --tf-navy-900:#041221;
+    --tf-slate-400:#a9b8c4;
+    --tf-slate-300:oklch(from var(--tf-slate-400) calc(l + 0.08) c h);
+    --tf-slate-200:oklch(from var(--tf-slate-400) calc(l + 0.14) c h);
+    --tf-slate-100:oklch(from var(--tf-slate-400) calc(l + 0.19) c h);
+    --tf-slate-600:oklch(from var(--tf-slate-400) calc(l - 0.18) c h);
+    --tf-seafeed:#3aa989;
+    --tf-red:#c0392b;
+    --tf-warning:#c98a2e;
+    --tf-white:#ffffff;
+    --surface-page:#faf9f6;
+    --surface-card:var(--tf-white);
+    --text-heading:var(--tf-navy-900);
+    --text-body:oklch(from var(--tf-navy-900) calc(l + 0.06) calc(c - 0.005) h);
+    --text-muted:var(--tf-slate-600);
+    --border-subtle:var(--tf-slate-200);
+    --border-default:var(--tf-slate-300);
+    --radius-lg:12px;
+    --shadow-sm:0 1px 2px rgba(4,18,33,0.08);
+    --font-display:Tahoma,Verdana,sans-serif;
+    --font-body:Verdana,Tahoma,sans-serif;
+  }
+  html, body { margin: 0; background: var(--surface-page); }
+  body { font-family: var(--font-body); color: var(--text-body); -webkit-font-smoothing:antialiased; padding: 16px 32px 20px; box-sizing: border-box; }
+
+  .sp-section-label { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; margin: 0 0 14px 2px; }
+  .sp-empty-note { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+  /* --- KPI strip: the number is the hero, everything else secondary --- */
+  .sp-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 26px; }
+  .sp-kpi-card { background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 16px 18px; box-sizing: border-box; box-shadow: var(--shadow-sm); }
+  .sp-kpi-label { font-family: var(--font-display); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 0 0 8px; }
+  .sp-kpi-value { font-family: var(--font-display); font-size: 26px; font-weight: 700; color: var(--text-heading); margin: 0; line-height: 1.15; }
+  .sp-kpi-value.ok { color: var(--tf-seafeed); }
+  .sp-kpi-value.warning { color: var(--tf-warning); }
+  .sp-kpi-value.overdue { color: var(--tf-red); }
+  .sp-kpi-note { font-size: 12px; color: var(--text-muted); margin: 6px 0 0; }
+
+  /* --- Two-column detail row --- */
+  .sp-dash-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+  @media (max-width: 860px) { .sp-dash-columns { grid-template-columns: 1fr; gap: 26px; } }
+
+  .sp-health-grid, .sp-glance-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+
+  .sp-health-card, .sp-glance-card { background: var(--surface-card); border: 1px solid var(--border-subtle); border-left: 4px solid var(--border-default); border-radius: var(--radius-lg); padding: 14px 16px; box-sizing: border-box; }
+  .sp-health-card.overdue, .sp-glance-card.overdue { border-left-color: var(--tf-red); }
+  .sp-health-card.warning, .sp-glance-card.soon { border-left-color: var(--tf-warning); }
+  .sp-health-card.ok { border-left-color: var(--tf-seafeed); }
+
+  .sp-health-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .sp-health-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--tf-slate-400); }
+  .sp-health-dot.ok { background: var(--tf-seafeed); }
+  .sp-health-dot.warning { background: var(--tf-warning); }
+  .sp-health-dot.overdue { background: var(--tf-red); }
+  .sp-health-label { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: var(--text-heading); margin: 0; }
+  .sp-health-value { font-size: 13px; color: var(--text-body); margin: 0; }
+  .sp-health-value.overdue { color: var(--tf-red); font-weight: 700; }
+  .sp-health-value.warning { color: var(--tf-warning); font-weight: 700; }
+  .sp-health-meta { font-size: 11px; color: var(--text-muted); margin: 3px 0 0; }
+
+  .sp-glance-label { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 8px; }
+  .sp-glance-value { font-family: var(--font-display); font-size: 17px; font-weight: 700; color: var(--text-heading); margin: 0; }
+  .sp-glance-value.overdue { color: var(--tf-red); }
+  .sp-glance-value.soon { color: var(--tf-warning); }
+  .sp-glance-note { font-family: var(--font-display); font-size: 11px; color: var(--text-muted); margin: 6px 0 0; }
+  .sp-glance-note.stale { color: var(--tf-red); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<p class="sp-section-label">Operations</p>
+<div class="sp-kpi-grid" id="sp-kpi-grid">
+  <p class="sp-empty-note">Loading overview&hellip;</p>
+</div>
+
+<div class="sp-dash-columns">
+  <div>
+    <p class="sp-section-label">Pipeline health</p>
+    <div class="sp-health-grid" id="sp-health-grid">
+      <p class="sp-empty-note">Checking pipelines&hellip;</p>
+    </div>
+  </div>
+  <div>
+    <p class="sp-section-label">Reorder at a glance</p>
+    <div class="sp-glance-grid" id="sp-glance-grid">
+      <p class="sp-empty-note">Loading reorder data&hellip;</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var EMISSIONS_URL     = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Emissions_Data_view/FeatureServer/0/query";
+  var ECON_URL           = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Economics_Data/FeatureServer/0/query";
+  var PRODUCTIVITY_URL   = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/OptiWeigh_Cattle_Weights/FeatureServer/0/query";
+  var USAGE_HISTORY_URL  = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lick_Block_Usage_History/FeatureServer/0/query";
+  var ORDERS_URL         = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lick_Block_Orders/FeatureServer/0/query";
+
+  var STALE_HOURS = 36;
+  var OVERDUE_HOURS = 72;
+  var REORDER_LEAD_DAYS = 40;
+  var SOON_THRESHOLD_DAYS = 14;
+
+  function q(url, params){
+    return fetch(url + "?" + new URLSearchParams(params)).then(function(res){ return res.json(); }).then(function(data){
+      if (data.error) throw new Error(data.error.message || "Query failed");
+      return data;
+    });
+  }
+
+  function fetchLatestDate(label, url, dateField, scripts){
+    return q(url, { where: "1=1", outFields: dateField, orderByFields: dateField + " DESC", resultRecordCount: "1", f: "json" })
+      .then(function(data){
+        var ms = data.features.length ? data.features[0].attributes[dateField] : null;
+        return { label: label, scripts: scripts, latestMs: ms };
+      }).catch(function(err){
+        console.error(label + ' fetch failed:', err);
+        return { label: label, scripts: scripts, latestMs: null, fetchFailed: true };
+      });
+  }
+
+  function fetchUsageHistory(){
+    return q(USAGE_HISTORY_URL, {
+      where: "treatment IN ('seafeed','control')",
+      outFields: "snapshot_date,trial_site,treatment,cumulative_blocks_used,blocks_per_day_current",
+      orderByFields: "snapshot_date ASC", resultRecordCount: "4000", f: "json"
+    }).then(function(data){ return data.features.map(function(f){ return f.attributes; }); }).catch(function(err){
+      console.error('Usage history fetch failed:', err);
+      return [];
+    });
+  }
+  function fetchOrders(){
+    return q(ORDERS_URL, {
+      where: "treatment IN ('seafeed','control')",
+      outFields: "trial_site,treatment,blocks_ordered,order_date",
+      orderByFields: "order_date ASC", resultRecordCount: "1000", f: "json"
+    }).then(function(data){ return data.features.map(function(f){ return f.attributes; }); }).catch(function(err){
+      console.error('Orders fetch failed:', err);
+      return [];
+    });
+  }
+
+  function fmtRelative(hours){
+    if (hours < 1) return "just now";
+    if (hours < 24) return Math.round(hours) + (Math.round(hours) === 1 ? " hour ago" : " hours ago");
+    var days = Math.round(hours / 24);
+    return days + (days === 1 ? " day ago" : " days ago");
+  }
+  function fmtDate(ms){
+    if (ms == null) return '–';
+    return new Date(ms).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  function fmtDateTime(ms){
+    return new Date(ms).toLocaleString('en-AU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  }
+  function treatmentLabel(t){ return t === 'seafeed' ? 'SeaFeed' : 'Control'; }
+
+  function computeReorderRows(usageHistory, orders){
+    var farms = Array.from(new Set(usageHistory.map(function(r){ return r.trial_site; }))).sort();
+    var rows = [];
+    farms.forEach(function(farm){
+      var farmHistory = usageHistory.filter(function(r){ return r.trial_site === farm; });
+      var farmOrders = orders.filter(function(r){ return r.trial_site === farm; });
+      var latestByTreatment = {};
+      farmHistory.forEach(function(r){
+        if (!latestByTreatment[r.treatment] || r.snapshot_date > latestByTreatment[r.treatment].snapshot_date) latestByTreatment[r.treatment] = r;
+      });
+      var orderedByTreatment = { seafeed: 0, control: 0 };
+      farmOrders.forEach(function(r){
+        if (r.treatment === 'seafeed' || r.treatment === 'control') orderedByTreatment[r.treatment] += (r.blocks_ordered || 0);
+      });
+
+      ['seafeed', 'control'].forEach(function(treatment){
+        var latest = latestByTreatment[treatment];
+        var ordered = orderedByTreatment[treatment];
+        var row = { farm: farm, treatment: treatment, status: 'nodata', reorderByMs: null, note: '' };
+
+        if (!latest) { row.note = 'No usage history yet'; rows.push(row); return; }
+        if (!ordered) { row.note = 'No orders logged yet'; rows.push(row); return; }
+
+        var onHand = ordered - latest.cumulative_blocks_used;
+        var rate = latest.blocks_per_day_current;
+        if (!rate || rate <= 0) { row.note = 'Not enough data for a rate yet'; rows.push(row); return; }
+
+        var daysToEmpty = onHand / rate;
+        var runOutMs = Date.now() + daysToEmpty * 86400000;
+        var reorderByMs = runOutMs - REORDER_LEAD_DAYS * 86400000;
+        var outOfStock = onHand <= 0;
+        var overdue = reorderByMs <= Date.now() || outOfStock;
+        var soon = !overdue && reorderByMs <= Date.now() + SOON_THRESHOLD_DAYS * 86400000;
+
+        row.reorderByMs = reorderByMs;
+        row.daysToEmpty = daysToEmpty;
+        row.status = overdue ? 'overdue' : (soon ? 'soon' : 'ok');
+        row.note = outOfStock ? 'Out of stock — order now'
+          : overdue ? 'Past reorder date — order now'
+          : Math.max(0, Math.round(daysToEmpty)) + ' days of supply left';
+        rows.push(row);
+      });
+    });
+
+    rows.sort(function(a, b){
+      if (a.reorderByMs == null && b.reorderByMs == null) return 0;
+      if (a.reorderByMs == null) return 1;
+      if (b.reorderByMs == null) return -1;
+      return a.reorderByMs - b.reorderByMs;
+    });
+    return rows;
+  }
+
+  function renderHealth(results){
+    var grid = document.getElementById('sp-health-grid');
+    grid.innerHTML = results.map(function(r){
+      if (r.fetchFailed || r.latestMs == null) {
+        return '<div class="sp-health-card">' +
+          '<div class="sp-health-top"><span class="sp-health-dot"></span><p class="sp-health-label">' + r.label + '</p></div>' +
+          '<p class="sp-health-value">No data yet</p>' +
+          '<p class="sp-health-meta">Scripts ' + r.scripts + '</p>' +
+          '</div>';
+      }
+      var hours = (Date.now() - r.latestMs) / 3600000;
+      var status = hours > OVERDUE_HOURS ? 'overdue' : (hours > STALE_HOURS ? 'warning' : 'ok');
+      var statusText = status === 'overdue' ? 'Overdue — check it now' : (status === 'warning' ? 'Running late' : 'Up to date');
+      return '<div class="sp-health-card ' + status + '">' +
+        '<div class="sp-health-top"><span class="sp-health-dot ' + status + '"></span><p class="sp-health-label">' + r.label + '</p></div>' +
+        '<p class="sp-health-value ' + status + '">' + statusText + '</p>' +
+        '<p class="sp-health-meta">Last updated ' + fmtRelative(hours) + ' &middot; ' + fmtDateTime(r.latestMs) + '</p>' +
+        '<p class="sp-health-meta">Scripts ' + r.scripts + '</p>' +
+        '</div>';
+    }).join('');
+  }
+
+  function renderReorder(rows){
+    var grid = document.getElementById('sp-glance-grid');
+    if (!rows.length) {
+      grid.innerHTML = '<p class="sp-empty-note">No usage history yet — run 06. Lick_Block_Portal_Feed.py to populate this.</p>';
+      return;
+    }
+    grid.innerHTML = rows.map(function(r){
+      var statusClass = r.status === 'overdue' ? 'overdue' : (r.status === 'soon' ? 'soon' : '');
+      var valueText = r.reorderByMs != null ? fmtDate(r.reorderByMs) : '–';
+      return '<div class="sp-glance-card ' + statusClass + '">' +
+        '<p class="sp-glance-label">' + r.farm + ' &mdash; ' + treatmentLabel(r.treatment) + '</p>' +
+        '<p class="sp-glance-value ' + statusClass + '">' + valueText + '</p>' +
+        '<p class="sp-glance-note' + (r.status === 'overdue' ? ' stale' : '') + '">' + r.note + '</p>' +
+        '</div>';
+    }).join('');
+  }
+
+  function renderKpis(healthResults, reorderRows){
+    var kpiGrid = document.getElementById('sp-kpi-grid');
+
+    // KPI 1 — overall pipeline status: worst status among the 4 domains.
+    var okCount = 0, worst = 'ok';
+    healthResults.forEach(function(r){
+      if (r.fetchFailed || r.latestMs == null) return; // "no data yet" doesn't count as ok or push worst — genuinely unknown
+      var hours = (Date.now() - r.latestMs) / 3600000;
+      var status = hours > OVERDUE_HOURS ? 'overdue' : (hours > STALE_HOURS ? 'warning' : 'ok');
+      if (status === 'ok') okCount++;
+      if (status === 'overdue') worst = 'overdue';
+      else if (status === 'warning' && worst !== 'overdue') worst = 'warning';
+    });
+    var pipelineClass = worst === 'overdue' ? 'overdue' : (worst === 'warning' ? 'warning' : 'ok');
+    var pipelineNote = worst === 'overdue' ? 'One or more pipelines overdue' : (worst === 'warning' ? 'One or more pipelines running late' : 'All pipelines up to date');
+
+    // KPI 2 — next reorder due: earliest reorderByMs among rows that have one.
+    var withDate = reorderRows.filter(function(r){ return r.reorderByMs != null; });
+    var next = withDate.length ? withDate[0] : null; // reorderRows already sorted ascending by reorderByMs
+    var nextClass = next ? (next.status === 'overdue' ? 'overdue' : (next.status === 'soon' ? 'warning' : 'ok')) : '';
+    var nextValue = next ? fmtDate(next.reorderByMs) : '–';
+    var nextNote = next ? (next.farm + ' — ' + treatmentLabel(next.treatment)) : 'No reorder data yet';
+
+    // KPI 3 — items needing attention: count of overdue + soon rows.
+    var attentionCount = reorderRows.filter(function(r){ return r.status === 'overdue' || r.status === 'soon'; }).length;
+    var hasOverdue = reorderRows.some(function(r){ return r.status === 'overdue'; });
+    var attentionClass = attentionCount === 0 ? 'ok' : (hasOverdue ? 'overdue' : 'warning');
+
+    kpiGrid.innerHTML =
+      '<div class="sp-kpi-card">' +
+        '<p class="sp-kpi-label">Pipeline status</p>' +
+        '<p class="sp-kpi-value ' + pipelineClass + '">' + okCount + '/' + healthResults.length + ' OK</p>' +
+        '<p class="sp-kpi-note">' + pipelineNote + '</p>' +
+      '</div>' +
+      '<div class="sp-kpi-card">' +
+        '<p class="sp-kpi-label">Next reorder due</p>' +
+        '<p class="sp-kpi-value ' + nextClass + '">' + nextValue + '</p>' +
+        '<p class="sp-kpi-note">' + nextNote + '</p>' +
+      '</div>' +
+      '<div class="sp-kpi-card">' +
+        '<p class="sp-kpi-label">Needs attention</p>' +
+        '<p class="sp-kpi-value ' + attentionClass + '">' + attentionCount + '</p>' +
+        '<p class="sp-kpi-note">' + (attentionCount === 0 ? 'No reorders due soon' : 'Reorder' + (attentionCount === 1 ? '' : 's') + ' due soon or overdue') + '</p>' +
+      '</div>';
+  }
+
+  Promise.all([
+    fetchLatestDate('OptiWeigh liveweight', PRODUCTIVITY_URL, 'snapshot_date', '00 / 01'),
+    fetchLatestDate('Emissions', EMISSIONS_URL, 'record_date', '03'),
+    fetchLatestDate('Economics', ECON_URL, 'calculation_date', '04'),
+    fetchUsageHistory(),
+    fetchOrders()
+  ]).then(function(results){
+    var healthResults = [results[0], results[1], results[2]];
+    var usageHistory = results[3];
+    var orders = results[4];
+
+    // Lick block usage's own health check reuses the SAME full-history
+    // fetch the reorder logic needs below, rather than a second query.
+    var usageDates = usageHistory.map(function(r){ return r.snapshot_date; }).filter(function(v){ return v != null; });
+    var usageLatestMs = usageDates.length ? Math.max.apply(null, usageDates) : null;
+    healthResults.push({ label: 'Lick block usage', scripts: '02 / 06', latestMs: usageLatestMs, fetchFailed: !usageHistory.length && !usageLatestMs });
+
+    renderHealth(healthResults);
+
+    var reorderRows = computeReorderRows(usageHistory, orders);
+    renderReorder(reorderRows);
+
+    renderKpis(healthResults, reorderRows);
+  }).catch(function(err){
+    console.error('Operations dashboard failed:', err);
+    document.getElementById('sp-kpi-grid').innerHTML = '<p class="sp-empty-note">Could not load overview.</p>';
+    document.getElementById('sp-health-grid').innerHTML = '<p class="sp-empty-note">Could not check pipeline health.</p>';
+    document.getElementById('sp-glance-grid').innerHTML = '<p class="sp-empty-note">Could not load reorder data.</p>';
+  });
+})();
+</script>
+
+</body>
+</html>
