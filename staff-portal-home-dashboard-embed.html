@@ -56,7 +56,9 @@
   + labels/padding). This will need to grow a little as more farms come
   online (more cards per column) — check it fits after first live load
   and adjust the Embed block's height in Hub if content looks clipped or
-  there's a big empty gap at the bottom.
+  there's a big empty gap at the bottom. The 5th KPI card added 2026-09-01
+  (below) may push the KPI row onto 2 lines on narrower embed widths
+  (auto-fit grid, ~190px min per card) — add ~90px if so.
 
   ADDED 2026-08-31 (same day, second pass) — a 4th KPI card, "ADG% check",
   added per Jono's call after workshopping further Staff Portal additions.
@@ -72,6 +74,22 @@
   else on this dashboard), not a guardrail that stops a bad number from
   publishing — it's here so the NEXT swing gets noticed in a glance at
   this page rather than by chance, not to prevent the swing itself.
+
+  ADDED 2026-09-01 — a 5th KPI card, "Data integrity", fed by
+  07. Weekly_Reconciliation.py's Friday sweep (see that script's own top
+  comment for what it checks: exact duplicates, gaps, conflicting values,
+  cross-layer drift, orphaned survey records). Reads the single latest row
+  from a new table, LEL_Reconciliation_Log — deliberately NOT LEL_Run_Log,
+  same reasoning as every other card here (private/org item, this page
+  reads anonymously). The row it reads is aggregate-only by design (a
+  status string and three counts, no farm names or values) — full detail
+  from each run stays in LEL_Run_Log for Jono/Bronte/Tas to read directly
+  in AGOL, never exposed on this unauthenticated endpoint.
+
+  SETUP NEEDED: RECON_URL below is a placeholder until Jono creates and
+  shares LEL_Reconciliation_Log (steps are in 07. Weekly_Reconciliation.py's
+  own header comment) — until then this card just reads "Not set up yet"
+  rather than erroring the rest of the dashboard.
 -->
 <meta name="robots" content="noindex, nofollow">
 <title>Operations dashboard</title>
@@ -174,6 +192,11 @@
   var PRODUCTIVITY_URL   = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/OptiWeigh_Cattle_Weights/FeatureServer/0/query";
   var USAGE_HISTORY_URL  = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lick_Block_Usage_History/FeatureServer/0/query";
   var ORDERS_URL         = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lick_Block_Orders/FeatureServer/0/query";
+  // LEL_Reconciliation_Log — created and shared 2026-09-01. See
+  // 07. Weekly_Reconciliation.py's header for the setup steps, and this
+  // file's own top comment for why this card reads a separate table
+  // rather than LEL_Run_Log.
+  var RECON_URL          = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Reconciliation_Log/FeatureServer/0/query";
 
   var STALE_HOURS = 36;
   var OVERDUE_HOURS = 72;
@@ -182,6 +205,7 @@
   var ADG_SWING_FLAG_PTS = 15;    // percentage points — flag red at/above this
   var ADG_SWING_WARN_PTS = 8;     // percentage points — flag amber at/above this
   var ADG_REFERENCE_DAYS_AGO = 3;
+  var RECON_STALE_DAYS = 9;       // runs weekly (Friday) — flag if the latest run is older than this
 
   function q(url, params){
     return fetch(url + "?" + new URLSearchParams(params)).then(function(res){ return res.json(); }).then(function(data){
@@ -235,6 +259,27 @@
     }).then(function(data){ return data.features.map(function(f){ return f.attributes; }); }).catch(function(err){
       console.error('Economics aggregate history fetch failed:', err);
       return [];
+    });
+  }
+
+  // Latest LEL_Reconciliation_Log row — aggregate-only (status + 3 counts),
+  // see this file's top comment for why nothing more detailed than that
+  // lives here. Resolves to null (not a rejection) if RECON_URL hasn't
+  // been set up yet, so Promise.all above it never fails the whole
+  // dashboard over this one still-pending piece.
+  function fetchReconciliationLatest(){
+    if (!RECON_URL || RECON_URL.indexOf('REPLACE_WITH') === 0) {
+      return Promise.resolve(null);
+    }
+    return q(RECON_URL, {
+      where: "1=1",
+      outFields: "run_timestamp,status,records_scanned,issues_fixed,issues_flagged",
+      orderByFields: "run_timestamp DESC", resultRecordCount: "1", f: "json"
+    }).then(function(data){
+      return data.features.length ? data.features[0].attributes : null;
+    }).catch(function(err){
+      console.error('Reconciliation log fetch failed:', err);
+      return null;
     });
   }
 
@@ -369,7 +414,7 @@
     }).join('');
   }
 
-  function renderKpis(healthResults, reorderRows, todayAdgPct, refAdgPct){
+  function renderKpis(healthResults, reorderRows, todayAdgPct, refAdgPct, reconLatest){
     var kpiGrid = document.getElementById('sp-kpi-grid');
 
     // KPI 1 — overall pipeline status: worst status among the 4 domains.
@@ -409,6 +454,28 @@
       adgNote = (adgSwing >= 0 ? '+' : '') + adgSwing.toFixed(1) + ' pts vs ' + ADG_REFERENCE_DAYS_AGO + ' days ago';
     }
 
+    // KPI 5 — data integrity: latest LEL_Reconciliation_Log row from
+    // 07. Weekly_Reconciliation.py's Friday sweep. Aggregate-only by
+    // design — see this file's top comment.
+    var reconClass = 'ok';
+    var reconValue = 'Not set up yet';
+    var reconNote = 'See 07. Weekly_Reconciliation.py setup steps';
+    if (RECON_URL && RECON_URL.indexOf('REPLACE_WITH') !== 0) {
+      if (!reconLatest) {
+        reconClass = ''; reconValue = 'No data yet'; reconNote = 'Run 07. Weekly_Reconciliation.py';
+      } else {
+        var reconAgeDays = (Date.now() - reconLatest.run_timestamp) / 86400000;
+        var reconStale = reconAgeDays > RECON_STALE_DAYS;
+        var flaggedCount = reconLatest.issues_flagged || 0;
+        if (reconLatest.status === 'FAILED') { reconClass = 'overdue'; reconValue = 'Run failed'; }
+        else if (reconStale) { reconClass = 'overdue'; reconValue = 'Overdue'; }
+        else if (flaggedCount > 0) { reconClass = 'warning'; reconValue = flaggedCount + ' flagged'; }
+        else { reconClass = 'ok'; reconValue = 'All clear'; }
+        var fixedCount = reconLatest.issues_fixed || 0;
+        reconNote = 'Last run ' + fmtRelative(reconAgeDays * 24) + (fixedCount ? ' · ' + fixedCount + ' auto-fixed' : '');
+      }
+    }
+
     kpiGrid.innerHTML =
       '<div class="sp-kpi-card">' +
         '<p class="sp-kpi-label">Pipeline status</p>' +
@@ -429,6 +496,11 @@
         '<p class="sp-kpi-label">ADG% check</p>' +
         '<p class="sp-kpi-value ' + adgClass + '">' + adgValue + '</p>' +
         '<p class="sp-kpi-note">' + adgNote + '</p>' +
+      '</div>' +
+      '<div class="sp-kpi-card">' +
+        '<p class="sp-kpi-label">Data integrity</p>' +
+        '<p class="sp-kpi-value ' + reconClass + '">' + reconValue + '</p>' +
+        '<p class="sp-kpi-note">' + reconNote + '</p>' +
       '</div>';
   }
 
@@ -438,12 +510,14 @@
     fetchLatestDate('Economics', ECON_URL, 'calculation_date', '04'),
     fetchUsageHistory(),
     fetchOrders(),
-    fetchEconAggregateHistory()
+    fetchEconAggregateHistory(),
+    fetchReconciliationLatest()
   ]).then(function(results){
     var healthResults = [results[0], results[1], results[2]];
     var usageHistory = results[3];
     var orders = results[4];
     var econHistory = results[5];
+    var reconLatest = results[6];
 
     // Lick block usage's own health check reuses the SAME full-history
     // fetch the reorder logic needs below, rather than a second query.
@@ -458,7 +532,7 @@
 
     var todayAdgPct = computeAdgPct(econHistory, Date.now());
     var refAdgPct = computeAdgPct(econHistory, Date.now() - ADG_REFERENCE_DAYS_AGO * 86400000);
-    renderKpis(healthResults, reorderRows, todayAdgPct, refAdgPct);
+    renderKpis(healthResults, reorderRows, todayAdgPct, refAdgPct, reconLatest);
   }).catch(function(err){
     console.error('Operations dashboard failed:', err);
     document.getElementById('sp-kpi-grid').innerHTML = '<p class="sp-empty-note">Could not load overview.</p>';
