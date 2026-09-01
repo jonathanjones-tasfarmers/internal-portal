@@ -76,9 +76,16 @@
   .fd-page { max-width: 1320px; margin: 0 auto; padding: 0 32px 64px; box-sizing: border-box; }
   @media (max-width: 720px) { .fd-page { padding: 0 16px 48px; } }
 
-  .fd-masthead { background: var(--tf-navy-900); padding: 26px 32px; margin-bottom: 24px; }
-  @media (max-width: 720px) { .fd-masthead { padding: 20px 16px; } }
-  .fd-masthead-inner { max-width: 1320px; margin: 0 auto; }
+  /* FIXED 2026-09-01: same fix as lickblock-internal-portal.html's
+     .lbp-masthead — horizontal padding used to live on .fd-masthead (the
+     full-width bar) while the 1320px centering lived on .fd-masthead-
+     inner, so on wide screens the centering margin and the 32px padding
+     stacked, pushing the title out of line with .fd-page below it (which
+     applies max-width + padding on the SAME element). Moved padding onto
+     -inner so both use the identical pattern and line up. */
+  .fd-masthead { background: var(--tf-navy-900); margin-bottom: 24px; }
+  .fd-masthead-inner { max-width: 1320px; margin: 0 auto; padding: 26px 32px; box-sizing: border-box; }
+  @media (max-width: 720px) { .fd-masthead-inner { padding: 20px 16px; } }
   .fd-masthead h1 { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--tf-white); margin: 0 0 4px; }
   .fd-masthead p { font-family: var(--font-display); font-size: 12.5px; color: var(--tf-slate-300); margin: 0; }
 
@@ -95,6 +102,7 @@
   .fd-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
   .fd-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; }
   .fd-name { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: var(--text-heading); margin: 0; }
+  .fd-days-ago { color: var(--text-muted); font-weight: 400; }
 
   .fd-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin-bottom: 14px; }
   .fd-info-grid > div.fd-span-2 { grid-column: 1 / -1; }
@@ -185,15 +193,27 @@
     });
   }
 
-  function fetchKnownFarms(){
+  // Returns { farmName: ['seafeed', 'control', ...] } — replaces the old
+  // fetchKnownFarms(): querying trial_site+treatment together (still a
+  // single distinct-values query, same cost as before) gets us both the
+  // farm list AND which treatment groups are running at each farm, so the
+  // treatment pills on each card need no separate fetch.
+  function fetchFarmTreatments(){
     return q(USAGE_HISTORY_URL, {
-      where: "1=1", outFields: "trial_site", returnDistinctValues: "true",
-      orderByFields: "trial_site ASC", resultRecordCount: "200", f: "json"
+      where: "1=1", outFields: "trial_site,treatment", returnDistinctValues: "true",
+      orderByFields: "trial_site ASC, treatment ASC", resultRecordCount: "200", f: "json"
     }).then(function(data){
-      return data.features.map(function(f){ return f.attributes.trial_site; }).filter(Boolean);
+      var map = {};
+      data.features.forEach(function(f){
+        var farm = f.attributes.trial_site, treatment = f.attributes.treatment;
+        if (!farm) return;
+        if (!map[farm]) map[farm] = [];
+        if (treatment && map[farm].indexOf(treatment) === -1) map[farm].push(treatment);
+      });
+      return map;
     }).catch(function(err){
-      console.error('Known-farms fetch failed:', err);
-      return [];
+      console.error('Farm treatments fetch failed:', err);
+      return {};
     });
   }
 
@@ -241,22 +261,37 @@
     if (idx === -1) idx = 0;
     return FARM_COLORS[idx % FARM_COLORS.length];
   }
+  function treatmentLabel(t){ return t === 'seafeed' ? 'SeaFeed' : 'Control'; }
+  // "3 days ago" / "today" / "1 day ago" — a quicker read than doing the
+  // date maths yourself off the calendar date alone. Rounds to whole days
+  // on the LOCAL calendar day boundary (not a raw 24h count), so a visit
+  // logged this morning still reads "today" this afternoon.
+  function daysAgoText(ms){
+    if (ms == null) return '';
+    var startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
+    var startOfThat = new Date(ms); startOfThat.setHours(0, 0, 0, 0);
+    var days = Math.round((startOfToday - startOfThat) / 86400000);
+    if (days === 0) return 'today';
+    if (days === 1) return '1 day ago';
+    if (days > 1) return days + ' days ago';
+    return 'in ' + Math.abs(days) + ' day' + (days === -1 ? '' : 's'); // future-dated, edge case
+  }
 
   // ============================================================
   // LOAD
   // ============================================================
   function loadAll(){
-    return Promise.all([fetchKnownFarms(), fetchDirectory()]).then(function(results){
-      var knownFarms = results[0];
+    return Promise.all([fetchFarmTreatments(), fetchDirectory()]).then(function(results){
+      var treatmentsByFarm = results[0]; // { farmName: ['seafeed', 'control', ...] }
       var directoryRows = results[1]; // null if the table isn't set up yet
-      render(knownFarms, directoryRows);
+      render(treatmentsByFarm, directoryRows);
     }).catch(function(err){
       console.error('Farm Directory load failed:', err);
       document.getElementById('fd-grid').innerHTML = '<div class="fd-loading">Could not load farm directory — check the browser console and the feature service URLs at the top of this page’s script.</div>';
     });
   }
 
-  function render(knownFarms, directoryRows){
+  function render(treatmentsByFarm, directoryRows){
     var grid = document.getElementById('fd-grid');
 
     if (directoryRows === null) {
@@ -268,10 +303,12 @@
     directoryRows.forEach(function(r){ byFarm[r.trial_site] = r; });
 
     // Every known farm gets a card (populated or empty-state), then any
-    // directory row for a farm NOT in knownFarms (e.g. logged in AGOL
-    // before it ever showed up in Usage_History) still gets shown too,
-    // rather than silently disappearing.
-    var allFarms = knownFarms.slice();
+    // directory row for a farm NOT in treatmentsByFarm (e.g. logged in
+    // AGOL before it ever showed up in Usage_History) still gets shown
+    // too, rather than silently disappearing — it just won't have any
+    // treatment pills, since we have no usage-history rows to derive them
+    // from.
+    var allFarms = Object.keys(treatmentsByFarm);
     directoryRows.forEach(function(r){ if (allFarms.indexOf(r.trial_site) === -1) allFarms.push(r.trial_site); });
     allFarms.sort();
 
@@ -319,18 +356,28 @@
   // ------------------------------------------------------------
   function filledCardHtml(prefix, farm, color, row){
     var overdue = row.next_visit_due != null && row.next_visit_due < Date.now();
+    var lastVisitAgo = daysAgoText(row.last_visit_date);
+    var nextDueAgo = daysAgoText(row.next_visit_due);
+    // Google Maps directions link — "dir/?api=1&destination=" takes a
+    // free-text address just as well as coordinates, no geocoding needed
+    // on our side. Opens in a new tab so the portal itself isn't navigated
+    // away from mid-visit-planning.
+    var directionsHtml = row.address
+      ? '<a href="https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(row.address) + '" target="_blank" rel="noopener">' + row.address + ' &#8599;</a>'
+      : '–';
     return '<div class="fd-card" style="border-top-color:' + color + ';">' +
       '<div class="fd-card-head"><span class="fd-dot" style="background:' + color + ';"></span><h2 class="fd-name">' + farm + '</h2></div>' +
       '<div class="fd-info-grid">' +
       '  <div><span class="fd-label">Contact</span><span class="fd-value">' + (row.contact_name || '–') + '</span></div>' +
       '  <div><span class="fd-label">Phone</span><span class="fd-value">' + (row.contact_phone ? '<a href="tel:' + row.contact_phone + '">' + row.contact_phone + '</a>' : '–') + '</span></div>' +
       '  <div class="fd-span-2"><span class="fd-label">Email</span><span class="fd-value">' + (row.contact_email ? '<a href="mailto:' + row.contact_email + '">' + row.contact_email + '</a>' : '–') + '</span></div>' +
-      '  <div class="fd-span-2"><span class="fd-label">Address</span><span class="fd-value">' + (row.address || '–') + '</span></div>' +
-      '  <div><span class="fd-label">Last visit</span><span class="fd-value">' + fmtDate(row.last_visit_date) + '</span></div>' +
-      '  <div><span class="fd-label">Next visit due</span><span class="fd-value' + (overdue ? ' overdue' : '') + '">' + fmtDate(row.next_visit_due) + '</span></div>' +
+      '  <div class="fd-span-2"><span class="fd-label">Address</span><span class="fd-value">' + directionsHtml + '</span></div>' +
+      '  <div><span class="fd-label">Last visit</span><span class="fd-value">' + fmtDate(row.last_visit_date) + (lastVisitAgo ? ' <span class="fd-days-ago">(' + lastVisitAgo + ')</span>' : '') + '</span></div>' +
+      '  <div><span class="fd-label">Next visit due</span><span class="fd-value' + (overdue ? ' overdue' : '') + '">' + fmtDate(row.next_visit_due) + (nextDueAgo ? ' <span class="fd-days-ago">(' + nextDueAgo + ')</span>' : '') + '</span></div>' +
       '</div>' +
-      '<button type="button" class="fd-visit-btn" id="' + prefix + '-visitbtn">Mark visited today</button>' +
+      '<button type="button" class="fd-visit-btn" id="' + prefix + '-visitbtn">Log a visit</button>' +
       '<div class="fd-inline-form" id="' + prefix + '-visitform" style="display:none;">' +
+      '  <label class="fd-field-label">Visit date<input type="date" class="fd-field-input" id="' + prefix + '-visitdate"></label>' +
       '  <label class="fd-field-label">Next visit due<input type="date" class="fd-field-input" id="' + prefix + '-nextdue"></label>' +
       '  <p class="fd-form-error" id="' + prefix + '-visiterror"></p>' +
       '  <div class="fd-form-actions">' +
@@ -370,6 +417,7 @@
   function wireVisitForm(prefix, objectId){
     var btn = document.getElementById(prefix + '-visitbtn');
     var form = document.getElementById(prefix + '-visitform');
+    var visitDateInput = document.getElementById(prefix + '-visitdate');
     var nextDueInput = document.getElementById(prefix + '-nextdue');
     var errorEl = document.getElementById(prefix + '-visiterror');
     var confirmBtn = document.getElementById(prefix + '-visitconfirm');
@@ -377,20 +425,34 @@
 
     btn.addEventListener('click', function(){
       errorEl.textContent = '';
+      visitDateInput.value = toDateInputValue(Date.now());
       nextDueInput.value = toDateInputValue(Date.now() + DEFAULT_VISIT_INTERVAL_DAYS * 86400000);
       form.style.display = 'block';
       btn.style.display = 'none';
+    });
+    // Logging a backdated visit (e.g. "went out last Friday") should push
+    // the next-due suggestion out from THAT date, not from today — so the
+    // suggested next-due date re-bases itself whenever the visit date
+    // changes. This does overwrite any next-due value already typed in,
+    // which is an acceptable trade for a small internal tool — set the
+    // visit date first, then adjust next-due last if you want something
+    // other than the suggestion.
+    visitDateInput.addEventListener('change', function(){
+      if (!visitDateInput.value) return;
+      var visitMs = Date.parse(visitDateInput.value + 'T00:00:00Z');
+      nextDueInput.value = toDateInputValue(visitMs + DEFAULT_VISIT_INTERVAL_DAYS * 86400000);
     });
     cancelBtn.addEventListener('click', function(){
       form.style.display = 'none';
       btn.style.display = 'inline-block';
     });
     confirmBtn.addEventListener('click', function(){
+      if (!visitDateInput.value) { errorEl.textContent = 'Enter the date you visited.'; return; }
       confirmBtn.disabled = true;
       confirmBtn.textContent = 'Saving…';
       errorEl.textContent = '';
       updateDirectoryRow(objectId, {
-        last_visit_date: Date.now(),
+        last_visit_date: Date.parse(visitDateInput.value + 'T00:00:00Z'),
         next_visit_due: nextDueInput.value ? Date.parse(nextDueInput.value + 'T00:00:00Z') : null
       }).then(function(){
         return loadAll();
