@@ -88,7 +88,7 @@
   .fd-alert-banner-text ul { margin: 4px 0 0; padding-left: 18px; }
 
   .fd-section-label { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; margin: 0 0 14px 2px; }
-  .fd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .fd-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start; }
   .fd-loading { font-family: var(--font-display); font-size: 12px; color: var(--text-muted); padding: 20px 4px; }
 
   .fd-card { background: var(--surface-card); border: 1px solid var(--border-subtle); border-top: 4px solid var(--border-default); border-radius: var(--radius-lg); padding: 20px 22px; box-shadow: var(--shadow-sm); box-sizing: border-box; }
@@ -324,7 +324,7 @@
       '<div class="fd-info-grid">' +
       '  <div><span class="fd-label">Contact</span><span class="fd-value">' + (row.contact_name || '–') + '</span></div>' +
       '  <div><span class="fd-label">Phone</span><span class="fd-value">' + (row.contact_phone ? '<a href="tel:' + row.contact_phone + '">' + row.contact_phone + '</a>' : '–') + '</span></div>' +
-      '  <div><span class="fd-label">Email</span><span class="fd-value">' + (row.contact_email ? '<a href="mailto:' + row.contact_email + '">' + row.contact_email + '</a>' : '–') + '</span></div>' +
+      '  <div class="fd-span-2"><span class="fd-label">Email</span><span class="fd-value">' + (row.contact_email ? '<a href="mailto:' + row.contact_email + '">' + row.contact_email + '</a>' : '–') + '</span></div>' +
       '  <div class="fd-span-2"><span class="fd-label">Address</span><span class="fd-value">' + (row.address || '–') + '</span></div>' +
       '  <div><span class="fd-label">Last visit</span><span class="fd-value">' + fmtDate(row.last_visit_date) + '</span></div>' +
       '  <div><span class="fd-label">Next visit due</span><span class="fd-value' + (overdue ? ' overdue' : '') + '">' + fmtDate(row.next_visit_due) + '</span></div>' +
