@@ -111,6 +111,23 @@
   .lbp-reorder-note { font-family: var(--font-display); font-size: 11px; color: var(--text-muted); margin-top: 8px; }
   .lbp-reorder-note.stale { color: var(--tf-red); font-weight: 700; }
 
+  /* Order logging — added 2026-09-01, per Jono's request: a one-click way
+     to log a placed order straight from the reorder warning, so the
+     tracker's own on-hand maths clears the alert immediately (no separate
+     "dismiss" flag — see script comment above renderFarmSections). */
+  .lbp-order-pending { font-family: var(--font-display); font-size: 11.5px; color: var(--tf-seafeed); background: rgba(58,169,137,0.10); border-radius: var(--radius-sm); padding: 6px 8px; margin: 8px 0 0; }
+  .lbp-order-btn { font-family: var(--font-display); font-size: 11.5px; font-weight: 700; color: var(--text-heading); background: var(--surface-card); border: 1px solid var(--border-default); border-radius: var(--radius-sm); padding: 6px 10px; margin-top: 8px; cursor: pointer; }
+  .lbp-order-btn:hover { background: var(--surface-sunken); }
+  .lbp-order-form { margin-top: 10px; padding: 12px; background: var(--surface-sunken); border-radius: var(--radius-md); }
+  .lbp-order-label { display: block; font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px; }
+  .lbp-order-input { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; font-family: var(--font-body); font-size: 13px; padding: 7px 9px; border: 1px solid var(--border-default); border-radius: var(--radius-sm); background: var(--tf-white); color: var(--text-body); }
+  .lbp-order-error { font-family: var(--font-display); font-size: 11.5px; color: var(--tf-red); min-height: 14px; margin: 2px 0 8px; }
+  .lbp-order-actions { display: flex; gap: 8px; }
+  .lbp-order-confirm { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: var(--tf-white); background: var(--tf-seafeed); border: none; border-radius: var(--radius-sm); padding: 7px 14px; cursor: pointer; }
+  .lbp-order-confirm:disabled { opacity: 0.6; cursor: default; }
+  .lbp-order-cancel { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: var(--text-muted); background: transparent; border: 1px solid var(--border-default); border-radius: var(--radius-sm); padding: 7px 14px; cursor: pointer; }
+  .lbp-order-hint { font-family: var(--font-display); font-size: 10.5px; color: var(--text-muted); margin: 8px 0 0; line-height: 1.4; }
+
   .lbp-chart-card { height: 260px; }
   .lbp-chart-card canvas { max-height: 210px; }
   .lbp-chart-empty { font-family: var(--font-display); font-size: 12px; color: var(--text-muted); text-align: center; padding: 60px 0; display: none; }
@@ -218,6 +235,12 @@
   // ============================================================
   var USAGE_HISTORY_URL = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lick_Block_Usage_History/FeatureServer/0/query";
   var ORDERS_URL         = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lick_Block_Orders/FeatureServer/0/query";
+  // Write endpoint for the "Ordered…" button (added 2026-09-01). Requires
+  // LEL_Lick_Block_Orders to have anonymous public editing turned on in
+  // ArcGIS Online — see the setup note further down (search ORDERS_ADD_URL
+  // usage) — since this page, like the rest of the portal, deliberately
+  // has no login of its own.
+  var ORDERS_ADD_URL    = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lick_Block_Orders/FeatureServer/0/addFeatures";
   // NEW table — Jono creates this once (see setup guide), then updates
   // this URL to match its real REST endpoint. Left as a best-guess based
   // on the service name AGOL will generate from the item title
@@ -290,11 +313,30 @@
   function fetchOrders(){
     return q(ORDERS_URL, {
       where: "treatment IN ('seafeed','control')",
-      outFields: "trial_site,treatment,blocks_ordered,order_date",
+      outFields: "trial_site,treatment,blocks_ordered,order_date,expected_delivery_date,notes",
       orderByFields: "order_date ASC", resultRecordCount: "1000", f: "json"
     }).then(function(data){ return data.features.map(function(f){ return f.attributes; }); }).catch(function(err){
       console.error('Orders fetch failed:', err);
       return [];
+    });
+  }
+
+  // Writes one new row to LEL_Lick_Block_Orders — the "Ordered…" button's
+  // whole job. Deliberately does NOT touch/require expected_delivery_date
+  // to exist for the rest of the page to work — if that field hasn't been
+  // added to the table yet (see setup note), the write itself will just
+  // come back with an "invalid field" error, surfaced to the user via
+  // submitOrderForm()'s catch, rather than breaking anything already on
+  // the page.
+  function addOrder(attributes){
+    var body = new URLSearchParams({ f: "json", features: JSON.stringify([{ attributes: attributes }]) });
+    return fetch(ORDERS_ADD_URL, { method: "POST", body: body }).then(function(res){ return res.json(); }).then(function(data){
+      if (data.error) throw new Error(data.error.message || "Write failed");
+      var result = (data.addResults || [])[0];
+      if (!result || !result.success) {
+        throw new Error((result && result.error && result.error.description) || "ArcGIS Online rejected the write — the response gave no further detail.");
+      }
+      return result;
     });
   }
 
@@ -318,6 +360,15 @@
     return Number(v).toLocaleString('en-AU', { minimumFractionDigits: decimals || 0, maximumFractionDigits: decimals || 0 });
   }
   function treatmentLabel(t){ return t === 'seafeed' ? 'SeaFeed' : 'Control'; }
+  // yyyy-mm-dd for pre-filling <input type=date>, read back out with
+  // Date.parse(str + 'T00:00:00Z') — both ends UTC, matching this org's
+  // date fields (dateFieldsTimeReference is UTC on every LEL table checked).
+  function toDateInputValue(ms){
+    var d = new Date(ms);
+    var mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+    var dd = String(d.getUTCDate()).padStart(2, '0');
+    return d.getUTCFullYear() + '-' + mm + '-' + dd;
+  }
 
   function lineChart(canvasId, labels, datasets){
     var styled = datasets.map(function(d){
@@ -347,21 +398,31 @@
   // ============================================================
   // LOAD
   // ============================================================
-  Promise.all([fetchUsageHistory(), fetchOrders(), fetchPlacements()]).then(function(results){
-    var usageHistory = results[0];
-    var orders = results[1];
-    var placements = results[2]; // null if the table isn't set up yet
+  // Wrapped in a named function (was a bare top-of-file Promise.all) so
+  // submitOrderForm() can call it again after a successful "Ordered…"
+  // write — the reorder card's on-hand/days-to-empty/reorder-by numbers,
+  // and the alert banner, are ALL derived fresh from usage+orders each
+  // time this runs, so re-running it is the entire mechanism by which
+  // logging an order clears its own warning. No separate "dismiss" state
+  // to keep in sync.
+  function loadAll(){
+    return Promise.all([fetchUsageHistory(), fetchOrders(), fetchPlacements()]).then(function(results){
+      var usageHistory = results[0];
+      var orders = results[1];
+      var placements = results[2]; // null if the table isn't set up yet
 
-    var farms = Array.from(new Set(usageHistory.map(function(r){ return r.trial_site; }))).sort();
-    ALL_FARMS = farms; // shared with farmColor() so section headings and the placements table agree on which colour is whose
+      var farms = Array.from(new Set(usageHistory.map(function(r){ return r.trial_site; }))).sort();
+      ALL_FARMS = farms; // shared with farmColor() so section headings and the placements table agree on which colour is whose
 
-    renderKpiGrid(usageHistory, farms);
-    renderFarmSections(usageHistory, orders, placements, farms);
-    renderPlacementsTable(placements, farms);
-  }).catch(function(err){
-    console.error('Portal load failed:', err);
-    document.getElementById('lbp-kpi-grid').innerHTML = '<div class="lbp-table-empty">Could not load lick block data — check the browser console and the feature service URLs at the top of this page’s script.</div>';
-  });
+      renderKpiGrid(usageHistory, farms);
+      renderFarmSections(usageHistory, orders, placements, farms);
+      renderPlacementsTable(placements, farms);
+    }).catch(function(err){
+      console.error('Portal load failed:', err);
+      document.getElementById('lbp-kpi-grid').innerHTML = '<div class="lbp-table-empty">Could not load lick block data — check the browser console and the feature service URLs at the top of this page’s script.</div>';
+    });
+  }
+  loadAll();
 
   // ------------------------------------------------------------
   // HEADLINE KPI GRID — latest avg_consumption_g_per_hd_day per
@@ -443,6 +504,86 @@
     return { days: days, seafeed: series.seafeed, control: series.control };
   }
 
+  // Button + collapsed form markup shared by the SeaFeed and Control
+  // halves of each farm's reorder card. `prefix` is e.g. "ro-0-sf" —
+  // every element id below is derived from it so wireOrderForm() (pass 2,
+  // below) can find them without any other bookkeeping.
+  function orderFormMarkup(prefix, colorClass){
+    return '<p class="lbp-order-pending" id="' + prefix + '-pending" style="display:none;"></p>' +
+      '<button type="button" class="lbp-order-btn' + (colorClass ? ' ' + colorClass : '') + '" id="' + prefix + '-orderbtn">Ordered&hellip;</button>' +
+      '<div class="lbp-order-form" id="' + prefix + '-form" style="display:none;">' +
+      '  <label class="lbp-order-label">Blocks ordered<input type="number" min="1" step="1" class="lbp-order-input" id="' + prefix + '-blocks" placeholder="e.g. 200"></label>' +
+      '  <label class="lbp-order-label">Order date<input type="date" class="lbp-order-input" id="' + prefix + '-orderdate"></label>' +
+      '  <label class="lbp-order-label">Expected delivery<input type="date" class="lbp-order-input" id="' + prefix + '-deliverydate"></label>' +
+      '  <label class="lbp-order-label">Notes (optional)<input type="text" class="lbp-order-input" id="' + prefix + '-notes" placeholder="PO / invoice reference"></label>' +
+      '  <p class="lbp-order-error" id="' + prefix + '-error"></p>' +
+      '  <div class="lbp-order-actions">' +
+      '    <button type="button" class="lbp-order-confirm" id="' + prefix + '-confirm">Confirm order</button>' +
+      '    <button type="button" class="lbp-order-cancel" id="' + prefix + '-cancel">Cancel</button>' +
+      '  </div>' +
+      '  <p class="lbp-order-hint">This updates on-hand stock and the reorder warning straight away. Add the pallet breakdown from the invoice in ArcGIS Online anytime if you want that recorded too.</p>' +
+      '</div>';
+  }
+
+  // Wires one treatment's Ordered button + form. Called once per (farm,
+  // treatment) in renderFarmSections pass 2, right after that markup is
+  // written to the DOM (pass 1) and safe to bind to — same "build all
+  // markup first, then wire it" order pass 2 already follows for charts
+  // and reorder stats (see the big comment above renderFarmSections).
+  function wireOrderForm(prefix, farm, treatment){
+    var btn = document.getElementById(prefix + '-orderbtn');
+    var form = document.getElementById(prefix + '-form');
+    var blocksInput = document.getElementById(prefix + '-blocks');
+    var orderDateInput = document.getElementById(prefix + '-orderdate');
+    var deliveryInput = document.getElementById(prefix + '-deliverydate');
+    var notesInput = document.getElementById(prefix + '-notes');
+    var errorEl = document.getElementById(prefix + '-error');
+    var confirmBtn = document.getElementById(prefix + '-confirm');
+    var cancelBtn = document.getElementById(prefix + '-cancel');
+
+    btn.addEventListener('click', function(){
+      errorEl.textContent = '';
+      orderDateInput.value = toDateInputValue(Date.now());
+      deliveryInput.value = toDateInputValue(Date.now() + REORDER_LEAD_DAYS * 86400000);
+      blocksInput.value = '';
+      notesInput.value = '';
+      form.style.display = 'block';
+      btn.style.display = 'none';
+      blocksInput.focus();
+    });
+
+    cancelBtn.addEventListener('click', function(){
+      form.style.display = 'none';
+      btn.style.display = 'inline-block';
+    });
+
+    confirmBtn.addEventListener('click', function(){
+      var blocks = parseInt(blocksInput.value, 10);
+      if (!blocks || blocks <= 0) { errorEl.textContent = 'Enter how many blocks you ordered.'; return; }
+      if (!orderDateInput.value) { errorEl.textContent = 'Enter the order date.'; return; }
+      if (!deliveryInput.value) { errorEl.textContent = 'Enter an expected delivery date.'; return; }
+
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Saving…';
+      errorEl.textContent = '';
+
+      addOrder({
+        trial_site: farm,
+        treatment: treatment,
+        blocks_ordered: blocks,
+        order_date: Date.parse(orderDateInput.value + 'T00:00:00Z'),
+        expected_delivery_date: Date.parse(deliveryInput.value + 'T00:00:00Z'),
+        notes: notesInput.value ? notesInput.value.slice(0, 255) : null
+      }).then(function(){
+        return loadAll(); // re-renders everything, including this button — the whole page catches up
+      }).catch(function(err){
+        errorEl.textContent = 'Could not save: ' + err.message + '. If this is the very first order logged this way, check that anonymous editing is turned on for LEL_Lick_Block_Orders in ArcGIS Online (see setup note).';
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Confirm order';
+      });
+    });
+  }
+
   function renderFarmSections(usageHistory, orders, placements, farms){
     var container = document.getElementById('lbp-farm-sections');
     if (!farms.length) { container.innerHTML = ''; return; }
@@ -476,12 +617,16 @@
         '        <div><span class="lbp-reorder-stat-label">On hand</span><span class="lbp-reorder-stat-value seafeed" id="ro-' + idx + '-sf-onhand">–</span></div>' +
         '        <div><span class="lbp-reorder-stat-label">Days to empty</span><span class="lbp-reorder-stat-value seafeed" id="ro-' + idx + '-sf-days">–</span></div>' +
         '        <div><span class="lbp-reorder-stat-label">Reorder by</span><span class="lbp-reorder-stat-value seafeed" id="ro-' + idx + '-sf-date">–</span></div>' +
-        '      </div><p class="lbp-reorder-note" id="ro-' + idx + '-sf-note"></p></div>' +
+        '      </div><p class="lbp-reorder-note" id="ro-' + idx + '-sf-note"></p>' +
+        orderFormMarkup('ro-' + idx + '-sf', 'seafeed') +
+        '      </div>' +
         '      <div><p class="lbp-reorder-treatment">Control</p><div class="lbp-reorder-stats">' +
         '        <div><span class="lbp-reorder-stat-label">On hand</span><span class="lbp-reorder-stat-value" id="ro-' + idx + '-ct-onhand">–</span></div>' +
         '        <div><span class="lbp-reorder-stat-label">Days to empty</span><span class="lbp-reorder-stat-value" id="ro-' + idx + '-ct-days">–</span></div>' +
         '        <div><span class="lbp-reorder-stat-label">Reorder by</span><span class="lbp-reorder-stat-value" id="ro-' + idx + '-ct-date">–</span></div>' +
-        '      </div><p class="lbp-reorder-note" id="ro-' + idx + '-ct-note"></p></div>' +
+        '      </div><p class="lbp-reorder-note" id="ro-' + idx + '-ct-note"></p>' +
+        orderFormMarkup('ro-' + idx + '-ct', '') +
+        '      </div>' +
         '    </div>' +
         '  </div>' +
         '  <div class="lbp-card lbp-chart-card">' +
@@ -549,6 +694,21 @@
         var latest = latestByTreatment[treatment];
         var ordered = orderedByTreatment[treatment];
 
+        // Wired unconditionally — Jono/Bronte should be able to log an
+        // order proactively even before the maths below flags a warning,
+        // and this also has to run before either early return below.
+        wireOrderForm(prefix, farm, treatment);
+
+        var pendingEl = document.getElementById(prefix + '-pending');
+        var treatmentOrders = farmOrders.filter(function(r){ return r.treatment === treatment; });
+        var lastOrder = treatmentOrders.length ? treatmentOrders.reduce(function(a, b){ return (b.order_date || 0) > (a.order_date || 0) ? b : a; }) : null;
+        if (lastOrder && lastOrder.expected_delivery_date != null && lastOrder.expected_delivery_date > Date.now()) {
+          pendingEl.textContent = 'Ordered ' + fmtNum(lastOrder.blocks_ordered, 0) + ' blocks ' + fmtDate(lastOrder.order_date) + ' — expected ' + fmtDate(lastOrder.expected_delivery_date);
+          pendingEl.style.display = 'block';
+        } else {
+          pendingEl.style.display = 'none';
+        }
+
         if (!latest) { noteEl.textContent = 'No usage history yet'; return; }
         if (!ordered) { noteEl.textContent = 'No orders logged yet in LEL_Lick_Block_Orders'; return; }
 
@@ -589,15 +749,23 @@
   // ------------------------------------------------------------
   // PLACEMENTS TABLE — sortable, filterable, client-side.
   // ------------------------------------------------------------
-  var placementsState = { rows: [], sortKey: 'placement_time', sortDir: -1, search: '', farm: '', treatment: '', pageSize: 10 };
+  var placementsState = { rows: [], sortKey: 'placement_time', sortDir: -1, search: '', farm: '', treatment: '', pageSize: 10, controlsWired: false };
 
   function renderPlacementsTable(placements, farms){
+    // Rebuilt fresh each call rather than appended-to — loadAll() can now
+    // run more than once per page view (after an "Ordered…" write), and
+    // appending on top of the previous call's options would duplicate
+    // every farm in the dropdown. Restore the current filter selection
+    // afterwards so a mid-session re-render doesn't silently reset it.
     var farmSelect = document.getElementById('lbp-filter-farm');
+    var previousFarmValue = farmSelect.value;
+    farmSelect.innerHTML = '<option value="">All farms</option>';
     farms.forEach(function(farm){
       var opt = document.createElement('option');
       opt.value = farm; opt.textContent = farm;
       farmSelect.appendChild(opt);
     });
+    if (farms.indexOf(previousFarmValue) !== -1) farmSelect.value = previousFarmValue;
 
     var tbody = document.getElementById('lbp-placements-body');
     if (placements === null) {
@@ -610,18 +778,24 @@
       return;
     }
 
-    document.getElementById('lbp-search').addEventListener('input', function(e){ placementsState.search = e.target.value.toLowerCase(); drawPlacementsTable(); });
-    document.getElementById('lbp-filter-farm').addEventListener('change', function(e){ placementsState.farm = e.target.value; drawPlacementsTable(); });
-    document.getElementById('lbp-filter-treatment').addEventListener('change', function(e){ placementsState.treatment = e.target.value; drawPlacementsTable(); });
-    document.getElementById('lbp-page-size').addEventListener('change', function(e){ placementsState.pageSize = parseInt(e.target.value, 10); drawPlacementsTable(); });
-    document.querySelectorAll('#lbp-placements-table th[data-key]').forEach(function(th){
-      th.addEventListener('click', function(){
-        var key = th.getAttribute('data-key');
-        if (placementsState.sortKey === key) placementsState.sortDir *= -1;
-        else { placementsState.sortKey = key; placementsState.sortDir = 1; }
-        drawPlacementsTable();
+    // Listeners wired once — re-attaching on every loadAll() re-render
+    // would stack duplicate handlers and make each keystroke/click fire
+    // the redraw multiple times.
+    if (!placementsState.controlsWired) {
+      document.getElementById('lbp-search').addEventListener('input', function(e){ placementsState.search = e.target.value.toLowerCase(); drawPlacementsTable(); });
+      document.getElementById('lbp-filter-farm').addEventListener('change', function(e){ placementsState.farm = e.target.value; drawPlacementsTable(); });
+      document.getElementById('lbp-filter-treatment').addEventListener('change', function(e){ placementsState.treatment = e.target.value; drawPlacementsTable(); });
+      document.getElementById('lbp-page-size').addEventListener('change', function(e){ placementsState.pageSize = parseInt(e.target.value, 10); drawPlacementsTable(); });
+      document.querySelectorAll('#lbp-placements-table th[data-key]').forEach(function(th){
+        th.addEventListener('click', function(){
+          var key = th.getAttribute('data-key');
+          if (placementsState.sortKey === key) placementsState.sortDir *= -1;
+          else { placementsState.sortKey = key; placementsState.sortDir = 1; }
+          drawPlacementsTable();
+        });
       });
-    });
+      placementsState.controlsWired = true;
+    }
 
     drawPlacementsTable();
   }
