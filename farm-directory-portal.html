@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!--
+  LEL Farm Directory — internal, Jono / Bronte / Tas only.
+
+  Built 2026-09-01, per Jono's request for a second Staff Portal tool
+  (after the Lick Block Tracker) to help the team do farm visits more
+  effectively. Same access pattern as lickblock-internal-portal.html:
+  unlisted, unauthenticated (plain fetch(), no login) — the link itself
+  is the access control, don't publish it anywhere public. This table
+  holds real contact names/phone numbers/addresses, one tier more
+  sensitive than lick block order counts — deliberately still using the
+  "same as today" no-login model per Jono's call on the ordering tool,
+  but if that ever needs tightening, a shared PIN in front of the write
+  actions is the agreed fallback (see setup guide).
+
+  DATA SOURCES:
+    - LEL_Lick_Block_Usage_History — read-only here, only used to get the
+      canonical, correctly-spelled list of farms currently in the trial
+      (distinct trial_site values). This is the SAME source of truth the
+      Lick Block Tracker derives its farm list from, so a farm can never
+      go out of sync between the two tools, and a brand-new farm shows up
+      here automatically (as an empty "no contact on file" card) the
+      moment it starts logging lick block visits — no code change needed.
+    - LEL_Farm_Directory — NEW table, one row per farm, holding the actual
+      contact/visit/notes data this page reads and writes. DIRECTORY_URL
+      below needs its real item's REST endpoint once Jono creates it —
+      see the setup guide. Degrades gracefully (shows a clear "not set up
+      yet" message) if that fetch 404s, same pattern as the Placements
+      table in the Lick Block Tracker.
+
+  One row per farm (one primary contact) — if a farm ever needs more than
+  one contact on file, that's a schema extension for later, not handled
+  here yet.
+
+  Free-text fields (contact name/notes/address) are interpolated straight
+  into innerHTML without HTML-escaping, matching every other table on
+  this site (e.g. asset_id/location_type in the Lick Block Tracker's
+  placements table) — consistent with the rest of the codebase, and this
+  is a small, trusted internal team typing into it, not public input.
+-->
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#041221">
+<title>Farm Directory | LEL internal</title>
+<style>
+  :root{
+    --tf-navy-900:#041221;
+    --tf-navy-800:oklch(from var(--tf-navy-900) calc(l + 0.08) c h);
+    --tf-slate-400:#a9b8c4;
+    --tf-slate-300:oklch(from var(--tf-slate-400) calc(l + 0.08) c h);
+    --tf-slate-200:oklch(from var(--tf-slate-400) calc(l + 0.14) c h);
+    --tf-slate-100:oklch(from var(--tf-slate-400) calc(l + 0.19) c h);
+    --tf-slate-600:oklch(from var(--tf-slate-400) calc(l - 0.18) c h);
+    --tf-seafeed:#3aa989;
+    --tf-red:#c0392b;
+    --tf-white:#ffffff;
+    --tf-warning:#c98a2e;
+    --surface-page:#faf9f6;
+    --surface-sunken:var(--tf-slate-100);
+    --surface-card:var(--tf-white);
+    --text-heading:var(--tf-navy-900);
+    --text-body:oklch(from var(--tf-navy-900) calc(l + 0.06) calc(c - 0.005) h);
+    --text-muted:var(--tf-slate-600);
+    --border-subtle:var(--tf-slate-200);
+    --border-default:var(--tf-slate-300);
+    --radius-lg:12px; --radius-md:10px; --radius-sm:6px;
+    --shadow-sm:0 1px 2px rgba(4,18,33,0.08);
+    --font-display:Tahoma,Verdana,sans-serif;
+    --font-body:Verdana,Tahoma,sans-serif;
+  }
+  html, body { margin: 0; background: var(--surface-page); }
+  body { font-family: var(--font-body); color: var(--text-body); -webkit-font-smoothing:antialiased; }
+  .fd-page { max-width: 1320px; margin: 0 auto; padding: 0 32px 64px; box-sizing: border-box; }
+  @media (max-width: 720px) { .fd-page { padding: 0 16px 48px; } }
+
+  .fd-masthead { background: var(--tf-navy-900); padding: 26px 32px; margin-bottom: 24px; }
+  @media (max-width: 720px) { .fd-masthead { padding: 20px 16px; } }
+  .fd-masthead-inner { max-width: 1320px; margin: 0 auto; }
+  .fd-masthead h1 { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--tf-white); margin: 0 0 4px; }
+  .fd-masthead p { font-family: var(--font-display); font-size: 12.5px; color: var(--tf-slate-300); margin: 0; }
+
+  .fd-alert-banner { display: flex; align-items: flex-start; gap: 12px; background: rgba(192,57,43,0.08); border: 1px solid rgba(192,57,43,0.28); border-radius: var(--radius-lg); padding: 14px 20px; margin-bottom: 24px; }
+  .fd-alert-banner svg { flex-shrink: 0; width: 20px; height: 20px; stroke: var(--tf-red); fill: none; stroke-width: 2; margin-top: 1px; }
+  .fd-alert-banner-text { font-family: var(--font-display); font-size: 13.5px; color: var(--tf-red); line-height: 1.5; }
+  .fd-alert-banner-text ul { margin: 4px 0 0; padding-left: 18px; }
+
+  .fd-section-label { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; margin: 0 0 14px 2px; }
+  .fd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .fd-loading { font-family: var(--font-display); font-size: 12px; color: var(--text-muted); padding: 20px 4px; }
+
+  .fd-card { background: var(--surface-card); border: 1px solid var(--border-subtle); border-top: 4px solid var(--border-default); border-radius: var(--radius-lg); padding: 20px 22px; box-shadow: var(--shadow-sm); box-sizing: border-box; }
+  .fd-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .fd-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .fd-name { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: var(--text-heading); margin: 0; }
+
+  .fd-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin-bottom: 14px; }
+  .fd-info-grid > div.fd-span-2 { grid-column: 1 / -1; }
+  .fd-label { display: block; font-family: var(--font-display); font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
+  .fd-value { font-size: 13px; color: var(--text-body); word-break: break-word; }
+  .fd-value a { color: var(--tf-seafeed); text-decoration: none; }
+  .fd-value a:hover { text-decoration: underline; }
+  .fd-value.overdue { color: var(--tf-red); font-weight: 700; }
+
+  .fd-visit-btn, .fd-add-btn { font-family: var(--font-display); font-size: 11.5px; font-weight: 700; color: var(--text-heading); background: var(--surface-sunken); border: 1px solid var(--border-default); border-radius: var(--radius-sm); padding: 7px 11px; cursor: pointer; margin-bottom: 10px; }
+  .fd-visit-btn:hover, .fd-add-btn:hover { border-color: var(--tf-seafeed); }
+  .fd-inline-form { background: var(--surface-sunken); border-radius: var(--radius-md); padding: 12px; margin-bottom: 12px; }
+  .fd-field-label { display: block; font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px; }
+  .fd-field-input { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; font-family: var(--font-body); font-size: 13px; padding: 7px 9px; border: 1px solid var(--border-default); border-radius: var(--radius-sm); background: var(--tf-white); color: var(--text-body); }
+  .fd-form-error { font-family: var(--font-display); font-size: 11.5px; color: var(--tf-red); min-height: 14px; margin: 2px 0 8px; }
+  .fd-form-actions { display: flex; gap: 8px; align-items: center; }
+  .fd-confirm-btn { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: var(--tf-white); background: var(--tf-seafeed); border: none; border-radius: var(--radius-sm); padding: 7px 14px; cursor: pointer; }
+  .fd-confirm-btn:disabled { opacity: 0.6; cursor: default; }
+  .fd-cancel-btn { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: var(--text-muted); background: transparent; border: 1px solid var(--border-default); border-radius: var(--radius-sm); padding: 7px 14px; cursor: pointer; }
+  .fd-saved-note { font-family: var(--font-display); font-size: 11px; color: var(--tf-seafeed); font-weight: 700; }
+
+  .fd-notes-label { display: block; font-family: var(--font-display); font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
+  .fd-notes-input { display: block; width: 100%; box-sizing: border-box; min-height: 64px; font-family: var(--font-body); font-size: 13px; padding: 8px 9px; border: 1px solid var(--border-default); border-radius: var(--radius-sm); background: var(--tf-white); color: var(--text-body); resize: vertical; margin-bottom: 8px; }
+
+  .fd-card-empty { border-top-color: var(--border-subtle); }
+  .fd-empty-note { font-size: 13px; color: var(--text-muted); margin: 0 0 12px; }
+
+  .fd-footer-note { font-family: var(--font-display); font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 40px; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<div class="fd-masthead">
+  <div class="fd-masthead-inner">
+    <h1>Farm Directory</h1>
+    <p>Low Emissions Livestock trial — internal project team view</p>
+  </div>
+</div>
+
+<div class="fd-page">
+
+  <div class="fd-alert-banner" id="fd-alert-banner" style="display:none;" role="alert" aria-live="polite">
+    <svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+    <div class="fd-alert-banner-text" id="fd-alert-banner-text"></div>
+  </div>
+
+  <p class="fd-section-label">Farms</p>
+  <div class="fd-grid" id="fd-grid">
+    <div class="fd-loading">Loading&hellip;</div>
+  </div>
+
+  <p class="fd-footer-note">
+    Contact and visit details are edited here and saved straight to LEL_Farm_Directory in ArcGIS Online &middot; Farm list drawn from LEL_Lick_Block_Usage_History &middot; Not for external distribution
+  </p>
+
+</div>
+
+<script>
+(function(){
+
+  // ============================================================
+  // CONFIG
+  // ============================================================
+  var USAGE_HISTORY_URL = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lick_Block_Usage_History/FeatureServer/0/query";
+  // NEW table — Jono creates this once (see setup guide), then updates
+  // the three URLs below to match its real REST endpoint. Left as a
+  // best-guess based on the service name AGOL will generate from the
+  // item title "LEL_Farm_Directory" — verify once created, since a name
+  // clash with an existing service could make AGOL append a suffix (the
+  // same gotcha the Placements table hit — see that setup note).
+  var DIRECTORY_URL        = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Farm_Directory/FeatureServer/0/query";
+  var DIRECTORY_ADD_URL    = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Farm_Directory/FeatureServer/0/addFeatures";
+  var DIRECTORY_UPDATE_URL = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Farm_Directory/FeatureServer/0/updateFeatures";
+
+  // Default gap suggested on "Mark visited today" — no strong rule behind
+  // this number, just a sensible starting point Bronte/Tas can always
+  // edit before confirming. Independent of REORDER_LEAD_DAYS in the Lick
+  // Block Tracker (that's a supply lead time, this is a visit cadence —
+  // no reason they should match).
+  var DEFAULT_VISIT_INTERVAL_DAYS = 28;
+
+  var FARM_COLORS = ['#2e6f9e', '#8659a3', '#2e8f8f', '#a3762e', '#5c6bc0'];
+
+  function q(url, params){
+    return fetch(url + "?" + new URLSearchParams(params)).then(function(res){ return res.json(); }).then(function(data){
+      if (data.error) throw new Error(data.error.message || "Query failed");
+      return data;
+    });
+  }
+
+  function fetchKnownFarms(){
+    return q(USAGE_HISTORY_URL, {
+      where: "1=1", outFields: "trial_site", returnDistinctValues: "true",
+      orderByFields: "trial_site ASC", resultRecordCount: "200", f: "json"
+    }).then(function(data){
+      return data.features.map(function(f){ return f.attributes.trial_site; }).filter(Boolean);
+    }).catch(function(err){
+      console.error('Known-farms fetch failed:', err);
+      return [];
+    });
+  }
+
+  function fetchDirectory(){
+    return q(DIRECTORY_URL, {
+      where: "1=1",
+      outFields: "OBJECTID,trial_site,contact_name,contact_phone,contact_email,address,last_visit_date,next_visit_due,notes",
+      resultRecordCount: "500", f: "json"
+    }).then(function(data){ return data.features.map(function(f){ return f.attributes; }); }).catch(function(err){
+      console.warn('Directory fetch failed (table may not be set up yet):', err);
+      return null; // null = "not available", distinct from [] = "available but empty"
+    });
+  }
+
+  function writeFeature(url, attributes){
+    var body = new URLSearchParams({ f: "json", features: JSON.stringify([{ attributes: attributes }]) });
+    return fetch(url, { method: "POST", body: body }).then(function(res){ return res.json(); }).then(function(data){
+      if (data.error) throw new Error(data.error.message || "Write failed");
+      var result = (data.addResults || data.updateResults || [])[0];
+      if (!result || !result.success) {
+        throw new Error((result && result.error && result.error.description) || "ArcGIS Online rejected the write — the response gave no further detail.");
+      }
+      return result;
+    });
+  }
+  function addDirectoryRow(attrs){ return writeFeature(DIRECTORY_ADD_URL, attrs); }
+  function updateDirectoryRow(objectId, attrs){
+    var full = { OBJECTID: objectId };
+    for (var k in attrs) full[k] = attrs[k];
+    return writeFeature(DIRECTORY_UPDATE_URL, full);
+  }
+
+  function fmtDate(ms){
+    if (ms == null) return '–';
+    return new Date(ms).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  function toDateInputValue(ms){
+    var d = new Date(ms);
+    var mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+    var dd = String(d.getUTCDate()).padStart(2, '0');
+    return d.getUTCFullYear() + '-' + mm + '-' + dd;
+  }
+  function farmColor(farm, allFarms){
+    var idx = allFarms.indexOf(farm);
+    if (idx === -1) idx = 0;
+    return FARM_COLORS[idx % FARM_COLORS.length];
+  }
+
+  // ============================================================
+  // LOAD
+  // ============================================================
+  function loadAll(){
+    return Promise.all([fetchKnownFarms(), fetchDirectory()]).then(function(results){
+      var knownFarms = results[0];
+      var directoryRows = results[1]; // null if the table isn't set up yet
+      render(knownFarms, directoryRows);
+    }).catch(function(err){
+      console.error('Farm Directory load failed:', err);
+      document.getElementById('fd-grid').innerHTML = '<div class="fd-loading">Could not load farm directory — check the browser console and the feature service URLs at the top of this page’s script.</div>';
+    });
+  }
+
+  function render(knownFarms, directoryRows){
+    var grid = document.getElementById('fd-grid');
+
+    if (directoryRows === null) {
+      grid.innerHTML = '<div class="fd-loading">Farm Directory isn’t set up yet — create LEL_Farm_Directory in ArcGIS Online and update the three DIRECTORY_*_URL constants at the top of this page’s script (see the setup guide).</div>';
+      return;
+    }
+
+    var byFarm = {};
+    directoryRows.forEach(function(r){ byFarm[r.trial_site] = r; });
+
+    // Every known farm gets a card (populated or empty-state), then any
+    // directory row for a farm NOT in knownFarms (e.g. logged in AGOL
+    // before it ever showed up in Usage_History) still gets shown too,
+    // rather than silently disappearing.
+    var allFarms = knownFarms.slice();
+    directoryRows.forEach(function(r){ if (allFarms.indexOf(r.trial_site) === -1) allFarms.push(r.trial_site); });
+    allFarms.sort();
+
+    var alertItems = [];
+    var now = Date.now();
+    allFarms.forEach(function(farm){
+      var row = byFarm[farm];
+      if (!row) { alertItems.push(farm + ' — no contact details on file'); return; }
+      if (row.next_visit_due != null && row.next_visit_due < now) {
+        alertItems.push(farm + ' — visit overdue (was due ' + fmtDate(row.next_visit_due) + ')');
+      }
+    });
+
+    if (!allFarms.length) {
+      grid.innerHTML = '<div class="fd-loading">No farms found yet in LEL_Lick_Block_Usage_History — this page will populate once at least one farm has logged lick block usage.</div>';
+    } else {
+      grid.innerHTML = allFarms.map(function(farm, idx){
+        var color = farmColor(farm, allFarms);
+        var row = byFarm[farm];
+        var prefix = 'fd-' + idx;
+        return row ? filledCardHtml(prefix, farm, color, row) : emptyCardHtml(prefix, farm, color);
+      }).join('');
+
+      allFarms.forEach(function(farm, idx){
+        var row = byFarm[farm];
+        var prefix = 'fd-' + idx;
+        if (row) { wireVisitForm(prefix, row.OBJECTID); wireNotesSave(prefix, row.OBJECTID); }
+        else { wireAddForm(prefix, farm); }
+      });
+    }
+
+    if (alertItems.length) {
+      var banner = document.getElementById('fd-alert-banner');
+      var text = document.getElementById('fd-alert-banner-text');
+      text.innerHTML = '<strong>' + alertItems.length + ' ' + (alertItems.length === 1 ? 'farm needs' : 'farms need') + ' attention:</strong><ul>' +
+        alertItems.map(function(s){ return '<li>' + s + '</li>'; }).join('') + '</ul>';
+      banner.style.display = 'flex';
+    } else {
+      document.getElementById('fd-alert-banner').style.display = 'none';
+    }
+  }
+
+  // ------------------------------------------------------------
+  // CARD MARKUP
+  // ------------------------------------------------------------
+  function filledCardHtml(prefix, farm, color, row){
+    var overdue = row.next_visit_due != null && row.next_visit_due < Date.now();
+    return '<div class="fd-card" style="border-top-color:' + color + ';">' +
+      '<div class="fd-card-head"><span class="fd-dot" style="background:' + color + ';"></span><h2 class="fd-name">' + farm + '</h2></div>' +
+      '<div class="fd-info-grid">' +
+      '  <div><span class="fd-label">Contact</span><span class="fd-value">' + (row.contact_name || '–') + '</span></div>' +
+      '  <div><span class="fd-label">Phone</span><span class="fd-value">' + (row.contact_phone ? '<a href="tel:' + row.contact_phone + '">' + row.contact_phone + '</a>' : '–') + '</span></div>' +
+      '  <div><span class="fd-label">Email</span><span class="fd-value">' + (row.contact_email ? '<a href="mailto:' + row.contact_email + '">' + row.contact_email + '</a>' : '–') + '</span></div>' +
+      '  <div><span class="fd-label">Address</span><span class="fd-value">' + (row.address || '–') + '</span></div>' +
+      '  <div><span class="fd-label">Last visit</span><span class="fd-value">' + fmtDate(row.last_visit_date) + '</span></div>' +
+      '  <div><span class="fd-label">Next visit due</span><span class="fd-value' + (overdue ? ' overdue' : '') + '">' + fmtDate(row.next_visit_due) + '</span></div>' +
+      '</div>' +
+      '<button type="button" class="fd-visit-btn" id="' + prefix + '-visitbtn">Mark visited today</button>' +
+      '<div class="fd-inline-form" id="' + prefix + '-visitform" style="display:none;">' +
+      '  <label class="fd-field-label">Next visit due<input type="date" class="fd-field-input" id="' + prefix + '-nextdue"></label>' +
+      '  <p class="fd-form-error" id="' + prefix + '-visiterror"></p>' +
+      '  <div class="fd-form-actions">' +
+      '    <button type="button" class="fd-confirm-btn" id="' + prefix + '-visitconfirm">Confirm</button>' +
+      '    <button type="button" class="fd-cancel-btn" id="' + prefix + '-visitcancel">Cancel</button>' +
+      '  </div>' +
+      '</div>' +
+      '<label class="fd-notes-label">Notes</label>' +
+      '<textarea class="fd-notes-input" id="' + prefix + '-notes" maxlength="500">' + (row.notes || '') + '</textarea>' +
+      '<div class="fd-form-actions"><button type="button" class="fd-confirm-btn" id="' + prefix + '-savenotes">Save notes</button><span class="fd-saved-note" id="' + prefix + '-notessaved"></span></div>' +
+      '<p class="fd-form-error" id="' + prefix + '-noteserror"></p>' +
+      '</div>';
+  }
+
+  function emptyCardHtml(prefix, farm, color){
+    return '<div class="fd-card fd-card-empty">' +
+      '<div class="fd-card-head"><span class="fd-dot" style="background:' + color + ';"></span><h2 class="fd-name">' + farm + '</h2></div>' +
+      '<p class="fd-empty-note">No contact details on file yet.</p>' +
+      '<button type="button" class="fd-add-btn" id="' + prefix + '-addbtn">+ Add contact details</button>' +
+      '<div class="fd-inline-form" id="' + prefix + '-addform" style="display:none;">' +
+      '  <label class="fd-field-label">Contact name<input type="text" class="fd-field-input" id="' + prefix + '-addname"></label>' +
+      '  <label class="fd-field-label">Phone<input type="tel" class="fd-field-input" id="' + prefix + '-addphone"></label>' +
+      '  <label class="fd-field-label">Email<input type="email" class="fd-field-input" id="' + prefix + '-addemail"></label>' +
+      '  <label class="fd-field-label">Address<input type="text" class="fd-field-input" id="' + prefix + '-addaddress"></label>' +
+      '  <p class="fd-form-error" id="' + prefix + '-adderror"></p>' +
+      '  <div class="fd-form-actions">' +
+      '    <button type="button" class="fd-confirm-btn" id="' + prefix + '-addconfirm">Save</button>' +
+      '    <button type="button" class="fd-cancel-btn" id="' + prefix + '-addcancel">Cancel</button>' +
+      '  </div>' +
+      '</div>' +
+      '</div>';
+  }
+
+  // ------------------------------------------------------------
+  // WIRING
+  // ------------------------------------------------------------
+  function wireVisitForm(prefix, objectId){
+    var btn = document.getElementById(prefix + '-visitbtn');
+    var form = document.getElementById(prefix + '-visitform');
+    var nextDueInput = document.getElementById(prefix + '-nextdue');
+    var errorEl = document.getElementById(prefix + '-visiterror');
+    var confirmBtn = document.getElementById(prefix + '-visitconfirm');
+    var cancelBtn = document.getElementById(prefix + '-visitcancel');
+
+    btn.addEventListener('click', function(){
+      errorEl.textContent = '';
+      nextDueInput.value = toDateInputValue(Date.now() + DEFAULT_VISIT_INTERVAL_DAYS * 86400000);
+      form.style.display = 'block';
+      btn.style.display = 'none';
+    });
+    cancelBtn.addEventListener('click', function(){
+      form.style.display = 'none';
+      btn.style.display = 'inline-block';
+    });
+    confirmBtn.addEventListener('click', function(){
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Saving…';
+      errorEl.textContent = '';
+      updateDirectoryRow(objectId, {
+        last_visit_date: Date.now(),
+        next_visit_due: nextDueInput.value ? Date.parse(nextDueInput.value + 'T00:00:00Z') : null
+      }).then(function(){
+        return loadAll();
+      }).catch(function(err){
+        errorEl.textContent = 'Could not save: ' + err.message;
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Confirm';
+      });
+    });
+  }
+
+  function wireNotesSave(prefix, objectId){
+    var textarea = document.getElementById(prefix + '-notes');
+    var saveBtn = document.getElementById(prefix + '-savenotes');
+    var savedNote = document.getElementById(prefix + '-notessaved');
+    var errorEl = document.getElementById(prefix + '-noteserror');
+
+    saveBtn.addEventListener('click', function(){
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving…';
+      errorEl.textContent = '';
+      savedNote.textContent = '';
+      updateDirectoryRow(objectId, { notes: textarea.value ? textarea.value.slice(0, 500) : null }).then(function(){
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save notes';
+        savedNote.textContent = 'Saved ✓';
+      }).catch(function(err){
+        errorEl.textContent = 'Could not save: ' + err.message;
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save notes';
+      });
+    });
+  }
+
+  function wireAddForm(prefix, farm){
+    var btn = document.getElementById(prefix + '-addbtn');
+    var form = document.getElementById(prefix + '-addform');
+    var nameInput = document.getElementById(prefix + '-addname');
+    var phoneInput = document.getElementById(prefix + '-addphone');
+    var emailInput = document.getElementById(prefix + '-addemail');
+    var addressInput = document.getElementById(prefix + '-addaddress');
+    var errorEl = document.getElementById(prefix + '-adderror');
+    var confirmBtn = document.getElementById(prefix + '-addconfirm');
+    var cancelBtn = document.getElementById(prefix + '-addcancel');
+
+    btn.addEventListener('click', function(){
+      errorEl.textContent = '';
+      form.style.display = 'block';
+      btn.style.display = 'none';
+      nameInput.focus();
+    });
+    cancelBtn.addEventListener('click', function(){
+      form.style.display = 'none';
+      btn.style.display = 'inline-block';
+    });
+    confirmBtn.addEventListener('click', function(){
+      if (!nameInput.value && !phoneInput.value && !addressInput.value) {
+        errorEl.textContent = 'Enter at least a contact name, phone, or address.';
+        return;
+      }
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Saving…';
+      errorEl.textContent = '';
+      addDirectoryRow({
+        trial_site: farm,
+        contact_name: nameInput.value || null,
+        contact_phone: phoneInput.value || null,
+        contact_email: emailInput.value || null,
+        address: addressInput.value || null,
+        notes: null, last_visit_date: null, next_visit_due: null
+      }).then(function(){
+        return loadAll();
+      }).catch(function(err){
+        errorEl.textContent = 'Could not save: ' + err.message + '. If this is the first entry, check that anonymous editing is turned on for LEL_Farm_Directory in ArcGIS Online (see setup note).';
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Save';
+      });
+    });
+  }
+
+  loadAll();
+
+})();
+</script>
+</body>
+</html>
