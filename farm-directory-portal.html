@@ -98,25 +98,25 @@
 
   .fd-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin-bottom: 14px; }
   .fd-info-grid > div.fd-span-2 { grid-column: 1 / -1; }
-  .fd-label { display: block; font-family: var(--font-display); font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
+  .fd-label { display: block; font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
   .fd-value { font-size: 13px; color: var(--text-body); word-break: break-word; }
   .fd-value a { color: var(--tf-seafeed); text-decoration: none; }
   .fd-value a:hover { text-decoration: underline; }
   .fd-value.overdue { color: var(--tf-red); font-weight: 700; }
 
-  .fd-visit-btn, .fd-add-btn { font-family: var(--font-display); font-size: 11.5px; font-weight: 700; color: var(--text-heading); background: var(--surface-sunken); border: 1px solid var(--border-default); border-radius: var(--radius-sm); padding: 7px 11px; cursor: pointer; margin-bottom: 10px; }
+  .fd-visit-btn, .fd-add-btn { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: var(--text-heading); background: var(--surface-sunken); border: 1px solid var(--border-default); border-radius: var(--radius-sm); padding: 7px 11px; cursor: pointer; margin-bottom: 10px; }
   .fd-visit-btn:hover, .fd-add-btn:hover { border-color: var(--tf-seafeed); }
   .fd-inline-form { background: var(--surface-sunken); border-radius: var(--radius-md); padding: 12px; margin-bottom: 12px; }
   .fd-field-label { display: block; font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px; }
   .fd-field-input { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; font-family: var(--font-body); font-size: 13px; padding: 7px 9px; border: 1px solid var(--border-default); border-radius: var(--radius-sm); background: var(--tf-white); color: var(--text-body); }
-  .fd-form-error { font-family: var(--font-display); font-size: 11.5px; color: var(--tf-red); min-height: 14px; margin: 2px 0 8px; }
+  .fd-form-error { font-family: var(--font-display); font-size: 11px; color: var(--tf-red); min-height: 14px; margin: 2px 0 8px; }
   .fd-form-actions { display: flex; gap: 8px; align-items: center; }
   .fd-confirm-btn { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: var(--tf-white); background: var(--tf-seafeed); border: none; border-radius: var(--radius-sm); padding: 7px 14px; cursor: pointer; }
   .fd-confirm-btn:disabled { opacity: 0.6; cursor: default; }
   .fd-cancel-btn { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: var(--text-muted); background: transparent; border: 1px solid var(--border-default); border-radius: var(--radius-sm); padding: 7px 14px; cursor: pointer; }
   .fd-saved-note { font-family: var(--font-display); font-size: 11px; color: var(--tf-seafeed); font-weight: 700; }
 
-  .fd-notes-label { display: block; font-family: var(--font-display); font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
+  .fd-notes-label { display: block; font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
   .fd-notes-input { display: block; width: 100%; box-sizing: border-box; min-height: 64px; font-family: var(--font-body); font-size: 13px; padding: 8px 9px; border: 1px solid var(--border-default); border-radius: var(--radius-sm); background: var(--tf-white); color: var(--text-body); resize: vertical; margin-bottom: 8px; }
 
   .fd-card-empty { border-top-color: var(--border-subtle); }
@@ -325,7 +325,7 @@
       '  <div><span class="fd-label">Contact</span><span class="fd-value">' + (row.contact_name || '–') + '</span></div>' +
       '  <div><span class="fd-label">Phone</span><span class="fd-value">' + (row.contact_phone ? '<a href="tel:' + row.contact_phone + '">' + row.contact_phone + '</a>' : '–') + '</span></div>' +
       '  <div><span class="fd-label">Email</span><span class="fd-value">' + (row.contact_email ? '<a href="mailto:' + row.contact_email + '">' + row.contact_email + '</a>' : '–') + '</span></div>' +
-      '  <div><span class="fd-label">Address</span><span class="fd-value">' + (row.address || '–') + '</span></div>' +
+      '  <div class="fd-span-2"><span class="fd-label">Address</span><span class="fd-value">' + (row.address || '–') + '</span></div>' +
       '  <div><span class="fd-label">Last visit</span><span class="fd-value">' + fmtDate(row.last_visit_date) + '</span></div>' +
       '  <div><span class="fd-label">Next visit due</span><span class="fd-value' + (overdue ? ' overdue' : '') + '">' + fmtDate(row.next_visit_due) + '</span></div>' +
       '</div>' +
