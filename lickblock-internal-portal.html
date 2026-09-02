@@ -172,6 +172,17 @@
   .lbp-treatment-pill.control { color: var(--tf-slate-600); background: rgba(169,184,196,0.22); }
 
   .lbp-footer-note { font-family: var(--font-display); font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 40px; line-height: 1.6; }
+
+  /* --- loading skeleton (added 2026-09-03) — shown in #lbp-kpi-grid and
+     #lbp-placements-body while loadAll()'s fetches are in flight; both
+     containers' innerHTML is fully replaced on resolve, so no separate
+     teardown needed. Same .pp-skel shimmer as farmer-portal-template.html. --- */
+  @keyframes pp-shimmer{ 0%{ background-position:150% 0; } 100%{ background-position:-50% 0; } }
+  .pp-skel { display:inline-block; height:0.8em; vertical-align:middle; border-radius:6px; background-size:250% 100%; animation:pp-shimmer 1.4s ease-in-out infinite; background-image:linear-gradient(90deg, rgba(4,18,33,0.08) 25%, rgba(4,18,33,0.16) 37%, rgba(4,18,33,0.08) 63%); }
+  .pp-skel-lg { width:96px; }
+  .pp-skel-md { width:64px; }
+  .pp-skel-sm { width:40px; }
+  @media (prefers-reduced-motion: reduce) { .pp-skel { animation: none !important; } }
 </style>
 </head>
 <body>
@@ -191,7 +202,10 @@
 
   <p class="lbp-section-label">Average consumption per animal, per treatment</p>
   <div class="lbp-kpi-grid" id="lbp-kpi-grid">
-    <div class="lbp-table-loading">Loading&hellip;</div>
+    <div class="lbp-kpi-card" aria-hidden="true"><p class="lbp-kpi-label"><span class="pp-skel pp-skel-md" style="height:9px;"></span></p><p class="lbp-kpi-value"><span class="pp-skel pp-skel-lg" style="height:22px;"></span></p><p class="lbp-kpi-note"><span class="pp-skel pp-skel-sm" style="height:9px;"></span></p></div>
+    <div class="lbp-kpi-card" aria-hidden="true"><p class="lbp-kpi-label"><span class="pp-skel pp-skel-md" style="height:9px;"></span></p><p class="lbp-kpi-value"><span class="pp-skel pp-skel-lg" style="height:22px;"></span></p><p class="lbp-kpi-note"><span class="pp-skel pp-skel-sm" style="height:9px;"></span></p></div>
+    <div class="lbp-kpi-card" aria-hidden="true"><p class="lbp-kpi-label"><span class="pp-skel pp-skel-md" style="height:9px;"></span></p><p class="lbp-kpi-value"><span class="pp-skel pp-skel-lg" style="height:22px;"></span></p><p class="lbp-kpi-note"><span class="pp-skel pp-skel-sm" style="height:9px;"></span></p></div>
+    <div class="lbp-kpi-card" aria-hidden="true"><p class="lbp-kpi-label"><span class="pp-skel pp-skel-md" style="height:9px;"></span></p><p class="lbp-kpi-value"><span class="pp-skel pp-skel-lg" style="height:22px;"></span></p><p class="lbp-kpi-note"><span class="pp-skel pp-skel-sm" style="height:9px;"></span></p></div>
   </div>
 
   <div id="lbp-farm-sections"><!-- one block per farm, built by JS: reorder card + trend chart --></div>
@@ -221,7 +235,11 @@
           </tr>
         </thead>
         <tbody id="lbp-placements-body">
-          <tr><td colspan="11" class="lbp-table-loading">Loading&hellip;</td></tr>
+          <tr aria-hidden="true"><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td></tr>
+          <tr aria-hidden="true"><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td></tr>
+          <tr aria-hidden="true"><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td></tr>
+          <tr aria-hidden="true"><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td></tr>
+          <tr aria-hidden="true"><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td><td><span class="pp-skel pp-skel-sm"></span></td></tr>
         </tbody>
       </table>
     </div>

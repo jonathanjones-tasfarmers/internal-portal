@@ -135,6 +135,19 @@
   .fd-empty-note { font-size: 13px; color: var(--text-muted); margin: 0 0 12px; }
 
   .fd-footer-note { font-family: var(--font-display); font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 40px; line-height: 1.6; }
+
+  /* --- loading skeleton (added 2026-09-03) — shown in #fd-grid while
+     loadAll()'s two fetches are in flight; render() below replaces the
+     whole #fd-grid.innerHTML on resolve, so no separate teardown needed.
+     Same .pp-skel shimmer pattern as farmer-portal-template.html, ghost
+     cards mirror filledCardHtml()'s real field layout so the loading
+     state doesn't jump/reflow when real cards land. --- */
+  @keyframes pp-shimmer{ 0%{ background-position:150% 0; } 100%{ background-position:-50% 0; } }
+  .pp-skel { display:inline-block; height:0.8em; vertical-align:middle; border-radius:6px; background-size:250% 100%; animation:pp-shimmer 1.4s ease-in-out infinite; background-image:linear-gradient(90deg, rgba(4,18,33,0.08) 25%, rgba(4,18,33,0.16) 37%, rgba(4,18,33,0.08) 63%); }
+  .pp-skel-lg { width:128px; }
+  .pp-skel-md { width:84px; }
+  .pp-skel-sm { width:52px; }
+  @media (prefers-reduced-motion: reduce) { .pp-skel { animation: none !important; } }
 </style>
 </head>
 <body>
@@ -154,7 +167,8 @@
 
   <p class="fd-section-label">Farms</p>
   <div class="fd-grid" id="fd-grid">
-    <div class="fd-loading">Loading&hellip;</div>
+    <div class="fd-card" aria-hidden="true"><div class="fd-card-head"><span class="fd-dot" style="background:var(--border-default);"></span><span class="pp-skel pp-skel-md" style="height:15px;"></span></div><div class="fd-info-grid"><div><span class="fd-label">Contact</span><span class="pp-skel pp-skel-md"></span></div><div><span class="fd-label">Phone</span><span class="pp-skel pp-skel-sm"></span></div><div class="fd-span-2"><span class="fd-label">Email</span><span class="pp-skel pp-skel-lg"></span></div><div class="fd-span-2"><span class="fd-label">Address</span><span class="pp-skel pp-skel-lg"></span></div><div><span class="fd-label">Last visit</span><span class="pp-skel pp-skel-sm"></span></div><div><span class="fd-label">Next visit due</span><span class="pp-skel pp-skel-sm"></span></div></div></div>
+    <div class="fd-card" aria-hidden="true"><div class="fd-card-head"><span class="fd-dot" style="background:var(--border-default);"></span><span class="pp-skel pp-skel-md" style="height:15px;"></span></div><div class="fd-info-grid"><div><span class="fd-label">Contact</span><span class="pp-skel pp-skel-md"></span></div><div><span class="fd-label">Phone</span><span class="pp-skel pp-skel-sm"></span></div><div class="fd-span-2"><span class="fd-label">Email</span><span class="pp-skel pp-skel-lg"></span></div><div class="fd-span-2"><span class="fd-label">Address</span><span class="pp-skel pp-skel-lg"></span></div><div><span class="fd-label">Last visit</span><span class="pp-skel pp-skel-sm"></span></div><div><span class="fd-label">Next visit due</span><span class="pp-skel pp-skel-sm"></span></div></div></div>
   </div>
 
   <p class="fd-footer-note">

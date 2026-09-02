@@ -175,6 +175,19 @@
   .sp-pending-note { font-size: 12.5px; color: var(--text-muted); line-height: 1.6; margin: 0; }
 
   .sp-freshness { font-size: 11.5px; color: var(--text-muted); margin: 12px 2px 0; }
+
+  /* --- loading skeleton (added 2026-09-03) — shown in #sp-farm-grid while
+     the four Promise.all() fetches are in flight; grid.innerHTML is fully
+     replaced on resolve, so no separate teardown needed. Ghost cards
+     mirror renderFarmCard()'s real layout (top/metric-row/supply-grid) so
+     the loading state doesn't jump/reflow when real cards land. Same
+     .pp-skel shimmer as farmer-portal-template.html. --- */
+  @keyframes pp-shimmer{ 0%{ background-position:150% 0; } 100%{ background-position:-50% 0; } }
+  .pp-skel { display:inline-block; height:0.8em; vertical-align:middle; border-radius:6px; background-size:250% 100%; animation:pp-shimmer 1.4s ease-in-out infinite; background-image:linear-gradient(90deg, rgba(4,18,33,0.08) 25%, rgba(4,18,33,0.16) 37%, rgba(4,18,33,0.08) 63%); }
+  .pp-skel-lg { width:112px; }
+  .pp-skel-md { width:80px; }
+  .pp-skel-sm { width:52px; }
+  @media (prefers-reduced-motion: reduce) { .pp-skel { animation: none !important; } }
 </style>
 </head>
 <body>
@@ -188,7 +201,30 @@
 </div>
 
 <div class="sp-farm-grid" id="sp-farm-grid">
-  <p class="sp-empty-note">Loading farm status&hellip;</p>
+  <div class="sp-farm-card" aria-hidden="true">
+    <div class="sp-farm-top"><span class="pp-skel pp-skel-md" style="height:16px;"></span><span class="pp-skel pp-skel-sm" style="height:19px;border-radius:999px;"></span></div>
+    <div class="sp-metric-row">
+      <div><p class="sp-metric-label">ADG advantage</p><p class="sp-metric-value"><span class="pp-skel pp-skel-sm" style="height:18px;"></span></p></div>
+      <div><p class="sp-metric-label">Cost per kg gain</p><p class="sp-metric-value"><span class="pp-skel pp-skel-md" style="height:13px;"></span></p></div>
+    </div>
+    <p class="sp-supply-label">Lick block supply</p>
+    <div class="sp-supply-grid">
+      <div class="sp-supply-col"><p class="sp-supply-treatment seafeed">SeaFeed</p><p class="sp-supply-stat"><span class="pp-skel pp-skel-md" style="height:11px;"></span></p><p class="sp-supply-stat"><span class="pp-skel pp-skel-sm" style="height:11px;"></span></p><p class="sp-supply-reorder"><span class="pp-skel pp-skel-md" style="height:11px;"></span></p></div>
+      <div class="sp-supply-col"><p class="sp-supply-treatment">Control</p><p class="sp-supply-stat"><span class="pp-skel pp-skel-md" style="height:11px;"></span></p><p class="sp-supply-stat"><span class="pp-skel pp-skel-sm" style="height:11px;"></span></p><p class="sp-supply-reorder"><span class="pp-skel pp-skel-md" style="height:11px;"></span></p></div>
+    </div>
+  </div>
+  <div class="sp-farm-card" aria-hidden="true">
+    <div class="sp-farm-top"><span class="pp-skel pp-skel-md" style="height:16px;"></span><span class="pp-skel pp-skel-sm" style="height:19px;border-radius:999px;"></span></div>
+    <div class="sp-metric-row">
+      <div><p class="sp-metric-label">ADG advantage</p><p class="sp-metric-value"><span class="pp-skel pp-skel-sm" style="height:18px;"></span></p></div>
+      <div><p class="sp-metric-label">Cost per kg gain</p><p class="sp-metric-value"><span class="pp-skel pp-skel-md" style="height:13px;"></span></p></div>
+    </div>
+    <p class="sp-supply-label">Lick block supply</p>
+    <div class="sp-supply-grid">
+      <div class="sp-supply-col"><p class="sp-supply-treatment seafeed">SeaFeed</p><p class="sp-supply-stat"><span class="pp-skel pp-skel-md" style="height:11px;"></span></p><p class="sp-supply-stat"><span class="pp-skel pp-skel-sm" style="height:11px;"></span></p><p class="sp-supply-reorder"><span class="pp-skel pp-skel-md" style="height:11px;"></span></p></div>
+      <div class="sp-supply-col"><p class="sp-supply-treatment">Control</p><p class="sp-supply-stat"><span class="pp-skel pp-skel-md" style="height:11px;"></span></p><p class="sp-supply-stat"><span class="pp-skel pp-skel-sm" style="height:11px;"></span></p><p class="sp-supply-reorder"><span class="pp-skel pp-skel-md" style="height:11px;"></span></p></div>
+    </div>
+  </div>
 </div>
 
 <p class="sp-freshness" id="sp-freshness"></p>

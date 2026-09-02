@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!--
+  ██ SUPERSEDED 2026-08-31 — do not paste this into Hub anymore. ██
+  Merged into staff-portal-home-dashboard-embed.html along with
+  reorder-glance-embed.html, as part of the full Home page layout
+  rework — see that file's own top comment for the Hub reconfiguration
+  steps. Kept here for history/rollback reference only, not deleted.
+
   LEL Staff Portal — "Pipeline health" embed.
 
   Added 2026-08-25 (round 8), same architecture as reorder-glance-
@@ -105,13 +111,27 @@
   .sp-health-value.warning { color: var(--tf-warning); font-weight: 700; }
   .sp-health-meta { font-size: 11px; color: var(--text-muted); margin: 3px 0 0; }
   .sp-empty-note { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+  /* --- loading skeleton (added 2026-09-03) — shown in #sp-health-grid
+     while the 4 DOMAINS fetches are in flight; grid.innerHTML is fully
+     replaced on resolve, so no separate teardown needed. Same .pp-skel
+     shimmer as farmer-portal-template.html. --- */
+  @keyframes pp-shimmer{ 0%{ background-position:150% 0; } 100%{ background-position:-50% 0; } }
+  .pp-skel { display:inline-block; height:0.8em; vertical-align:middle; border-radius:6px; background-size:250% 100%; animation:pp-shimmer 1.4s ease-in-out infinite; background-image:linear-gradient(90deg, rgba(4,18,33,0.08) 25%, rgba(4,18,33,0.16) 37%, rgba(4,18,33,0.08) 63%); }
+  .pp-skel-lg { width:112px; }
+  .pp-skel-md { width:80px; }
+  .pp-skel-sm { width:56px; }
+  @media (prefers-reduced-motion: reduce) { .pp-skel { animation: none !important; } }
 </style>
 </head>
 <body>
 
 <p class="sp-section-label">Pipeline health</p>
 <div class="sp-health-grid" id="sp-health-grid">
-  <p class="sp-empty-note">Checking pipelines&hellip;</p>
+  <div class="sp-health-card" aria-hidden="true"><div class="sp-health-top"><span class="sp-health-dot"></span><p class="sp-health-label"><span class="pp-skel pp-skel-md" style="height:11px;"></span></p></div><p class="sp-health-value"><span class="pp-skel pp-skel-sm" style="height:12px;"></span></p><p class="sp-health-meta"><span class="pp-skel pp-skel-lg" style="height:10px;"></span></p></div>
+  <div class="sp-health-card" aria-hidden="true"><div class="sp-health-top"><span class="sp-health-dot"></span><p class="sp-health-label"><span class="pp-skel pp-skel-md" style="height:11px;"></span></p></div><p class="sp-health-value"><span class="pp-skel pp-skel-sm" style="height:12px;"></span></p><p class="sp-health-meta"><span class="pp-skel pp-skel-lg" style="height:10px;"></span></p></div>
+  <div class="sp-health-card" aria-hidden="true"><div class="sp-health-top"><span class="sp-health-dot"></span><p class="sp-health-label"><span class="pp-skel pp-skel-md" style="height:11px;"></span></p></div><p class="sp-health-value"><span class="pp-skel pp-skel-sm" style="height:12px;"></span></p><p class="sp-health-meta"><span class="pp-skel pp-skel-lg" style="height:10px;"></span></p></div>
+  <div class="sp-health-card" aria-hidden="true"><div class="sp-health-top"><span class="sp-health-dot"></span><p class="sp-health-label"><span class="pp-skel pp-skel-md" style="height:11px;"></span></p></div><p class="sp-health-value"><span class="pp-skel pp-skel-sm" style="height:12px;"></span></p><p class="sp-health-meta"><span class="pp-skel pp-skel-lg" style="height:10px;"></span></p></div>
 </div>
 
 <script>
