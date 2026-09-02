@@ -55,10 +55,9 @@
          - Cost per kg gain, SeaFeed vs Control.
          - Lick block supply, two columns (SeaFeed | Control): on hand,
            days left, reorder-by date/status.
-         - Footer links to the Lick Block Tracker and Farm Directory
-           (target="_top" — this file loads inside a Hub Embed iframe, so
-           a plain relative href would try to navigate the IFRAME, not
-           the Hub page; _top sends it to the parent page instead).
+       No footer links to the Lick Block Tracker / Farm Directory pages —
+       removed 2026-09-02 per Jono's call, kept the cards self-contained
+       instead.
        PLUS one static "TRT Pastoral" card, hand-written rather than data-
        driven — TRT hasn't started yet and has no rows in Usage History
        (which is what drives the dynamic farm list), so there's nothing to
@@ -172,10 +171,6 @@
   .sp-supply-reorder.overdue { color: var(--tf-red); }
   .sp-supply-reorder.soon { color: var(--tf-warning); }
   .sp-supply-reorder.ok { color: var(--text-muted); font-weight: 400; }
-
-  .sp-farm-links { display: flex; gap: 16px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-subtle); }
-  .sp-farm-links a { font-family: var(--font-display); font-size: 11.5px; font-weight: 700; color: var(--tf-seafeed); text-decoration: none; }
-  .sp-farm-links a:hover { text-decoration: underline; }
 
   .sp-pending-note { font-size: 12.5px; color: var(--text-muted); line-height: 1.6; margin: 0; }
 
@@ -446,10 +441,6 @@
             renderSupplyCol(ctReorder) +
           '</div>' +
         '</div>' +
-        '<div class="sp-farm-links">' +
-          '<a href="/pages/2c5bc815dd4f4a63a924f9fadd086495" target="_top">Lick Block Tracker &rarr;</a>' +
-          '<a href="/pages/f2298ce499c747b39e9e6e0fa4a093bd" target="_top">Farm Directory &rarr;</a>' +
-        '</div>' +
       '</div>';
   }
 
@@ -461,9 +452,6 @@
           '<span class="sp-visit-pill">Coming soon</span>' +
         '</div>' +
         '<p class="sp-pending-note">Trial not yet underway — supply, ADG, and cost data will appear here automatically once lick block usage starts logging for this farm.</p>' +
-        '<div class="sp-farm-links">' +
-          '<a href="/pages/f2298ce499c747b39e9e6e0fa4a093bd" target="_top">Farm Directory &rarr;</a>' +
-        '</div>' +
       '</div>';
   }
 
