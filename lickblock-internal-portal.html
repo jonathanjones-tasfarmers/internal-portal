@@ -71,20 +71,31 @@
   .lbp-page { max-width: 1320px; margin: 0 auto; padding: 0 32px 64px; box-sizing: border-box; }
   @media (max-width: 720px) { .lbp-page { padding: 0 16px 48px; } }
 
-  /* FIXED 2026-09-01: horizontal padding used to live on .lbp-masthead
-     (the full-width bar) while the 1320px centering lived on
-     .lbp-masthead-inner — two different elements, so on wide screens
-     the centering margin and the 32px padding stacked, pushing the
-     title ~32px further LEFT than .lbp-page below it (which applies
-     max-width + padding on the SAME element, like .sp-header-inner
-     does). Moved padding onto -inner so both use the identical pattern
-     and line up. */
-  .lbp-masthead { background: var(--tf-navy-900); margin-bottom: 24px; }
-  .lbp-masthead-inner { max-width: 1320px; margin: 0 auto; padding: 26px 32px; box-sizing: border-box; }
-  @media (max-width: 720px) { .lbp-masthead-inner { padding: 20px 16px; } }
-  .lbp-masthead h1 { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--tf-white); margin: 0 0 4px; }
-  .lbp-masthead p { font-family: var(--font-display); font-size: 12.5px; color: var(--tf-slate-300); margin: 0; }
-  .lbp-masthead .lbp-private-tag { display: inline-block; margin-top: 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--tf-warning); background: rgba(201,138,46,0.14); border: 1px solid rgba(201,138,46,0.35); border-radius: var(--radius-sm); padding: 3px 8px; }
+  /* CHANGED 2026-09-02: this page's hero used to be a dark navy
+     ".lbp-masthead" bar — visually inconsistent with the Home page's
+     light-background hero (staff-portal-home-hero.html's .sp-hero).
+     Jono asked for the other two Staff Portal pages to match Home, so
+     this is now styled the same way: light, sits on the page, eyebrow +
+     big navy h1 + muted lede, bottom-border divider instead of a filled
+     bar. (The old FIXED 2026-09-01 note above this used to explain a
+     masthead/page alignment bug — moot now since there's no separate
+     "-inner" wrapper to get out of sync with .lbp-page; .lbp-hero uses
+     the exact same max-width+padding-on-one-element pattern directly.)
+     Kept at this page's own 1320px content width rather than Home's
+     narrower 1100px, so it still lines up with .lbp-page below it —
+     copying Home's width verbatim would have reintroduced a version of
+     that same alignment bug on this page's wider, data-dense layout.
+     No quick-link buttons added (Home's hero has them to Lick Block
+     Tracker/Farm Directory) since the sticky header above already
+     covers that navigation — ask if you want those here too. Also
+     dropped .lbp-private-tag, dead CSS with no matching element in the
+     markup (a leftover from an earlier "Internal use only" tag removed
+     elsewhere on this site, per the header file's own history). */
+  .lbp-hero { max-width: 1320px; margin: 0 auto; padding: 40px 32px 28px; box-sizing: border-box; border-bottom: 1px solid var(--border-subtle); margin-bottom: 24px; }
+  @media (max-width: 720px) { .lbp-hero { padding: 28px 16px 20px; } }
+  .lbp-eyebrow { font-family: var(--font-display); font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin: 0 0 10px; }
+  .lbp-hero h1 { font-family: var(--font-display); font-size: 30px; font-weight: 700; color: var(--text-heading); margin: 0 0 10px; }
+  .lbp-hero-sub { font-size: 15px; color: var(--text-muted); margin: 0; max-width: 480px; line-height: 1.6; }
 
   .lbp-alert-banner { display: flex; align-items: flex-start; gap: 12px; background: rgba(192,57,43,0.08); border: 1px solid rgba(192,57,43,0.28); border-radius: var(--radius-lg); padding: 14px 20px; margin-bottom: 24px; }
   .lbp-alert-banner svg { flex-shrink: 0; width: 20px; height: 20px; stroke: var(--tf-red); fill: none; stroke-width: 2; margin-top: 1px; }
@@ -165,11 +176,10 @@
 </head>
 <body>
 
-<div class="lbp-masthead">
-  <div class="lbp-masthead-inner">
-    <h1>Lick Block Usage</h1>
-    <p>Low Emissions Livestock trial — internal project team view</p>
-  </div>
+<div class="lbp-hero">
+  <p class="lbp-eyebrow">TasFarmers &middot; Low Emissions Livestock Project</p>
+  <h1>Lick Block Usage</h1>
+  <p class="lbp-hero-sub">Low Emissions Livestock trial — internal project team view</p>
 </div>
 
 <div class="lbp-page">
