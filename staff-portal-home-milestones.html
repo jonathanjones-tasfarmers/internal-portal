@@ -1,26 +1,43 @@
 <!--
   LEL Staff Portal — Home page, MILESTONE & REPORTING TRACKER.
 
-  Added 2026-08-25 (round 8), positioned after the reorder-glance Embed
-  block and before staff-portal-home-tools.html. Home page order is now:
+  Added 2026-08-25 (round 8). REPOSITIONED 2026-08-31 as part of the full
+  Home page layout rework — sits directly after the farm cards embed, with
+  no more Tools section below it (that content moved into the hero's
+  quick-link buttons — see staff-portal-home-hero.html and staff-portal-
+  home-tools.html, now marked superseded). Home page order is FIVE blocks:
 
-    1. staff-portal-header.html          (Text/Code)
-    2. staff-portal-home-hero.html       (Text/Code)
-    3. reorder-glance-embed.html         (EMBED/iframe)
-    4. staff-portal-home-milestones.html (Text/Code — THIS file)
-    5. pipeline-health-embed.html        (EMBED/iframe)
-    6. staff-portal-home-tools.html      (Text/Code)
+    1. staff-portal-header.html               (Text/Code)
+    2. staff-portal-home-hero.html             (Text/Code)
+    3. staff-portal-home-dashboard-embed.html  (EMBED/iframe — farm cards)
+    4. staff-portal-home-milestones.html       (Text/Code — THIS file)
+    5. staff-portal-footer.html                (Text/Code)
+
+  REDESIGNED 2026-09-02 per Jono's call, alongside the dashboard embed
+  rebuild: "Milestones and reporting are good down below, but maybe have
+  them displayed in a chain, linking them together" — design left to my
+  judgement. Milestones 3-6 were a flat grid of same-weight cards with no
+  visual sense that they're sequential Grant Deed steps; this replaces
+  that with a vertical connected timeline (node + line per milestone,
+  green/filled for done, amber outline for the upcoming one, grey for
+  future), so the SEQUENCE and progress-so-far read at a glance rather
+  than needing to compare four pill labels. "Six-monthly reporting" is
+  deliberately pulled OUT of the chain into its own standing card below
+  it — it's a recurring obligation, not a step in the same sequence, so
+  chaining it after Milestone 6 (2029) would misrepresent it as the final
+  step rather than an ongoing parallel commitment.
+
+  Still a STATIC block, same reasoning as before — Jono chose this over a
+  live AGOL table since Grant Deed milestones are few and change rarely,
+  and every Text/Code block on this site is confirmed (repeatedly, the
+  hard way — see staff-portal-header.html and reorder-glance-embed.html's
+  own comments) unable to run any JavaScript at all. Pure CSS timeline
+  below, no script — needs editing by hand as milestones are confirmed,
+  submitted, or rescheduled, same as before.
 
   SOURCE OF TRUTH: "2026-07-28 TLEL Project Design and Budget.pdf",
   Section 5 (Milestone Alignment) and Section 6.2.1 (Producer Co-
-  Contribution Principle, six-monthly reporting commitment). This is a
-  STATIC block, by design — Jono chose this over a live AGOL table since
-  Grant Deed milestones are few and change rarely, and every Text/Code
-  block on this site is confirmed (repeatedly, the hard way — see
-  staff-portal-header.html and reorder-glance-embed.html's own comments)
-  unable to run any JavaScript at all. So there is no live countdown or
-  auto-updating status here: it needs to be edited by hand as milestones
-  are confirmed, submitted, or rescheduled.
+  Contribution Principle, six-monthly reporting commitment).
 
   Six-monthly reporting dates fixed 2026-08-25: January and July each
   year (confirmed by Jono — not in the source PDF, which left this open).
@@ -30,11 +47,13 @@
   than Milestone 1/2, since the source document only itemises Milestones
   3-6 (Table 5.1) — earlier milestones aren't detailed in what Jono
   provided. Update this if fuller Grant Deed milestone detail becomes
-  available.
+  available (would slot in as earlier "done" nodes above Milestone 3).
 
   Milestone 4 (September 2026) is flagged "upcoming" deliberately — as of
   this file's creation date it's about 5 weeks away, the nearest thing on
-  this tracker to becoming due.
+  this tracker to becoming due. To mark it done once submitted: change its
+  step class from "upcoming" to "done" and its node from the number "4" to
+  "&check;" — same pattern as Milestone 3 below.
 -->
 <style>
   :root{
@@ -65,70 +84,98 @@
   .sp-section-label { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted) !important; text-transform: uppercase; letter-spacing: 0.07em; margin: 0 0 4px 2px; }
   .sp-section-sub { font-size: 12.5px; color: var(--text-muted) !important; margin: 0 0 14px 2px; }
 
-  .sp-milestone-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
-  .sp-milestone-card { background: var(--surface-card) !important; border: 1px solid var(--border-subtle); border-left: 4px solid var(--border-default); border-radius: var(--radius-lg); padding: 16px 18px; box-sizing: border-box; box-shadow: var(--shadow-sm); }
-  .sp-milestone-card.done { border-left-color: var(--tf-seafeed); }
-  .sp-milestone-card.upcoming { border-left-color: var(--tf-warning); }
-  .sp-milestone-card.ongoing { border-left-color: var(--tf-slate-400); }
+  /* --- Milestone chain: vertical connected timeline --- */
+  .sp-chain { position: relative; padding-left: 2px; margin: 0 0 22px; }
+  .sp-chain-step { position: relative; padding: 0 0 22px 40px; }
+  .sp-chain-step:last-child { padding-bottom: 2px; }
+  .sp-chain-step::before { content: ''; position: absolute; left: 13px; top: 28px; bottom: 0; width: 2px; background: var(--border-default); }
+  .sp-chain-step.done::before { background: var(--tf-seafeed); }
+  .sp-chain-step:last-child::before { display: none; }
 
-  .sp-milestone-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
-  .sp-milestone-name { font-family: var(--font-display); font-size: 13.5px; font-weight: 700; color: var(--text-heading) !important; margin: 0; }
-  .sp-milestone-pill { font-family: var(--font-display); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 3px 8px; border-radius: 999px; white-space: nowrap; background: var(--tf-slate-100) !important; color: var(--text-muted) !important; }
-  .sp-milestone-pill.done { background: oklch(from var(--tf-seafeed) l c h / 0.14) !important; color: var(--tf-seafeed) !important; }
-  .sp-milestone-pill.upcoming { background: oklch(from var(--tf-warning) l c h / 0.16) !important; color: var(--tf-warning) !important; }
+  .sp-chain-node { position: absolute; left: 0; top: 1px; width: 28px; height: 28px; border-radius: 50%; box-sizing: border-box; background: var(--surface-card) !important; border: 2px solid var(--border-default); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 12px; font-weight: 700; color: var(--text-muted) !important; z-index: 1; }
+  .sp-chain-node.done { background: var(--tf-seafeed) !important; border-color: var(--tf-seafeed); color: var(--tf-white) !important; }
+  .sp-chain-node.upcoming { background: var(--surface-card) !important; border-color: var(--tf-warning); color: var(--tf-warning) !important; }
 
-  .sp-milestone-desc { font-size: 12.5px; color: var(--text-body) !important; line-height: 1.5; margin: 0 0 8px; }
-  .sp-milestone-date { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: var(--text-heading) !important; margin: 0; }
+  .sp-chain-card { background: var(--surface-card) !important; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 12px 16px; box-sizing: border-box; box-shadow: var(--shadow-sm); }
+  .sp-chain-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+  .sp-chain-name { font-family: var(--font-display); font-size: 13.5px; font-weight: 700; color: var(--text-heading) !important; margin: 0; }
+  .sp-chain-pill { font-family: var(--font-display); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 3px 8px; border-radius: 999px; white-space: nowrap; background: var(--tf-slate-100) !important; color: var(--text-muted) !important; }
+  .sp-chain-pill.done { background: oklch(from var(--tf-seafeed) l c h / 0.14) !important; color: var(--tf-seafeed) !important; }
+  .sp-chain-pill.upcoming { background: oklch(from var(--tf-warning) l c h / 0.16) !important; color: var(--tf-warning) !important; }
+
+  .sp-chain-desc { font-size: 12.5px; color: var(--text-body) !important; line-height: 1.5; margin: 0 0 8px; }
+  .sp-chain-date { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: var(--text-heading) !important; margin: 0; }
+
+  /* --- Six-monthly reporting: separate standing card, not part of the
+     chain above — it's a recurring obligation, not a sequential step. --- */
+  .sp-standing-card { background: var(--surface-card) !important; border: 1px solid var(--border-subtle); border-left: 4px solid var(--tf-slate-400); border-radius: var(--radius-lg); padding: 16px 18px; box-sizing: border-box; box-shadow: var(--shadow-sm); }
+  .sp-standing-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+  .sp-standing-name { font-family: var(--font-display); font-size: 13.5px; font-weight: 700; color: var(--text-heading) !important; margin: 0; }
+  .sp-standing-pill { font-family: var(--font-display); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 3px 8px; border-radius: 999px; white-space: nowrap; background: var(--tf-slate-100) !important; color: var(--text-muted) !important; }
+  .sp-standing-desc { font-size: 12.5px; color: var(--text-body) !important; line-height: 1.5; margin: 0 0 8px; }
+  .sp-standing-date { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: var(--text-heading) !important; margin: 0; }
 </style>
 
 <div class="sp-page-milestones">
   <p class="sp-section-label">Milestones &amp; Reporting</p>
   <p class="sp-section-sub">Grant Deed milestones and standing reporting obligations, per the TLEL Project Design and Budget (28 Jul 2026).</p>
 
-  <div class="sp-milestone-grid">
-    <div class="sp-milestone-card done">
-      <div class="sp-milestone-top">
-        <p class="sp-milestone-name">Milestone 3</p>
-        <span class="sp-milestone-pill done">Submitted</span>
+  <div class="sp-chain">
+    <div class="sp-chain-step done">
+      <span class="sp-chain-node done">&check;</span>
+      <div class="sp-chain-card">
+        <div class="sp-chain-top">
+          <p class="sp-chain-name">Milestone 3</p>
+          <span class="sp-chain-pill done">Submitted</span>
+        </div>
+        <p class="sp-chain-desc">Updated Project Plan and Agreed Budget &mdash; secures Drawdown 2(b).</p>
+        <p class="sp-chain-date">28 Jul 2026</p>
       </div>
-      <p class="sp-milestone-desc">Updated Project Plan and Agreed Budget &mdash; secures Drawdown 2(b).</p>
-      <p class="sp-milestone-date">28 Jul 2026</p>
     </div>
 
-    <div class="sp-milestone-card upcoming">
-      <div class="sp-milestone-top">
-        <p class="sp-milestone-name">Milestone 4</p>
-        <span class="sp-milestone-pill upcoming">Upcoming</span>
+    <div class="sp-chain-step upcoming">
+      <span class="sp-chain-node upcoming">4</span>
+      <div class="sp-chain-card">
+        <div class="sp-chain-top">
+          <p class="sp-chain-name">Milestone 4</p>
+          <span class="sp-chain-pill upcoming">Upcoming</span>
+        </div>
+        <p class="sp-chain-desc">Active grazing trials and reporting.</p>
+        <p class="sp-chain-date">September 2026 <span style="font-weight:400;color:var(--text-muted);">(indicative)</span></p>
       </div>
-      <p class="sp-milestone-desc">Active grazing trials and reporting.</p>
-      <p class="sp-milestone-date">September 2026 <span style="font-weight:400;color:var(--text-muted);">(indicative)</span></p>
     </div>
 
-    <div class="sp-milestone-card">
-      <div class="sp-milestone-top">
-        <p class="sp-milestone-name">Milestone 5</p>
-        <span class="sp-milestone-pill">Future</span>
+    <div class="sp-chain-step">
+      <span class="sp-chain-node">5</span>
+      <div class="sp-chain-card">
+        <div class="sp-chain-top">
+          <p class="sp-chain-name">Milestone 5</p>
+          <span class="sp-chain-pill">Future</span>
+        </div>
+        <p class="sp-chain-desc">Long-term trial execution and biannual reporting.</p>
+        <p class="sp-chain-date">2027&ndash;2028 <span style="font-weight:400;color:var(--text-muted);">(indicative)</span></p>
       </div>
-      <p class="sp-milestone-desc">Long-term trial execution and biannual reporting.</p>
-      <p class="sp-milestone-date">2027&ndash;2028 <span style="font-weight:400;color:var(--text-muted);">(indicative)</span></p>
     </div>
 
-    <div class="sp-milestone-card">
-      <div class="sp-milestone-top">
-        <p class="sp-milestone-name">Milestone 6</p>
-        <span class="sp-milestone-pill">Future</span>
+    <div class="sp-chain-step">
+      <span class="sp-chain-node">6</span>
+      <div class="sp-chain-card">
+        <div class="sp-chain-top">
+          <p class="sp-chain-name">Milestone 6</p>
+          <span class="sp-chain-pill">Future</span>
+        </div>
+        <p class="sp-chain-desc">Final Project Report and publication.</p>
+        <p class="sp-chain-date">By 1 Feb 2029</p>
       </div>
-      <p class="sp-milestone-desc">Final Project Report and publication.</p>
-      <p class="sp-milestone-date">By 1 Feb 2029</p>
     </div>
+  </div>
 
-    <div class="sp-milestone-card ongoing">
-      <div class="sp-milestone-top">
-        <p class="sp-milestone-name">Six-monthly reporting</p>
-        <span class="sp-milestone-pill">Ongoing</span>
-      </div>
-      <p class="sp-milestone-desc">Standing progress report to the Grantor, including progress against the 60% producer co-contribution threshold.</p>
-      <p class="sp-milestone-date">January &amp; July, annually</p>
+  <div class="sp-standing-card">
+    <div class="sp-standing-top">
+      <p class="sp-standing-name">Six-monthly reporting</p>
+      <span class="sp-standing-pill">Ongoing</span>
     </div>
+    <p class="sp-standing-desc">Standing progress report to the Grantor, including progress against the 60% producer co-contribution threshold. Runs alongside the milestones above, not as a step in the sequence.</p>
+    <p class="sp-standing-date">January &amp; July, annually</p>
   </div>
 </div>
