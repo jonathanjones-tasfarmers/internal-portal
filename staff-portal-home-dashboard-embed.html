@@ -4,95 +4,97 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!--
-  LEL Staff Portal — "Operations" dashboard embed.
+  LEL Staff Portal — Home page, FARM CARDS embed.
 
-  Built 2026-08-31 as part of the full Home page layout rework (per
-  Jono's call). MERGES reorder-glance-embed.html and pipeline-health-
-  embed.html (both now marked superseded — see their own top comments)
-  into ONE Embed block, for two reasons:
+  REBUILT 2026-09-02 per Jono's call: "I just don't love the landing page.
+  This helps me, but not really my team." The previous version of this
+  file was an admin-style Operations dashboard (KPI strip + Pipeline
+  Health + Reorder at a Glance, both grouped by DATA SOURCE). This version
+  is grouped by FARM instead — one card per trial farm, each showing what
+  that farm's own team actually needs at a glance: ADG advantage, lick
+  block supply/reorder status for BOTH mobs, cost per kg gain, and next
+  visit due. Old admin KPIs (pipeline freshness per data source, ADG%
+  swing check, data integrity/reconciliation) are folded into this new
+  layout rather than kept as a separate section — see below for where
+  each one went, per Jono's explicit choice ("fold the useful bits into
+  farm cards").
 
-  1. Each Hub Text/Code block genuinely cannot run any JavaScript
-     (confirmed exhaustively — see reorder-glance-embed.html's original
-     top comment for the full story of why), so any live-data section on
-     this site has to be a real iframe via Hub's native Embed widget.
-     Since both pipeline health and reorder status are live-data sections,
-     they were previously two separate stacked embeds. Only content
-     inside the SAME iframe can share a CSS grid, so merging them into one
-     file is what makes an actual side-by-side dashboard layout possible
-     instead of two more full-width blocks stacked in a single column.
-  2. A KPI summary strip (see below) needs numbers derived from BOTH
-     datasets at once (e.g. "reorders needing attention" pulls from the
-     reorder logic; overall pipeline status pulls from the health logic),
-     which is far simpler to compute when both live in one script than
-     coordinating two separate iframes.
+  WHERE THE OLD KPIs WENT:
+    - "Pipeline status" (per-source freshness: OptiWeigh/Emissions/
+      Economics/Lick block) — dropped as a KPI grid. Kept as ONE quiet
+      freshness line under the farm grid ("Lick block data last updated
+      ..."), since that's the one pipeline the team can actually act on
+      day to day (ordering/collecting blocks). The other three sources
+      feed the public site, not this team's daily work — Jono can still
+      check those directly in AGOL if needed.
+    - "Next reorder due" / "Needs attention" — now live INSIDE each farm
+      card's supply section (see below), plus a short alert banner at the
+      top of the page if anything across any farm is overdue or due soon,
+      so it's still visible without opening every card.
+    - "ADG% check" (the +/-15pt swing flag) — now computed PER FARM and
+      applied as the colour on that farm's own ADG advantage figure, using
+      the same latest-vs-previous-reading comparison, instead of one
+      trial-wide number in a separate KPI card.
+    - "Data integrity" (LEL_Reconciliation_Log) — dropped. It never got
+      past a placeholder (RECON_URL) and doesn't map to a farm or a
+      milestone — it's an admin/data-QA concern, not something a farm
+      team card should carry. Still fine for Jono to check directly in
+      AGOL/via 07. Weekly_Reconciliation.py's own log.
 
-  LAYOUT: three rows —
-    1. KPI strip — 3 big-number cards (pipeline status, next reorder due,
-       reorders needing attention). Per the dashboard-design skill: the
-       NUMBER is the hero here, biggest/boldest thing on each card, a
-       small label above and optional note below, nothing competing with
-       it.
-    2. Two-column row (stacks to one column under 860px): Pipeline Health
-       cards on the left, Reorder at a Glance cards on the right.
+  LAYOUT:
+    1. Section label + one-line intro.
+    2. Alert banner — only rendered if at least one mob at any farm is
+       overdue or due soon for reorder. Skipped entirely when everything's
+       fine, so it doesn't become permanent visual noise.
+    3. Farm card grid — one card per farm with usage history (currently
+       Bowood Farm, Eastbourne Farm), each with:
+         - Farm name + "Next visit due" (from LEL_Farm_Directory).
+         - ADG advantage (SeaFeed vs Control, same g/day-advantage-%
+           formula the public site uses), colour-flagged on a swing vs
+           the previous reading.
+         - Cost per kg gain, SeaFeed vs Control.
+         - Lick block supply, two columns (SeaFeed | Control): on hand,
+           days left, reorder-by date/status.
+         - Footer links to the Lick Block Tracker and Farm Directory
+           (target="_top" — this file loads inside a Hub Embed iframe, so
+           a plain relative href would try to navigate the IFRAME, not
+           the Hub page; _top sends it to the parent page instead).
+       PLUS one static "TRT Pastoral" card, hand-written rather than data-
+       driven — TRT hasn't started yet and has no rows in Usage History
+       (which is what drives the dynamic farm list), so there's nothing to
+       fetch for it yet. Delete this block and it'll pick up automatically
+       once TRT starts logging usage. Real farm names are used throughout
+       this file deliberately: this is the INTERNAL Staff Portal, not the
+       public site, so the NFF Farm Data Code de-identification rule that
+       applies to the public Farms/Data pages does NOT apply here.
 
-  DATA SOURCES — unchanged from the two files this replaces:
-    - Pipeline health: latest record date from OptiWeigh liveweight,
-      Emissions, Economics (3 separate small queries), plus Lick Block
-      Usage History — which is now read ONCE and reused for both its
-      health check (max snapshot_date) AND the full reorder computation,
-      instead of two separate fetches like the old two-embed setup.
-    - Reorder logic: LEL_Lick_Block_Usage_History + LEL_Lick_Block_Orders,
-      same maths as before (REORDER_LEAD_DAYS / SOON_THRESHOLD_DAYS).
-    - WHY NOT LEL_Run_Log for pipeline health: see pipeline-health-
-      embed.html's original comment — Jono asked to avoid it while it's a
-      private/org item; this infers health from live public data instead.
+  GRACEFUL DEGRADATION — confirmed by live query 2026-09-02, both handled
+  below rather than assumed uniform:
+    - LEL_Economics_Data currently has per-farm rows for Bowood Farm only
+      (Eastbourne Farm has none yet — it only appears in the trial-wide
+      "All Farms" aggregate so far). Eastbourne's card shows "Not enough
+      data yet" for ADG and cost/kg gain instead of blank or a fetch error.
+    - LEL_Farm_Directory currently has next_visit_due set for Eastbourne
+      Farm but not Bowood Farm (null). Bowood's card shows "Not yet
+      scheduled" with a link to set one, instead of a blank date.
+
+  DATA SOURCES: LEL_Lick_Block_Usage_History + LEL_Lick_Block_Orders (drive
+  the dynamic farm list and the supply/reorder maths — same REORDER_LEAD_
+  DAYS / SOON_THRESHOLD_DAYS logic as before), LEL_Economics_Data (ADG +
+  cost/kg gain, filtered to real farm_name values only, i.e. excluding
+  "All Farms (Trial Aggregate)"), LEL_Farm_Directory (next_visit_due).
 
   Deploy: upload to the same GitHub repo as lickblock-internal-portal.html
-  (jonathanjones-tasfarmers/internal-portal). In Hub's Home page editor,
-  REMOVE the old reorder-glance and pipeline-health Embed blocks, and add
-  ONE new EMBED block in their place, pointing at this file's hosted URL.
-  Suggested starting height: 620px on desktop (KPI row ~110px + two
-  columns of cards that currently wrap to 2 rows each at ~220px min-width
-  + labels/padding). This will need to grow a little as more farms come
-  online (more cards per column) — check it fits after first live load
-  and adjust the Embed block's height in Hub if content looks clipped or
-  there's a big empty gap at the bottom. The 5th KPI card added 2026-09-01
-  (below) may push the KPI row onto 2 lines on narrower embed widths
-  (auto-fit grid, ~190px min per card) — add ~90px if so.
-
-  ADDED 2026-08-31 (same day, second pass) — a 4th KPI card, "ADG% check",
-  added per Jono's call after workshopping further Staff Portal additions.
-  Directly targets the exact failure mode from earlier today: the public
-  ADG-vs-control % swung from +26.5% to -39.6% purely from an aggregation
-  bug + a new farm crossing the display buffer, and nobody noticed until
-  Jono happened to look at the live site. This card computes the same
-  ADG-vs-control % the public Data/Farms pages show (min-days-weighted
-  g/day advantage, from LEL_Economics_Data's AGGREGATE_LABEL rows) for
-  "now" and for ~3 days ago, and flags it red if the two are more than 15
-  percentage points apart, amber if 8-15 points apart. This is a trailing
-  indicator (it tells you a swing already happened, same as everything
-  else on this dashboard), not a guardrail that stops a bad number from
-  publishing — it's here so the NEXT swing gets noticed in a glance at
-  this page rather than by chance, not to prevent the swing itself.
-
-  ADDED 2026-09-01 — a 5th KPI card, "Data integrity", fed by
-  07. Weekly_Reconciliation.py's Friday sweep (see that script's own top
-  comment for what it checks: exact duplicates, gaps, conflicting values,
-  cross-layer drift, orphaned survey records). Reads the single latest row
-  from a new table, LEL_Reconciliation_Log — deliberately NOT LEL_Run_Log,
-  same reasoning as every other card here (private/org item, this page
-  reads anonymously). The row it reads is aggregate-only by design (a
-  status string and three counts, no farm names or values) — full detail
-  from each run stays in LEL_Run_Log for Jono/Bronte/Tas to read directly
-  in AGOL, never exposed on this unauthenticated endpoint.
-
-  SETUP NEEDED: RECON_URL below is a placeholder until Jono creates and
-  shares LEL_Reconciliation_Log (steps are in 07. Weekly_Reconciliation.py's
-  own header comment) — until then this card just reads "Not set up yet"
-  rather than erroring the rest of the dashboard.
+  (jonathanjones-tasfarmers/internal-portal), same filename as before, so
+  it drops straight into the existing Embed block in Hub's Home page
+  editor with no re-wiring needed (assuming that embed was already
+  pointed at this file — worth double-checking in Hub, since browsing the
+  live Home page on 2026-09-01 found this section wasn't rendering at
+  all). Height will grow a little as more farms come online (one more
+  card per farm) — check it fits after first live load.
 -->
 <meta name="robots" content="noindex, nofollow">
-<title>Operations dashboard</title>
+<title>Farm status</title>
 <style>
   :root{
     --tf-navy-900:#041221;
@@ -107,122 +109,120 @@
     --tf-white:#ffffff;
     --surface-page:#faf9f6;
     --surface-card:var(--tf-white);
+    --surface-sunken:var(--tf-slate-100);
     --text-heading:var(--tf-navy-900);
     --text-body:oklch(from var(--tf-navy-900) calc(l + 0.06) calc(c - 0.005) h);
     --text-muted:var(--tf-slate-600);
     --border-subtle:var(--tf-slate-200);
     --border-default:var(--tf-slate-300);
-    --radius-lg:12px;
+    --radius-lg:12px; --radius-md:10px;
     --shadow-sm:0 1px 2px rgba(4,18,33,0.08);
+    --shadow-md:0 4px 12px rgba(4,18,33,0.12);
     --font-display:Tahoma,Verdana,sans-serif;
     --font-body:Verdana,Tahoma,sans-serif;
   }
   html, body { margin: 0; background: var(--surface-page); }
   body { font-family: var(--font-body); color: var(--text-body); -webkit-font-smoothing:antialiased; padding: 16px 32px 20px; box-sizing: border-box; }
 
-  .sp-section-label { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; margin: 0 0 14px 2px; }
+  .sp-section-label { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; margin: 0 0 4px 2px; }
+  .sp-section-sub { font-size: 12.5px; color: var(--text-muted); margin: 0 0 16px 2px; }
   .sp-empty-note { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
 
-  /* --- KPI strip: the number is the hero, everything else secondary --- */
-  .sp-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 26px; }
-  .sp-kpi-card { background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 16px 18px; box-sizing: border-box; box-shadow: var(--shadow-sm); }
-  .sp-kpi-label { font-family: var(--font-display); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 0 0 8px; }
-  .sp-kpi-value { font-family: var(--font-display); font-size: 26px; font-weight: 700; color: var(--text-heading); margin: 0; line-height: 1.15; }
-  .sp-kpi-value.ok { color: var(--tf-seafeed); }
-  .sp-kpi-value.warning { color: var(--tf-warning); }
-  .sp-kpi-value.overdue { color: var(--tf-red); }
-  .sp-kpi-note { font-size: 12px; color: var(--text-muted); margin: 6px 0 0; }
+  /* --- Alert banner: only shown when something needs attention --- */
+  .sp-alert-banner { display: none; align-items: flex-start; gap: 10px; background: var(--surface-card); border: 1px solid var(--border-subtle); border-left: 4px solid var(--tf-warning); border-radius: var(--radius-lg); padding: 12px 16px; margin-bottom: 18px; box-shadow: var(--shadow-sm); }
+  .sp-alert-banner.show { display: flex; }
+  .sp-alert-banner.overdue { border-left-color: var(--tf-red); }
+  .sp-alert-icon { flex: none; width: 18px; height: 18px; margin-top: 1px; }
+  .sp-alert-icon svg { width: 18px; height: 18px; stroke: var(--tf-warning); fill: none; stroke-width: 2; }
+  .sp-alert-banner.overdue .sp-alert-icon svg { stroke: var(--tf-red); }
+  .sp-alert-text { font-size: 13px; line-height: 1.5; }
+  .sp-alert-text b { font-family: var(--font-display); color: var(--text-heading); }
 
-  /* --- Two-column detail row --- */
-  .sp-dash-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
-  @media (max-width: 860px) { .sp-dash-columns { grid-template-columns: 1fr; gap: 26px; } }
+  /* --- Farm card grid --- */
+  .sp-farm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 18px; margin-bottom: 10px; }
+  .sp-farm-card { background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 18px 20px 16px; box-sizing: border-box; box-shadow: var(--shadow-sm); }
+  .sp-farm-card.pending { background: var(--surface-sunken); border: 1px dashed var(--border-default); box-shadow: none; }
 
-  .sp-health-grid, .sp-glance-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+  .sp-farm-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+  .sp-farm-name { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: var(--text-heading); margin: 0; }
+  .sp-farm-region { font-size: 11.5px; color: var(--text-muted); margin: 2px 0 0; }
+  .sp-visit-pill { flex: none; font-family: var(--font-display); font-size: 10.5px; font-weight: 700; text-align: right; padding: 4px 10px; border-radius: 999px; white-space: nowrap; background: var(--tf-slate-100); color: var(--text-muted); }
+  .sp-visit-pill.overdue { background: oklch(from var(--tf-red) l c h / 0.14); color: var(--tf-red); }
+  .sp-visit-pill.soon { background: oklch(from var(--tf-warning) l c h / 0.16); color: var(--tf-warning); }
 
-  .sp-health-card, .sp-glance-card { background: var(--surface-card); border: 1px solid var(--border-subtle); border-left: 4px solid var(--border-default); border-radius: var(--radius-lg); padding: 14px 16px; box-sizing: border-box; }
-  .sp-health-card.overdue, .sp-glance-card.overdue { border-left-color: var(--tf-red); }
-  .sp-health-card.warning, .sp-glance-card.soon { border-left-color: var(--tf-warning); }
-  .sp-health-card.ok { border-left-color: var(--tf-seafeed); }
+  .sp-metric-row { display: flex; gap: 22px; flex-wrap: wrap; padding: 10px 0 12px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 12px; }
+  .sp-metric-label { font-family: var(--font-display); font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin: 0 0 4px; }
+  .sp-metric-value { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--text-heading); margin: 0; }
+  .sp-metric-value.small { font-size: 13px; font-weight: 700; }
+  .sp-metric-value.ok { color: var(--tf-seafeed); }
+  .sp-metric-value.warning { color: var(--tf-warning); }
+  .sp-metric-value.overdue { color: var(--tf-red); }
+  .sp-metric-value.muted { color: var(--text-muted); font-weight: 400; font-size: 13px; }
+  .sp-metric-note { font-size: 11px; color: var(--text-muted); margin: 3px 0 0; }
 
-  .sp-health-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-  .sp-health-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--tf-slate-400); }
-  .sp-health-dot.ok { background: var(--tf-seafeed); }
-  .sp-health-dot.warning { background: var(--tf-warning); }
-  .sp-health-dot.overdue { background: var(--tf-red); }
-  .sp-health-label { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: var(--text-heading); margin: 0; }
-  .sp-health-value { font-size: 13px; color: var(--text-body); margin: 0; }
-  .sp-health-value.overdue { color: var(--tf-red); font-weight: 700; }
-  .sp-health-value.warning { color: var(--tf-warning); font-weight: 700; }
-  .sp-health-meta { font-size: 11px; color: var(--text-muted); margin: 3px 0 0; }
+  .sp-supply-label { font-family: var(--font-display); font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 0 0 8px; }
+  .sp-supply-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .sp-supply-col { background: var(--surface-sunken); border-radius: var(--radius-md); padding: 10px 12px; box-sizing: border-box; }
+  .sp-farm-card.pending .sp-supply-col { background: var(--tf-white); }
+  .sp-supply-treatment { font-family: var(--font-display); font-size: 11.5px; font-weight: 700; color: var(--text-heading); margin: 0 0 6px; }
+  .sp-supply-treatment.seafeed { color: var(--tf-seafeed); }
+  .sp-supply-stat { font-size: 12px; color: var(--text-body); margin: 0 0 2px; }
+  .sp-supply-stat b { color: var(--text-heading); }
+  .sp-supply-reorder { font-size: 11.5px; font-weight: 700; margin: 4px 0 0; }
+  .sp-supply-reorder.overdue { color: var(--tf-red); }
+  .sp-supply-reorder.soon { color: var(--tf-warning); }
+  .sp-supply-reorder.ok { color: var(--text-muted); font-weight: 400; }
 
-  .sp-glance-label { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 8px; }
-  .sp-glance-value { font-family: var(--font-display); font-size: 17px; font-weight: 700; color: var(--text-heading); margin: 0; }
-  .sp-glance-value.overdue { color: var(--tf-red); }
-  .sp-glance-value.soon { color: var(--tf-warning); }
-  .sp-glance-note { font-family: var(--font-display); font-size: 11px; color: var(--text-muted); margin: 6px 0 0; }
-  .sp-glance-note.stale { color: var(--tf-red); font-weight: 700; }
+  .sp-farm-links { display: flex; gap: 16px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-subtle); }
+  .sp-farm-links a { font-family: var(--font-display); font-size: 11.5px; font-weight: 700; color: var(--tf-seafeed); text-decoration: none; }
+  .sp-farm-links a:hover { text-decoration: underline; }
+
+  .sp-pending-note { font-size: 12.5px; color: var(--text-muted); line-height: 1.6; margin: 0; }
+
+  .sp-freshness { font-size: 11.5px; color: var(--text-muted); margin: 12px 2px 0; }
 </style>
 </head>
 <body>
 
-<p class="sp-section-label">Operations</p>
-<div class="sp-kpi-grid" id="sp-kpi-grid">
-  <p class="sp-empty-note">Loading overview&hellip;</p>
+<p class="sp-section-label">Your farms</p>
+<p class="sp-section-sub">Lick block supply, weight gain, and visit status for each trial farm — at a glance.</p>
+
+<div class="sp-alert-banner" id="sp-alert-banner">
+  <span class="sp-alert-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L14.71 3.86a2 2 0 0 0-3.42 0Z"></path></svg></span>
+  <p class="sp-alert-text" id="sp-alert-text"></p>
 </div>
 
-<div class="sp-dash-columns">
-  <div>
-    <p class="sp-section-label">Pipeline health</p>
-    <div class="sp-health-grid" id="sp-health-grid">
-      <p class="sp-empty-note">Checking pipelines&hellip;</p>
-    </div>
-  </div>
-  <div>
-    <p class="sp-section-label">Reorder at a glance</p>
-    <div class="sp-glance-grid" id="sp-glance-grid">
-      <p class="sp-empty-note">Loading reorder data&hellip;</p>
-    </div>
-  </div>
+<div class="sp-farm-grid" id="sp-farm-grid">
+  <p class="sp-empty-note">Loading farm status&hellip;</p>
 </div>
+
+<p class="sp-freshness" id="sp-freshness"></p>
 
 <script>
 (function(){
-  var EMISSIONS_URL     = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Emissions_Data_view/FeatureServer/0/query";
-  var ECON_URL           = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Economics_Data/FeatureServer/0/query";
-  var PRODUCTIVITY_URL   = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/OptiWeigh_Cattle_Weights/FeatureServer/0/query";
   var USAGE_HISTORY_URL  = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lick_Block_Usage_History/FeatureServer/0/query";
   var ORDERS_URL         = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lick_Block_Orders/FeatureServer/0/query";
-  // LEL_Reconciliation_Log — created and shared 2026-09-01. See
-  // 07. Weekly_Reconciliation.py's header for the setup steps, and this
-  // file's own top comment for why this card reads a separate table
-  // rather than LEL_Run_Log.
-  var RECON_URL          = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Reconciliation_Log/FeatureServer/0/query";
+  var ECON_URL           = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Economics_Data/FeatureServer/0/query";
+  var DIRECTORY_URL      = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Farm_Directory/FeatureServer/0/query";
 
-  var STALE_HOURS = 36;
-  var OVERDUE_HOURS = 72;
   var REORDER_LEAD_DAYS = 40;
   var SOON_THRESHOLD_DAYS = 14;
-  var ADG_SWING_FLAG_PTS = 15;    // percentage points — flag red at/above this
-  var ADG_SWING_WARN_PTS = 8;     // percentage points — flag amber at/above this
-  var ADG_REFERENCE_DAYS_AGO = 3;
-  var RECON_STALE_DAYS = 9;       // runs weekly (Friday) — flag if the latest run is older than this
+  var ADG_SWING_FLAG_PTS = 15;   // percentage points — flag red at/above this, vs the previous reading
+  var ADG_SWING_WARN_PTS = 8;    // percentage points — flag amber at/above this
+  var VISIT_SOON_DAYS = 14;      // flag "next visit due" amber inside this many days, red if overdue
+
+  // Hand-written — TRT Pastoral has no Usage History rows yet (trial not
+  // started), so it never appears in the dynamic farm list below. Delete
+  // this once it starts logging usage and it'll pick up automatically.
+  var PENDING_FARMS = [
+    { name: 'TRT Pastoral', region: 'King Island' }
+  ];
 
   function q(url, params){
     return fetch(url + "?" + new URLSearchParams(params)).then(function(res){ return res.json(); }).then(function(data){
       if (data.error) throw new Error(data.error.message || "Query failed");
       return data;
     });
-  }
-
-  function fetchLatestDate(label, url, dateField, scripts){
-    return q(url, { where: "1=1", outFields: dateField, orderByFields: dateField + " DESC", resultRecordCount: "1", f: "json" })
-      .then(function(data){
-        var ms = data.features.length ? data.features[0].attributes[dateField] : null;
-        return { label: label, scripts: scripts, latestMs: ms };
-      }).catch(function(err){
-        console.error(label + ' fetch failed:', err);
-        return { label: label, scripts: scripts, latestMs: null, fetchFailed: true };
-      });
   }
 
   function fetchUsageHistory(){
@@ -245,80 +245,38 @@
       return [];
     });
   }
-
-  // ADG% anomaly check — a single farm_name equality predicate only (no
-  // date range combined into the same where clause: that combination
-  // returned a 400 "Invalid query parameters" from this exact layer when
-  // building the 2026-08-31 Economics aggregate correction — filtering by
-  // date is done client-side below instead, same workaround).
-  function fetchEconAggregateHistory(){
+  // Real per-farm rows only — excludes the "All Farms (Trial Aggregate)"
+  // rows the public site uses, which is a separate concern from this page.
+  function fetchEconByFarm(){
     return q(ECON_URL, {
-      where: "farm_name = 'All Farms (Trial Aggregate)'",
-      outFields: "treatment,weight_gain_kg_per_head,days_of_data,calculation_date",
-      orderByFields: "calculation_date DESC", resultRecordCount: "60", f: "json"
+      where: "farm_name <> 'All Farms (Trial Aggregate)' AND treatment IN ('seafeed','control')",
+      outFields: "farm_name,treatment,weight_gain_kg_per_head,days_of_data,cost_per_kg_gain_aud,calculation_date",
+      orderByFields: "calculation_date DESC", resultRecordCount: "1000", f: "json"
     }).then(function(data){ return data.features.map(function(f){ return f.attributes; }); }).catch(function(err){
-      console.error('Economics aggregate history fetch failed:', err);
+      console.error('Economics by-farm fetch failed:', err);
+      return [];
+    });
+  }
+  function fetchDirectory(){
+    return q(DIRECTORY_URL, {
+      where: "1=1",
+      outFields: "trial_site,next_visit_due,last_visit_date",
+      resultRecordCount: "200", f: "json"
+    }).then(function(data){ return data.features.map(function(f){ return f.attributes; }); }).catch(function(err){
+      console.error('Farm Directory fetch failed:', err);
       return [];
     });
   }
 
-  // Latest LEL_Reconciliation_Log row — aggregate-only (status + 3 counts),
-  // see this file's top comment for why nothing more detailed than that
-  // lives here. Resolves to null (not a rejection) if RECON_URL hasn't
-  // been set up yet, so Promise.all above it never fails the whole
-  // dashboard over this one still-pending piece.
-  function fetchReconciliationLatest(){
-    if (!RECON_URL || RECON_URL.indexOf('REPLACE_WITH') === 0) {
-      return Promise.resolve(null);
-    }
-    return q(RECON_URL, {
-      where: "1=1",
-      outFields: "run_timestamp,status,records_scanned,issues_fixed,issues_flagged",
-      orderByFields: "run_timestamp DESC", resultRecordCount: "1", f: "json"
-    }).then(function(data){
-      return data.features.length ? data.features[0].attributes : null;
-    }).catch(function(err){
-      console.error('Reconciliation log fetch failed:', err);
-      return null;
-    });
+  function fmtDate(ms){
+    if (ms == null) return '–';
+    return new Date(ms).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
   }
-
-  // Same ADG-vs-control % formula the public Data/Farms pages use: g/day
-  // advantage over the min-days-of-data window, as a % of control's own
-  // g/day rate. Picks, per treatment, whichever aggregate row's
-  // calculation_date is closest to targetMs — not necessarily an exact
-  // match, since rows land at whatever time each day's pipeline run
-  // happened.
-  function computeAdgPct(rows, targetMs){
-    var byTreatment = {};
-    ['seafeed', 'control'].forEach(function(t){
-      var candidates = rows.filter(function(r){ return r.treatment === t; });
-      if (!candidates.length) return;
-      candidates.sort(function(a, b){ return Math.abs(a.calculation_date - targetMs) - Math.abs(b.calculation_date - targetMs); });
-      byTreatment[t] = candidates[0];
-    });
-    var sf = byTreatment.seafeed, ct = byTreatment.control;
-    if (!sf || !ct || !sf.weight_gain_kg_per_head || !ct.weight_gain_kg_per_head || !sf.days_of_data || !ct.days_of_data) return null;
-    var days = Math.min(sf.days_of_data, ct.days_of_data);
-    if (days <= 0) return null;
-    var sfRate = (sf.weight_gain_kg_per_head / days) * 1000;
-    var ctRate = (ct.weight_gain_kg_per_head / days) * 1000;
-    if (!ctRate) return null;
-    return ((sfRate - ctRate) / ctRate) * 100;
-  }
-
   function fmtRelative(hours){
     if (hours < 1) return "just now";
     if (hours < 24) return Math.round(hours) + (Math.round(hours) === 1 ? " hour ago" : " hours ago");
     var days = Math.round(hours / 24);
     return days + (days === 1 ? " day ago" : " days ago");
-  }
-  function fmtDate(ms){
-    if (ms == null) return '–';
-    return new Date(ms).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
-  }
-  function fmtDateTime(ms){
-    return new Date(ms).toLocaleString('en-AU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   }
   function treatmentLabel(t){ return t === 'seafeed' ? 'SeaFeed' : 'Control'; }
 
@@ -340,13 +298,14 @@
       ['seafeed', 'control'].forEach(function(treatment){
         var latest = latestByTreatment[treatment];
         var ordered = orderedByTreatment[treatment];
-        var row = { farm: farm, treatment: treatment, status: 'nodata', reorderByMs: null, note: '' };
+        var row = { farm: farm, treatment: treatment, status: 'nodata', reorderByMs: null, note: '', onHand: null };
 
         if (!latest) { row.note = 'No usage history yet'; rows.push(row); return; }
         if (!ordered) { row.note = 'No orders logged yet'; rows.push(row); return; }
 
         var onHand = ordered - latest.cumulative_blocks_used;
         var rate = latest.blocks_per_day_current;
+        row.onHand = onHand;
         if (!rate || rate <= 0) { row.note = 'Not enough data for a rate yet'; rows.push(row); return; }
 
         var daysToEmpty = onHand / rate;
@@ -365,179 +324,199 @@
         rows.push(row);
       });
     });
-
-    rows.sort(function(a, b){
-      if (a.reorderByMs == null && b.reorderByMs == null) return 0;
-      if (a.reorderByMs == null) return 1;
-      if (b.reorderByMs == null) return -1;
-      return a.reorderByMs - b.reorderByMs;
-    });
     return rows;
   }
 
-  function renderHealth(results){
-    var grid = document.getElementById('sp-health-grid');
-    grid.innerHTML = results.map(function(r){
-      if (r.fetchFailed || r.latestMs == null) {
-        return '<div class="sp-health-card">' +
-          '<div class="sp-health-top"><span class="sp-health-dot"></span><p class="sp-health-label">' + r.label + '</p></div>' +
-          '<p class="sp-health-value">No data yet</p>' +
-          '<p class="sp-health-meta">Scripts ' + r.scripts + '</p>' +
-          '</div>';
+  // Same ADG-vs-control % formula the public Data/Farms pages use, applied
+  // PER FARM instead of trial-wide: g/day advantage over the min-days-of-
+  // data window, as a % of control's own g/day rate.
+  function computeFarmAdgPct(sf, ct){
+    if (!sf || !ct || !sf.weight_gain_kg_per_head || !ct.weight_gain_kg_per_head || !sf.days_of_data || !ct.days_of_data) return null;
+    var days = Math.min(sf.days_of_data, ct.days_of_data);
+    if (days <= 0) return null;
+    var sfRate = (sf.weight_gain_kg_per_head / days) * 1000;
+    var ctRate = (ct.weight_gain_kg_per_head / days) * 1000;
+    if (!ctRate) return null;
+    return ((sfRate - ctRate) / ctRate) * 100;
+  }
+
+  function renderAlertBanner(reorderRows, directoryByFarm){
+    var banner = document.getElementById('sp-alert-banner');
+    var textEl = document.getElementById('sp-alert-text');
+    var items = [];
+    var hasOverdue = false;
+
+    reorderRows.forEach(function(r){
+      if (r.status === 'overdue' || r.status === 'soon') {
+        if (r.status === 'overdue') hasOverdue = true;
+        items.push({ text: r.farm + ' (' + treatmentLabel(r.treatment) + ') ' + (r.status === 'overdue' ? 'overdue' : 'due soon'), overdue: r.status === 'overdue' });
       }
-      var hours = (Date.now() - r.latestMs) / 3600000;
-      var status = hours > OVERDUE_HOURS ? 'overdue' : (hours > STALE_HOURS ? 'warning' : 'ok');
-      var statusText = status === 'overdue' ? 'Overdue — check it now' : (status === 'warning' ? 'Running late' : 'Up to date');
-      return '<div class="sp-health-card ' + status + '">' +
-        '<div class="sp-health-top"><span class="sp-health-dot ' + status + '"></span><p class="sp-health-label">' + r.label + '</p></div>' +
-        '<p class="sp-health-value ' + status + '">' + statusText + '</p>' +
-        '<p class="sp-health-meta">Last updated ' + fmtRelative(hours) + ' &middot; ' + fmtDateTime(r.latestMs) + '</p>' +
-        '<p class="sp-health-meta">Scripts ' + r.scripts + '</p>' +
-        '</div>';
-    }).join('');
-  }
-
-  function renderReorder(rows){
-    var grid = document.getElementById('sp-glance-grid');
-    if (!rows.length) {
-      grid.innerHTML = '<p class="sp-empty-note">No usage history yet — run 06. Lick_Block_Portal_Feed.py to populate this.</p>';
-      return;
-    }
-    grid.innerHTML = rows.map(function(r){
-      var statusClass = r.status === 'overdue' ? 'overdue' : (r.status === 'soon' ? 'soon' : '');
-      var valueText = r.reorderByMs != null ? fmtDate(r.reorderByMs) : '–';
-      return '<div class="sp-glance-card ' + statusClass + '">' +
-        '<p class="sp-glance-label">' + r.farm + ' &mdash; ' + treatmentLabel(r.treatment) + '</p>' +
-        '<p class="sp-glance-value ' + statusClass + '">' + valueText + '</p>' +
-        '<p class="sp-glance-note' + (r.status === 'overdue' ? ' stale' : '') + '">' + r.note + '</p>' +
-        '</div>';
-    }).join('');
-  }
-
-  function renderKpis(healthResults, reorderRows, todayAdgPct, refAdgPct, reconLatest){
-    var kpiGrid = document.getElementById('sp-kpi-grid');
-
-    // KPI 1 — overall pipeline status: worst status among the 4 domains.
-    var okCount = 0, worst = 'ok';
-    healthResults.forEach(function(r){
-      if (r.fetchFailed || r.latestMs == null) return; // "no data yet" doesn't count as ok or push worst — genuinely unknown
-      var hours = (Date.now() - r.latestMs) / 3600000;
-      var status = hours > OVERDUE_HOURS ? 'overdue' : (hours > STALE_HOURS ? 'warning' : 'ok');
-      if (status === 'ok') okCount++;
-      if (status === 'overdue') worst = 'overdue';
-      else if (status === 'warning' && worst !== 'overdue') worst = 'warning';
     });
-    var pipelineClass = worst === 'overdue' ? 'overdue' : (worst === 'warning' ? 'warning' : 'ok');
-    var pipelineNote = worst === 'overdue' ? 'One or more pipelines overdue' : (worst === 'warning' ? 'One or more pipelines running late' : 'All pipelines up to date');
 
-    // KPI 2 — next reorder due: earliest reorderByMs among rows that have one.
-    var withDate = reorderRows.filter(function(r){ return r.reorderByMs != null; });
-    var next = withDate.length ? withDate[0] : null; // reorderRows already sorted ascending by reorderByMs
-    var nextClass = next ? (next.status === 'overdue' ? 'overdue' : (next.status === 'soon' ? 'warning' : 'ok')) : '';
-    var nextValue = next ? fmtDate(next.reorderByMs) : '–';
-    var nextNote = next ? (next.farm + ' — ' + treatmentLabel(next.treatment)) : 'No reorder data yet';
+    if (!items.length) { banner.classList.remove('show'); return; }
 
-    // KPI 3 — items needing attention: count of overdue + soon rows.
-    var attentionCount = reorderRows.filter(function(r){ return r.status === 'overdue' || r.status === 'soon'; }).length;
-    var hasOverdue = reorderRows.some(function(r){ return r.status === 'overdue'; });
-    var attentionClass = attentionCount === 0 ? 'ok' : (hasOverdue ? 'overdue' : 'warning');
+    items.sort(function(a, b){ return (b.overdue ? 1 : 0) - (a.overdue ? 1 : 0); });
+    var shown = items.slice(0, 3).map(function(i){ return i.text; }).join(', ');
+    var extra = items.length > 3 ? ' +' + (items.length - 3) + ' more' : '';
 
-    // KPI 4 — ADG% anomaly check: today's public ADG-vs-control % against
-    // ~ADG_REFERENCE_DAYS_AGO ago. See this file's top comment for why.
-    var adgValue = todayAdgPct != null ? (todayAdgPct >= 0 ? '+' : '') + todayAdgPct.toFixed(1) + '%' : '–';
-    var adgSwing = (todayAdgPct != null && refAdgPct != null) ? (todayAdgPct - refAdgPct) : null;
-    var adgClass = 'ok';
-    var adgNote = 'Not enough history yet';
-    if (adgSwing != null) {
-      var absSwing = Math.abs(adgSwing);
-      adgClass = absSwing >= ADG_SWING_FLAG_PTS ? 'overdue' : (absSwing >= ADG_SWING_WARN_PTS ? 'warning' : 'ok');
-      adgNote = (adgSwing >= 0 ? '+' : '') + adgSwing.toFixed(1) + ' pts vs ' + ADG_REFERENCE_DAYS_AGO + ' days ago';
+    textEl.innerHTML = '<b>' + items.length + ' reorder' + (items.length === 1 ? '' : 's') + ' need' + (items.length === 1 ? 's' : '') + ' attention:</b> ' + shown + extra + '. Log a reorder in the Lick Block Tracker.';
+    banner.classList.add('show');
+    banner.classList.toggle('overdue', hasOverdue);
+  }
+
+  function renderSupplyCol(row){
+    if (!row || row.status === 'nodata') {
+      return '<p class="sp-supply-stat" style="color:var(--text-muted);">' + (row ? row.note : 'No data yet') + '</p>';
     }
+    var reorderText = row.reorderByMs != null
+      ? (row.status === 'overdue' ? row.note : 'Reorder by ' + fmtDate(row.reorderByMs))
+      : row.note;
+    return '' +
+      '<p class="sp-supply-stat"><b>' + (row.onHand != null ? Math.max(0, Math.round(row.onHand)) : '–') + '</b> blocks on hand</p>' +
+      '<p class="sp-supply-stat"><b>' + (row.daysToEmpty != null ? Math.max(0, Math.round(row.daysToEmpty)) : '–') + '</b> days left</p>' +
+      '<p class="sp-supply-reorder ' + row.status + '">' + reorderText + '</p>';
+  }
 
-    // KPI 5 — data integrity: latest LEL_Reconciliation_Log row from
-    // 07. Weekly_Reconciliation.py's Friday sweep. Aggregate-only by
-    // design — see this file's top comment.
-    var reconClass = 'ok';
-    var reconValue = 'Not set up yet';
-    var reconNote = 'See 07. Weekly_Reconciliation.py setup steps';
-    if (RECON_URL && RECON_URL.indexOf('REPLACE_WITH') !== 0) {
-      if (!reconLatest) {
-        reconClass = ''; reconValue = 'No data yet'; reconNote = 'Run 07. Weekly_Reconciliation.py';
+  function renderFarmCard(farm, reorderRows, econByKey, econPrevByKey, directoryRow){
+    var sfReorder = reorderRows.find(function(r){ return r.farm === farm && r.treatment === 'seafeed'; });
+    var ctReorder = reorderRows.find(function(r){ return r.farm === farm && r.treatment === 'control'; });
+
+    var sfEcon = econByKey[farm + '|seafeed'];
+    var ctEcon = econByKey[farm + '|control'];
+    var sfEconPrev = econPrevByKey[farm + '|seafeed'];
+    var ctEconPrev = econPrevByKey[farm + '|control'];
+
+    var adgPct = computeFarmAdgPct(sfEcon, ctEcon);
+    var adgPctPrev = computeFarmAdgPct(sfEconPrev, ctEconPrev);
+    var adgClass = 'muted';
+    var adgValue = 'Not enough data yet';
+    var adgNote = '';
+    if (adgPct != null) {
+      adgValue = (adgPct >= 0 ? '+' : '') + adgPct.toFixed(1) + '%';
+      adgClass = 'ok';
+      if (adgPctPrev != null) {
+        var swing = Math.abs(adgPct - adgPctPrev);
+        adgClass = swing >= ADG_SWING_FLAG_PTS ? 'overdue' : (swing >= ADG_SWING_WARN_PTS ? 'warning' : 'ok');
+        adgNote = swing >= ADG_SWING_WARN_PTS ? ((adgPct - adgPctPrev >= 0 ? '+' : '') + (adgPct - adgPctPrev).toFixed(1) + ' pts vs last reading') : 'SeaFeed vs Control';
       } else {
-        var reconAgeDays = (Date.now() - reconLatest.run_timestamp) / 86400000;
-        var reconStale = reconAgeDays > RECON_STALE_DAYS;
-        var flaggedCount = reconLatest.issues_flagged || 0;
-        if (reconLatest.status === 'FAILED') { reconClass = 'overdue'; reconValue = 'Run failed'; }
-        else if (reconStale) { reconClass = 'overdue'; reconValue = 'Overdue'; }
-        else if (flaggedCount > 0) { reconClass = 'warning'; reconValue = flaggedCount + ' flagged'; }
-        else { reconClass = 'ok'; reconValue = 'All clear'; }
-        var fixedCount = reconLatest.issues_fixed || 0;
-        reconNote = 'Last run ' + fmtRelative(reconAgeDays * 24) + (fixedCount ? ' · ' + fixedCount + ' auto-fixed' : '');
+        adgNote = 'SeaFeed vs Control';
       }
     }
 
-    kpiGrid.innerHTML =
-      '<div class="sp-kpi-card">' +
-        '<p class="sp-kpi-label">Pipeline status</p>' +
-        '<p class="sp-kpi-value ' + pipelineClass + '">' + okCount + '/' + healthResults.length + ' OK</p>' +
-        '<p class="sp-kpi-note">' + pipelineNote + '</p>' +
-      '</div>' +
-      '<div class="sp-kpi-card">' +
-        '<p class="sp-kpi-label">Next reorder due</p>' +
-        '<p class="sp-kpi-value ' + nextClass + '">' + nextValue + '</p>' +
-        '<p class="sp-kpi-note">' + nextNote + '</p>' +
-      '</div>' +
-      '<div class="sp-kpi-card">' +
-        '<p class="sp-kpi-label">Needs attention</p>' +
-        '<p class="sp-kpi-value ' + attentionClass + '">' + attentionCount + '</p>' +
-        '<p class="sp-kpi-note">' + (attentionCount === 0 ? 'No reorders due soon' : 'Reorder' + (attentionCount === 1 ? '' : 's') + ' due soon or overdue') + '</p>' +
-      '</div>' +
-      '<div class="sp-kpi-card">' +
-        '<p class="sp-kpi-label">ADG% check</p>' +
-        '<p class="sp-kpi-value ' + adgClass + '">' + adgValue + '</p>' +
-        '<p class="sp-kpi-note">' + adgNote + '</p>' +
-      '</div>' +
-      '<div class="sp-kpi-card">' +
-        '<p class="sp-kpi-label">Data integrity</p>' +
-        '<p class="sp-kpi-value ' + reconClass + '">' + reconValue + '</p>' +
-        '<p class="sp-kpi-note">' + reconNote + '</p>' +
+    var costValue = 'Not enough data yet';
+    var costClass = 'muted';
+    if (sfEcon && ctEcon && sfEcon.cost_per_kg_gain_aud != null && ctEcon.cost_per_kg_gain_aud != null) {
+      costValue = 'SeaFeed $' + sfEcon.cost_per_kg_gain_aud.toFixed(2) + ' · Control $' + ctEcon.cost_per_kg_gain_aud.toFixed(2);
+      costClass = '';
+    }
+
+    var visitMs = directoryRow ? directoryRow.next_visit_due : null;
+    var visitPillClass = '', visitText = 'Not yet scheduled';
+    if (visitMs != null) {
+      var visitDays = (visitMs - Date.now()) / 86400000;
+      visitPillClass = visitDays < 0 ? 'overdue' : (visitDays <= VISIT_SOON_DAYS ? 'soon' : '');
+      visitText = 'Next visit ' + fmtDate(visitMs);
+    }
+
+    return '' +
+      '<div class="sp-farm-card">' +
+        '<div class="sp-farm-top">' +
+          '<div><p class="sp-farm-name">' + farm + '</p></div>' +
+          '<span class="sp-visit-pill ' + visitPillClass + '">' + visitText + '</span>' +
+        '</div>' +
+        '<div class="sp-metric-row">' +
+          '<div>' +
+            '<p class="sp-metric-label">ADG advantage</p>' +
+            '<p class="sp-metric-value' + (adgValue.indexOf('%') > -1 ? ' ' + adgClass : ' muted small') + '">' + adgValue + '</p>' +
+            (adgNote ? '<p class="sp-metric-note">' + adgNote + '</p>' : '') +
+          '</div>' +
+          '<div>' +
+            '<p class="sp-metric-label">Cost per kg gain</p>' +
+            '<p class="sp-metric-value small' + (costClass ? ' ' + costClass : '') + '">' + costValue + '</p>' +
+          '</div>' +
+        '</div>' +
+        '<p class="sp-supply-label">Lick block supply</p>' +
+        '<div class="sp-supply-grid">' +
+          '<div class="sp-supply-col">' +
+            '<p class="sp-supply-treatment seafeed">SeaFeed</p>' +
+            renderSupplyCol(sfReorder) +
+          '</div>' +
+          '<div class="sp-supply-col">' +
+            '<p class="sp-supply-treatment">Control</p>' +
+            renderSupplyCol(ctReorder) +
+          '</div>' +
+        '</div>' +
+        '<div class="sp-farm-links">' +
+          '<a href="/pages/2c5bc815dd4f4a63a924f9fadd086495" target="_top">Lick Block Tracker &rarr;</a>' +
+          '<a href="/pages/f2298ce499c747b39e9e6e0fa4a093bd" target="_top">Farm Directory &rarr;</a>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function renderPendingCard(farm){
+    return '' +
+      '<div class="sp-farm-card pending">' +
+        '<div class="sp-farm-top">' +
+          '<div><p class="sp-farm-name">' + farm.name + '</p><p class="sp-farm-region">' + farm.region + '</p></div>' +
+          '<span class="sp-visit-pill">Coming soon</span>' +
+        '</div>' +
+        '<p class="sp-pending-note">Trial not yet underway — supply, ADG, and cost data will appear here automatically once lick block usage starts logging for this farm.</p>' +
+        '<div class="sp-farm-links">' +
+          '<a href="/pages/f2298ce499c747b39e9e6e0fa4a093bd" target="_top">Farm Directory &rarr;</a>' +
+        '</div>' +
       '</div>';
   }
 
   Promise.all([
-    fetchLatestDate('OptiWeigh liveweight', PRODUCTIVITY_URL, 'snapshot_date', '00 / 01'),
-    fetchLatestDate('Emissions', EMISSIONS_URL, 'record_date', '03'),
-    fetchLatestDate('Economics', ECON_URL, 'calculation_date', '04'),
     fetchUsageHistory(),
     fetchOrders(),
-    fetchEconAggregateHistory(),
-    fetchReconciliationLatest()
+    fetchEconByFarm(),
+    fetchDirectory()
   ]).then(function(results){
-    var healthResults = [results[0], results[1], results[2]];
-    var usageHistory = results[3];
-    var orders = results[4];
-    var econHistory = results[5];
-    var reconLatest = results[6];
+    var usageHistory = results[0];
+    var orders = results[1];
+    var econRows = results[2];
+    var directoryRows = results[3];
 
-    // Lick block usage's own health check reuses the SAME full-history
-    // fetch the reorder logic needs below, rather than a second query.
-    var usageDates = usageHistory.map(function(r){ return r.snapshot_date; }).filter(function(v){ return v != null; });
-    var usageLatestMs = usageDates.length ? Math.max.apply(null, usageDates) : null;
-    healthResults.push({ label: 'Lick block usage', scripts: '02 / 06', latestMs: usageLatestMs, fetchFailed: !usageHistory.length && !usageLatestMs });
-
-    renderHealth(healthResults);
-
+    var farms = Array.from(new Set(usageHistory.map(function(r){ return r.trial_site; }))).sort();
     var reorderRows = computeReorderRows(usageHistory, orders);
-    renderReorder(reorderRows);
 
-    var todayAdgPct = computeAdgPct(econHistory, Date.now());
-    var refAdgPct = computeAdgPct(econHistory, Date.now() - ADG_REFERENCE_DAYS_AGO * 86400000);
-    renderKpis(healthResults, reorderRows, todayAdgPct, refAdgPct, reconLatest);
+    // econRows is sorted calculation_date DESC already (from the query),
+    // so the first row per farm+treatment key is the latest reading and
+    // the second is the previous one — used for the ADG swing flag.
+    var econByKey = {}, econPrevByKey = {};
+    econRows.forEach(function(r){
+      var key = r.farm_name + '|' + r.treatment;
+      if (!econByKey[key]) econByKey[key] = r;
+      else if (!econPrevByKey[key]) econPrevByKey[key] = r;
+    });
+
+    var directoryByFarm = {};
+    directoryRows.forEach(function(r){ directoryByFarm[r.trial_site] = r; });
+
+    var grid = document.getElementById('sp-farm-grid');
+    if (!farms.length) {
+      grid.innerHTML = '<p class="sp-empty-note">No farms are logging lick block usage yet — run 06. Lick_Block_Portal_Feed.py to populate this.</p>' + PENDING_FARMS.map(renderPendingCard).join('');
+    } else {
+      grid.innerHTML = farms.map(function(farm){
+        return renderFarmCard(farm, reorderRows, econByKey, econPrevByKey, directoryByFarm[farm]);
+      }).join('') + PENDING_FARMS.map(renderPendingCard).join('');
+    }
+
+    renderAlertBanner(reorderRows, directoryByFarm);
+
+    var usageDates = usageHistory.map(function(r){ return r.snapshot_date; }).filter(function(v){ return v != null; });
+    var freshnessEl = document.getElementById('sp-freshness');
+    if (usageDates.length) {
+      var latestMs = Math.max.apply(null, usageDates);
+      var hours = (Date.now() - latestMs) / 3600000;
+      freshnessEl.textContent = 'Lick block data last updated ' + fmtRelative(hours) + ' (' + fmtDate(latestMs) + ').';
+    } else {
+      freshnessEl.textContent = '';
+    }
   }).catch(function(err){
-    console.error('Operations dashboard failed:', err);
-    document.getElementById('sp-kpi-grid').innerHTML = '<p class="sp-empty-note">Could not load overview.</p>';
-    document.getElementById('sp-health-grid').innerHTML = '<p class="sp-empty-note">Could not check pipeline health.</p>';
-    document.getElementById('sp-glance-grid').innerHTML = '<p class="sp-empty-note">Could not load reorder data.</p>';
+    console.error('Farm status dashboard failed:', err);
+    document.getElementById('sp-farm-grid').innerHTML = '<p class="sp-empty-note">Could not load farm status.</p>';
   });
 })();
 </script>
