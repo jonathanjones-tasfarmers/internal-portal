@@ -323,14 +323,16 @@
   }
 
   // Same ADG-vs-control % formula the public Data/Farms pages use, applied
-  // PER FARM instead of trial-wide: g/day advantage over the min-days-of-
-  // data window, as a % of control's own g/day rate.
+  // PER FARM instead of trial-wide: each mob's own g/day rate from its own
+  // days_of_data (2026-09-02 fix — a shared min(sf.days, ct.days)
+  // denominator, used here until now, inflates whichever mob has been
+  // running longer whenever the two mobs' start dates differ, e.g.
+  // Bowood's SeaFeed ~mid-May vs Control 15 Jun — confirmed live producing
+  // a >100% "advantage" figure), as a % of control's own g/day rate.
   function computeFarmAdgPct(sf, ct){
     if (!sf || !ct || !sf.weight_gain_kg_per_head || !ct.weight_gain_kg_per_head || !sf.days_of_data || !ct.days_of_data) return null;
-    var days = Math.min(sf.days_of_data, ct.days_of_data);
-    if (days <= 0) return null;
-    var sfRate = (sf.weight_gain_kg_per_head / days) * 1000;
-    var ctRate = (ct.weight_gain_kg_per_head / days) * 1000;
+    var sfRate = (sf.weight_gain_kg_per_head / sf.days_of_data) * 1000;
+    var ctRate = (ct.weight_gain_kg_per_head / ct.days_of_data) * 1000;
     if (!ctRate) return null;
     return ((sfRate - ctRate) / ctRate) * 100;
   }
