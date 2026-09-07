@@ -91,9 +91,18 @@
 
   /* Hero — same light eyebrow/h1/lede pattern as Farm Directory's .fd-hero
      and the Home page's .sp-hero, kept at this page's own 1320px content
-     width to line up with .wd-page below it. */
-  .wd-hero { max-width: 1320px; margin: 0 auto; padding: 40px 32px 28px; box-sizing: border-box; border-bottom: 1px solid var(--border-subtle); margin-bottom: 24px; }
+     width to line up with .wd-page below it. Bottom margin widened
+     24px -> 40px (2026-09-08, visual review) to match Farm Directory's
+     own hero spacing — more room between the divider and "ADG leaderboard"
+     below it. */
+  .wd-hero { max-width: 1320px; margin: 0 auto; padding: 40px 32px 28px; box-sizing: border-box; border-bottom: 1px solid var(--border-subtle); margin-bottom: 40px; }
   @media (max-width: 720px) { .wd-hero { padding: 28px 16px 20px; } }
+  /* Icon badge — same .sp-tool-icon / .fd-hero-icon pattern used on the
+     Home page and Farm Directory, reused here as a static "you are here"
+     cue (no JS — Hub strips <script> execution from pasted content
+     blocks, so this can't be computed client-side). */
+  .wd-hero-icon { width: 40px; height: 40px; border-radius: var(--radius-md); background: var(--surface-sunken); display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+  .wd-hero-icon svg { width: 20px; height: 20px; stroke: var(--tf-seafeed); fill: none; stroke-width: 1.8; }
   .wd-eyebrow { font-family: var(--font-display); font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin: 0 0 10px; }
   .wd-hero h1 { font-family: var(--font-display); font-size: 30px; font-weight: 700; color: var(--text-heading); margin: 0 0 10px; }
   .wd-hero-sub { font-size: 15px; color: var(--text-muted); margin: 0; max-width: 560px; line-height: 1.6; }
@@ -126,12 +135,40 @@
   .wd-value { font-size: 14px; font-weight: 700; color: var(--text-body); }
   .wd-value.mint { color: var(--tf-seafeed); }
   .wd-value.red { color: var(--tf-red); }
-  .wd-value-sub { font-size: 11px; font-weight: 400; color: var(--text-muted); }
+  /* Sub-label tightened against .wd-value (2026-09-08, visual review) —
+     was sitting as its own full line, adding a third distinct text size
+     to an already-busy 3-column grid; pulling it directly under the value
+     with a smaller line-height reads as one unit ("14g/day — over 21
+     days") instead of two competing rows. */
+  .wd-value-sub { display: block; font-size: 10.5px; font-weight: 400; color: var(--text-muted); line-height: 1.3; margin-top: 1px; }
 
-  .wd-chart-box { position: relative; height: 180px; margin-top: 4px; }
+  /* Chart height raised 180px -> 210px (2026-09-08, visual review) — the
+     trend line was reading cramped next to Lick Block Tracker's taller
+     "Cumulative Blocks Used" chart on the equivalent card; this brings
+     the two tools' chart proportions closer together. */
+  .wd-chart-box { position: relative; height: 210px; margin-top: 4px; }
   .wd-chart-empty { font-size: 12.5px; color: var(--text-muted); text-align: center; padding: 40px 0; display: none; }
 
   .wd-fallback-note { font-size: 12px; color: var(--text-muted); margin: 10px 0 0; font-style: italic; }
+
+  /* Leaderboard — added 2026-09-07, per Jono's request. Ranks farms by
+     ADG advantage % (SeaFeed vs that farm's OWN Control), the same figure
+     already shown on each card below — deliberately not a separate
+     computation, see computeAdgPct() in the script. */
+  .wd-leaderboard { margin-bottom: 28px; }
+  .wd-leaderboard-list { background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; }
+  .wd-lb-row { display: flex; align-items: center; gap: 14px; padding: 12px 18px; border-bottom: 1px solid var(--border-subtle); }
+  .wd-lb-row:last-child { border-bottom: none; }
+  .wd-lb-row.leader { background: rgba(58,169,137,0.06); }
+  .wd-lb-rank { font-family: var(--font-display); font-weight: 700; font-size: 14px; color: var(--text-muted); width: 20px; flex: none; text-align: center; }
+  .wd-lb-rank.gold { color: #b8860b; }
+  .wd-lb-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .wd-lb-name { font-family: var(--font-display); font-weight: 700; font-size: 14px; color: var(--text-heading); flex: 1; }
+  .wd-lb-meta { font-size: 11.5px; color: var(--text-muted); }
+  .wd-lb-pct { font-family: var(--font-display); font-weight: 700; font-size: 15px; min-width: 60px; text-align: right; }
+  .wd-lb-pct.mint { color: var(--tf-seafeed); }
+  .wd-lb-pct.red { color: var(--tf-red); }
+  .wd-lb-unranked { padding: 10px 18px; font-size: 12px; color: var(--text-muted); border-top: 1px solid var(--border-subtle); }
 
   .wd-footer-note { font-family: var(--font-display); font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 40px; line-height: 1.6; }
 
@@ -145,6 +182,9 @@
 <body>
 
 <div class="wd-hero">
+  <div class="wd-hero-icon" aria-hidden="true">
+    <svg viewBox="0 0 24 24"><path d="M3 3v18h18"></path><path d="M7 15l4-6 4 3 5-8"></path></svg>
+  </div>
   <p class="wd-eyebrow">TasFarmers &middot; Low Emissions Livestock Project</p>
   <h1>Weight Data</h1>
   <p class="wd-hero-sub">Current weight, weight gain since start, and ADG advantage over Control — one card per trial farm, from real OptiWeigh readings.</p>
@@ -155,6 +195,11 @@
   <div class="wd-alert-banner" id="wd-alert-banner" style="display:none;" role="alert" aria-live="polite">
     <svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
     <div class="wd-alert-banner-text" id="wd-alert-banner-text"></div>
+  </div>
+
+  <div class="wd-leaderboard" id="wd-leaderboard" style="display:none;">
+    <p class="wd-section-label">ADG leaderboard &middot; SeaFeed vs own Control</p>
+    <div class="wd-leaderboard-list" id="wd-leaderboard-list"></div>
   </div>
 
   <p class="wd-section-label">Farms</p>
@@ -315,6 +360,8 @@
       return cardHtml('wd-' + idx, farm, color, cur, econ, isStale);
     }).join('');
 
+    renderLeaderboard(allFarms, econByFarm);
+
     allFarms.forEach(function(farm, idx){
       var rows = historyByFarm[farm] || [];
       renderChart('wd-' + idx, rows);
@@ -354,19 +401,72 @@
       '<div class="wd-value-sub">over ' + econRow.days_of_data + ' days</div></div>';
   }
 
-  function adgAdvantageHtml(econ){
+  // Single source of truth for the ADG advantage % — both the per-card
+  // figure and the leaderboard below call this, so the two can never
+  // disagree. Returns null when there isn't enough paired data yet (same
+  // conditions as the card's own "not enough data" state), so a farm
+  // simply doesn't appear in the ranking until it has a real number.
+  function computeAdgPct(econ){
     var sf = econ.seafeed, ct = econ.control;
-    if (!sf || !ct || sf.weight_gain_kg_per_head == null || ct.weight_gain_kg_per_head == null || !sf.days_of_data || !ct.days_of_data) {
-      return '<div><span class="wd-label">ADG advantage</span><span class="wd-value">–</span><div class="wd-value-sub">Not enough data yet</div></div>';
-    }
+    if (!sf || !ct || sf.weight_gain_kg_per_head == null || ct.weight_gain_kg_per_head == null || !sf.days_of_data || !ct.days_of_data) return null;
     var sfRate = (sf.weight_gain_kg_per_head / sf.days_of_data) * 1000;
     var ctRate = (ct.weight_gain_kg_per_head / ct.days_of_data) * 1000;
-    if (ctRate <= 0) {
-      return '<div><span class="wd-label">ADG advantage</span><span class="wd-value">–</span><div class="wd-value-sub">Control baseline not positive</div></div>';
+    if (ctRate <= 0) return null;
+    return Math.round(((sfRate - ctRate) / ctRate) * 1000) / 10;
+  }
+
+  function adgAdvantageHtml(econ){
+    var pct = computeAdgPct(econ);
+    if (pct == null) {
+      var sf = econ.seafeed, ct = econ.control;
+      var reason = (sf && ct) ? 'Control baseline not positive' : 'Not enough data yet';
+      return '<div><span class="wd-label">ADG advantage</span><span class="wd-value">–</span><div class="wd-value-sub">' + reason + '</div></div>';
     }
-    var pct = Math.round(((sfRate - ctRate) / ctRate) * 1000) / 10;
     var cls = pct >= 0 ? 'mint' : 'red';
     return '<div><span class="wd-label">ADG advantage</span><span class="wd-value ' + cls + '">' + (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%</span><div class="wd-value-sub">SeaFeed vs Control</div></div>';
+  }
+
+  // ------------------------------------------------------------
+  // LEADERBOARD — ranks farms by computeAdgPct() descending. Farms with
+  // no valid figure yet (see computeAdgPct's null cases) are listed
+  // separately, unranked, rather than silently dropped — worth knowing
+  // WHO's not in the contest yet, not just who's winning it.
+  // ------------------------------------------------------------
+  function renderLeaderboard(allFarms, econByFarm){
+    var wrap = document.getElementById('wd-leaderboard');
+    var list = document.getElementById('wd-leaderboard-list');
+
+    var ranked = [];
+    var unranked = [];
+    allFarms.forEach(function(farm){
+      var econ = econByFarm[farm] || {};
+      var pct = computeAdgPct(econ);
+      var color = farmColor(farm, allFarms);
+      if (pct == null) { unranked.push(farm); }
+      else { ranked.push({ farm: farm, pct: pct, color: color }); }
+    });
+
+    if (!ranked.length) { wrap.style.display = 'none'; return; }
+
+    ranked.sort(function(a, b){ return b.pct - a.pct; });
+
+    var rowsHtml = ranked.map(function(r, idx){
+      var rank = idx + 1;
+      var cls = r.pct >= 0 ? 'mint' : 'red';
+      return '<div class="wd-lb-row' + (rank === 1 ? ' leader' : '') + '">' +
+        '<span class="wd-lb-rank' + (rank === 1 ? ' gold' : '') + '">#' + rank + '</span>' +
+        '<span class="wd-lb-dot" style="background:' + r.color + ';"></span>' +
+        '<span class="wd-lb-name">' + r.farm + '</span>' +
+        '<span class="wd-lb-pct ' + cls + '">' + (r.pct >= 0 ? '+' : '') + r.pct.toFixed(1) + '%</span>' +
+        '</div>';
+    }).join('');
+
+    var unrankedHtml = unranked.length
+      ? '<div class="wd-lb-unranked">Not yet ranked (need 14+ days of paired data): ' + unranked.join(', ') + '</div>'
+      : '';
+
+    list.innerHTML = rowsHtml + unrankedHtml;
+    wrap.style.display = 'block';
   }
 
   function cardHtml(prefix, farm, color, cur, econ, isStale){

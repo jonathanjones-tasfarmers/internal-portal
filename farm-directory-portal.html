@@ -87,8 +87,22 @@
      does, by putting max-width, centering and padding on one element).
      No quick-link buttons added, since the sticky header above already
      covers cross-page navigation — ask if you want those here too. */
-  .fd-hero { max-width: 1320px; margin: 0 auto; padding: 40px 32px 28px; box-sizing: border-box; border-bottom: 1px solid var(--border-subtle); margin-bottom: 24px; }
+  /* Bottom margin widened 24px -> 40px (2026-09-08, visual review) — the
+     "Farms" section label was sitting right under the hero's divider line
+     with barely a beat between them; the extra gap gives the eye room to
+     land before the first section, matching the "deliberate whitespace"
+     principle used across the LEL dashboard design conventions. */
+  .fd-hero { max-width: 1320px; margin: 0 auto; padding: 40px 32px 28px; box-sizing: border-box; border-bottom: 1px solid var(--border-subtle); margin-bottom: 40px; }
   @media (max-width: 720px) { .fd-hero { padding: 28px 16px 20px; } }
+  /* Icon badge — same .sp-tool-icon pattern already used on the Home page's
+     quick-link cards (see staff-portal-home-tools.html), reused here as a
+     "you are here" cue since each tool page carries a copy of the same
+     icon shown on its own hero button on Home. Static HTML/CSS only, no
+     JS — Hub strips <script> execution from pasted content blocks, so any
+     "active page" indicator has to be baked into each page's own markup
+     rather than computed client-side. */
+  .fd-hero-icon { width: 40px; height: 40px; border-radius: var(--radius-md); background: var(--surface-sunken); display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+  .fd-hero-icon svg { width: 20px; height: 20px; stroke: var(--tf-seafeed); fill: none; stroke-width: 1.8; }
   .fd-eyebrow { font-family: var(--font-display); font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin: 0 0 10px; }
   .fd-hero h1 { font-family: var(--font-display); font-size: 30px; font-weight: 700; color: var(--text-heading); margin: 0 0 10px; }
   .fd-hero-sub { font-size: 15px; color: var(--text-muted); margin: 0; max-width: 480px; line-height: 1.6; }
@@ -131,7 +145,13 @@
   .fd-notes-label { display: block; font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
   .fd-notes-input { display: block; width: 100%; box-sizing: border-box; min-height: 64px; font-family: var(--font-body); font-size: 13px; padding: 8px 9px; border: 1px solid var(--border-default); border-radius: var(--radius-sm); background: var(--tf-white); color: var(--text-body); resize: vertical; margin-bottom: 8px; }
 
-  .fd-card-empty { border-top-color: var(--border-subtle); }
+  /* Dashed border + slightly sunken fill (2026-09-08, visual review) — a
+     brand-new farm with no contact details on file used to look identical
+     in weight to a fully-filled card (same solid border, same white
+     background), making it hard to spot "this one needs attention" at a
+     glance in a bigger grid. Dashed border + a faint tint reads as "not
+     filled in yet" the way a form's empty field does. */
+  .fd-card-empty { border-top-color: var(--border-subtle); border-style: dashed; background: var(--surface-sunken); }
   .fd-empty-note { font-size: 13px; color: var(--text-muted); margin: 0 0 12px; }
 
   .fd-footer-note { font-family: var(--font-display); font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 40px; line-height: 1.6; }
@@ -153,6 +173,9 @@
 <body>
 
 <div class="fd-hero">
+  <div class="fd-hero-icon" aria-hidden="true">
+    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+  </div>
   <p class="fd-eyebrow">TasFarmers &middot; Low Emissions Livestock Project</p>
   <h1>Farm Directory</h1>
   <p class="fd-hero-sub">Low Emissions Livestock trial — internal project team view</p>
