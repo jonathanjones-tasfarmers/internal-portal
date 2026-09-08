@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!--
+  LEL Methane Data Portal — internal, Jono / Bronte / Tas only.
+
+  Built 2026-09-08, the 4th Staff Portal tool (after Lick Block Tracker,
+  Farm Directory, Weight Data). Same access pattern as the other three:
+  unlisted, unauthenticated (plain fetch(), no login) — the link itself is
+  the access control, don't publish it anywhere public. noindex/nofollow
+  below so it never turns up in search.
+
+  PURPOSE — Jono asked for "a final page for methane data" and to use
+  initiative on content. This reads the SAME feature layers the public
+  Data page (page-5-data.html) already uses for its "Total CO2e abated"
+  and abatement-rate figures, but built for staff: per-farm detail (not
+  just the trial aggregate), a visible methodology note, and no framing
+  restrictions the public page has to carry (e.g. de-identification,
+  "illustrative not ACCU-grade" disclaimers) — this is an internal
+  reference view, not a funder/public-facing one.
+
+  DATA SOURCES — all pre-existing, read-only here, nothing new to create
+  in ArcGIS Online for this page (unlike Farm Directory / Lick Block
+  Tracker, which needed new tables):
+    - LEL_Emissions_Data_view — one row per (farm, treatment) per day,
+      written by 03. Emissions_Live_Pipeline_v2.py. Per-row fields used:
+      record_date, farm_name, treatment, intake_g_per_hd_day,
+      abatement_rate, baseline_ch4_g_per_hd_day, methane_abated_g_per_hd_day,
+      is_backfilled. Also carries an "All Farms (Trial Aggregate)"
+      farm_name row per treatment per day — the pipeline's own
+      head-count-weighted rollup, read directly here rather than
+      re-derived, so this page can never disagree with the aggregate the
+      public Data page shows.
+    - LEL_Economics_Data — read for cumulative_ch4_abated_kg_per_head +
+      representative_head_count per (farm, treatment), written by
+      04. Economics_Pipeline.py. Used for the "cumulative CO2e abated"
+      figures — cumulative sums live here, not in the daily Emissions
+      table (see that pipeline's own comments for why).
+    - LEL_Industry_Benchmarks — single source for the AR5 100-year
+      methane GWP factor (metric_name='METHANE_GWP100_AR5'), same lookup
+      page-5-data.html already does. Falls back to 28 (the hardcoded
+      value already in use everywhere else on this site) if the fetch
+      fails or the row isn't there.
+    - LEL_Model_Assumptions_Public — the same live "how we calculate
+      baseline methane" snapshot the public Data page's explainer panel
+      reads, reused here for the methodology note so this page can never
+      silently drift from what the pipeline is actually using. Degrades
+      to a static fallback paragraph (hardcoded Charmley citation) if
+      this table isn't populated yet — same non-fatal pattern the Python
+      pipeline itself uses.
+
+  Farms are NOT hardcoded — the farm list is whatever distinct farm_name
+  values show up in LEL_Emissions_Data_view (excluding the aggregate
+  label), so a new farm appears automatically once it has emissions data,
+  no code change needed here. FARM_COLORS below is the SAME array/order
+  as Farm Directory, Weight Data and Lick Block Tracker, so a given farm
+  reads as the same colour across all four tools.
+-->
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#041221">
+<title>Methane Data | LEL internal</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --tf-navy-900:#041221;
+    --tf-navy-800:oklch(from var(--tf-navy-900) calc(l + 0.08) c h);
+    --tf-slate-400:#a9b8c4;
+    --tf-slate-300:oklch(from var(--tf-slate-400) calc(l + 0.08) c h);
+    --tf-slate-200:oklch(from var(--tf-slate-400) calc(l + 0.14) c h);
+    --tf-slate-100:oklch(from var(--tf-slate-400) calc(l + 0.19) c h);
+    --tf-slate-600:oklch(from var(--tf-slate-400) calc(l - 0.18) c h);
+    --tf-seafeed:#3aa989;
+    --tf-red:#c0392b;
+    --tf-white:#ffffff;
+    --tf-warning:#c98a2e;
+    --surface-page:#ffffff; /* was #faf9f6 (cream) — switched to plain white 2026-09-08, per Jono's request */
+    --surface-sunken:#ffffff; /* was var(--tf-slate-100) (light slate tint) — switched to plain white 2026-09-08; elements that relied on this tint alone for definition picked up a companion border in the same pass, see each rule below */
+    --surface-card:var(--tf-white);
+    --text-heading:var(--tf-navy-900);
+    --text-body:oklch(from var(--tf-navy-900) calc(l + 0.06) calc(c - 0.005) h);
+    --text-muted:var(--tf-slate-600);
+    --border-subtle:var(--tf-slate-200);
+    --border-default:var(--tf-slate-300);
+    --radius-lg:12px; --radius-md:10px; --radius-sm:6px;
+    --shadow-sm:0 1px 2px rgba(4,18,33,0.08);
+    --font-display:Tahoma,Verdana,sans-serif;
+    --font-body:Verdana,Tahoma,sans-serif;
+  }
+  html, body { margin: 0; background: var(--surface-page); }
+  body { font-family: var(--font-body); color: var(--text-body); -webkit-font-smoothing:antialiased; }
+  .mt-page { max-width: 1320px; margin: 0 auto; padding: 0 32px 64px; box-sizing: border-box; }
+  @media (max-width: 720px) { .mt-page { padding: 0 16px 48px; } }
+
+  /* Hero — same pattern as Farm Directory/Weight Data/Lick Block Tracker,
+     built with the widened 40px bottom margin + hero icon badge from the
+     start (per the 2026-09-08 visual review applied to the other three). */
+  .mt-hero { max-width: 1320px; margin: 0 auto; padding: 40px 32px 28px; box-sizing: border-box; border-bottom: 1px solid var(--border-subtle); margin-bottom: 40px; }
+  @media (max-width: 720px) { .mt-hero { padding: 28px 16px 20px; } }
+  .mt-hero-icon { width: 40px; height: 40px; border-radius: var(--radius-md); background: var(--surface-sunken); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+  .mt-hero-icon svg { width: 20px; height: 20px; stroke: var(--tf-seafeed); fill: none; stroke-width: 1.8; }
+  .mt-eyebrow { font-family: var(--font-display); font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin: 0 0 10px; }
+  .mt-hero h1 { font-family: var(--font-display); font-size: 30px; font-weight: 700; color: var(--text-heading); margin: 0 0 10px; }
+  .mt-hero-sub { font-size: 15px; color: var(--text-muted); margin: 0; max-width: 580px; line-height: 1.6; }
+
+  .mt-alert-banner { display: flex; align-items: flex-start; gap: 12px; background: rgba(201,138,46,0.1); border: 1px solid rgba(201,138,46,0.32); border-radius: var(--radius-lg); padding: 14px 20px; margin-bottom: 24px; }
+  .mt-alert-banner svg { flex-shrink: 0; width: 20px; height: 20px; stroke: var(--tf-warning); fill: none; stroke-width: 2; margin-top: 1px; }
+  .mt-alert-banner-text { font-family: var(--font-display); font-size: 13.5px; color: #8a5f1f; line-height: 1.5; }
+  .mt-alert-banner-text ul { margin: 4px 0 0; padding-left: 18px; }
+
+  .mt-section-label { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; margin: 0 0 14px 2px; }
+
+  /* KPI band — trial-wide headline figures. Top-bordered mint accent
+     (not the left-border style Lick Block's KPI cards use) to match the
+     newer top-border card language used across Farm Directory/Weight
+     Data/Lick Block Tracker's farm cards. One accent colour (mint) per
+     the dashboard-design conventions — these are all "good news" figures
+     about SeaFeed's effect, so no red/amber semantic colouring needed
+     here the way a stale-data badge would use it. */
+  .mt-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 28px; }
+  .mt-kpi-card { background: var(--surface-card); border: 1px solid var(--border-subtle); border-top: 4px solid var(--tf-seafeed); border-radius: var(--radius-lg); padding: 18px 20px; box-shadow: var(--shadow-sm); box-sizing: border-box; }
+  .mt-kpi-label { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 8px; }
+  .mt-kpi-value { font-family: var(--font-display); font-size: 28px; font-weight: 700; color: var(--text-heading); margin: 0; }
+  .mt-kpi-note { font-family: var(--font-display); font-size: 11.5px; color: var(--text-muted); margin: 6px 0 0; line-height: 1.4; }
+
+  /* Methodology panel — plain-language "how this is modelled" note, kept
+     visually quiet (sunken background, no shadow/border-accent) since
+     it's reference text, not a figure to draw the eye to. */
+  .mt-method-panel { background: var(--surface-sunken); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 16px 20px; margin-bottom: 8px; }
+  .mt-method-title { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: var(--text-heading); margin: 0 0 6px; }
+  .mt-method-text { font-size: 12.5px; color: var(--text-muted); margin: 0; line-height: 1.6; }
+
+  .mt-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; align-items: start; }
+  .mt-loading { font-family: var(--font-display); font-size: 12px; color: var(--text-muted); padding: 20px 4px; }
+
+  .mt-card { background: var(--surface-card); border: 1px solid var(--border-subtle); border-top: 4px solid var(--border-default); border-radius: var(--radius-lg); padding: 20px 22px; box-shadow: var(--shadow-sm); box-sizing: border-box; }
+  .mt-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .mt-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .mt-name { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: var(--text-heading); margin: 0; }
+  .mt-stale-badge { font-family: var(--font-display); font-size: 10.5px; font-weight: 700; color: var(--tf-warning); background: rgba(201,138,46,0.12); border-radius: 999px; padding: 2px 9px; margin-left: auto; }
+
+  .mt-stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px 14px; margin: 14px 0 16px; }
+  @media (max-width: 480px) { .mt-stat-grid { grid-template-columns: 1fr 1fr; } }
+  .mt-stat-label { display: block; font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
+  .mt-stat-value { font-size: 15px; font-weight: 700; color: var(--tf-seafeed); }
+  .mt-stat-sub { display: block; font-size: 10.5px; font-weight: 400; color: var(--text-muted); line-height: 1.3; margin-top: 1px; }
+
+  .mt-chart-box { position: relative; height: 210px; margin-top: 4px; }
+  .mt-chart-empty { font-size: 12.5px; color: var(--text-muted); text-align: center; padding: 40px 0; display: none; }
+
+  .mt-footer-note { font-family: var(--font-display); font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 40px; line-height: 1.6; }
+
+  @keyframes mt-shimmer{ 0%{ background-position:150% 0; } 100%{ background-position:-50% 0; } }
+  .mt-skel { display:inline-block; height:0.8em; vertical-align:middle; border-radius:6px; background-size:250% 100%; animation:mt-shimmer 1.4s ease-in-out infinite; background-image:linear-gradient(90deg, rgba(4,18,33,0.08) 25%, rgba(4,18,33,0.16) 37%, rgba(4,18,33,0.08) 63%); }
+  .mt-skel-lg { width:96px; }
+  .mt-skel-md { width:64px; }
+  @media (prefers-reduced-motion: reduce) { .mt-skel { animation: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="mt-hero">
+  <div class="mt-hero-icon" aria-hidden="true">
+    <svg viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path></svg>
+  </div>
+  <p class="mt-eyebrow">TasFarmers &middot; Low Emissions Livestock Project</p>
+  <h1>Methane Data</h1>
+  <p class="mt-hero-sub">Modelled enteric methane abatement from SeaFeed: trial-wide and by farm, from the same Emissions and Economics data the public Data page draws on.</p>
+</div>
+
+<div class="mt-page">
+
+  <div class="mt-alert-banner" id="mt-alert-banner" style="display:none;" role="alert" aria-live="polite">
+    <svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+    <div class="mt-alert-banner-text" id="mt-alert-banner-text"></div>
+  </div>
+
+  <p class="mt-section-label">Trial snapshot</p>
+  <div class="mt-kpi-grid" id="mt-kpi-grid">
+    <div class="mt-kpi-card" aria-hidden="true"><p class="mt-kpi-label"><span class="mt-skel mt-skel-md" style="height:9px;"></span></p><p class="mt-kpi-value"><span class="mt-skel mt-skel-lg" style="height:24px;"></span></p></div>
+    <div class="mt-kpi-card" aria-hidden="true"><p class="mt-kpi-label"><span class="mt-skel mt-skel-md" style="height:9px;"></span></p><p class="mt-kpi-value"><span class="mt-skel mt-skel-lg" style="height:24px;"></span></p></div>
+    <div class="mt-kpi-card" aria-hidden="true"><p class="mt-kpi-label"><span class="mt-skel mt-skel-md" style="height:9px;"></span></p><p class="mt-kpi-value"><span class="mt-skel mt-skel-lg" style="height:24px;"></span></p></div>
+    <div class="mt-kpi-card" aria-hidden="true"><p class="mt-kpi-label"><span class="mt-skel mt-skel-md" style="height:9px;"></span></p><p class="mt-kpi-value"><span class="mt-skel mt-skel-lg" style="height:24px;"></span></p></div>
+  </div>
+
+  <div class="mt-method-panel">
+    <p class="mt-method-title">How this is modelled</p>
+    <p class="mt-method-text" id="mt-method-text">Loading methodology note…</p>
+  </div>
+
+  <p class="mt-section-label" style="margin-top:32px;">Farms</p>
+  <div class="mt-grid" id="mt-grid">
+    <div class="mt-card" aria-hidden="true">
+      <div class="mt-card-head"><span class="mt-dot" style="background:var(--border-default);"></span><span class="mt-skel mt-skel-md" style="height:15px;"></span></div>
+      <div class="mt-stat-grid"><div><span class="mt-skel mt-skel-lg"></span></div><div><span class="mt-skel mt-skel-lg"></span></div><div><span class="mt-skel mt-skel-md"></span></div></div>
+    </div>
+    <div class="mt-card" aria-hidden="true">
+      <div class="mt-card-head"><span class="mt-dot" style="background:var(--border-default);"></span><span class="mt-skel mt-skel-md" style="height:15px;"></span></div>
+      <div class="mt-stat-grid"><div><span class="mt-skel mt-skel-lg"></span></div><div><span class="mt-skel mt-skel-lg"></span></div><div><span class="mt-skel mt-skel-md"></span></div></div>
+    </div>
+  </div>
+
+  <p class="mt-footer-note">
+    Daily abatement rate and CH4 figures from LEL_Emissions_Data &middot; Cumulative CO2e from LEL_Economics_Data &middot; GWP factor from LEL_Industry_Benchmarks (AR5 100-year) &middot; Not for external distribution
+  </p>
+
+</div>
+
+<script>
+(function(){
+
+  // ============================================================
+  // CONFIG
+  // ============================================================
+  var EMISSIONS_URL     = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Emissions_Data_view/FeatureServer/0/query";
+  var ECON_URL          = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Economics_Data/FeatureServer/0/query";
+  var BENCHMARKS_URL    = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Industry_Benchmarks/FeatureServer/0/query";
+  var ASSUMPTIONS_URL   = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Model_Assumptions_Public/FeatureServer/0/query";
+
+  var AGGREGATE_LABEL = "All Farms (Trial Aggregate)";
+  var STALE_AFTER_DAYS = 14; // matches every other page on this site
+  var FARM_COLORS = ['#2e6f9e', '#8659a3', '#2e8f8f', '#a3762e', '#5c6bc0']; // same order/palette as Farm Directory/Weight Data/Lick Block Tracker
+  var MINT = '#3aa989', SLATE = '#a9b8c4';
+  var DEFAULT_GWP = 28; // AR5 100-year methane GWP — same fallback page-5-data.html uses if the benchmarks lookup fails
+
+  var FALLBACK_METHOD_TEXT = "Baseline enteric methane is modelled from each animal's liveweight using Charmley et al. (2016)'s universal equation for forage-fed cattle (CH4 g/day = 20.7 x dry matter intake), with intake estimated at 2.5% of bodyweight per Sea Forest's guidance. The abatement rate applied against that baseline scales with each farm's measured SeaFeed intake, within Sea Forest's stated dose-response range. CO2e figures use the AR5 100-year methane global warming potential factor.";
+
+  function q(url, params){
+    return fetch(url + "?" + new URLSearchParams(params)).then(function(res){ return res.json(); }).then(function(data){
+      if (data.error) throw new Error(data.error.message || "Query failed");
+      return data;
+    });
+  }
+  function fmtDateShort(ms){
+    return new Date(ms).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+  }
+  function fmtDate(ms){
+    if (ms == null) return '–';
+    return new Date(ms).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  function daysSinceEpochMs(ms){ return (Date.now() - ms) / 86400000; }
+  function farmColor(farm, allFarms){
+    var idx = allFarms.indexOf(farm);
+    if (idx === -1) idx = 0;
+    return FARM_COLORS[idx % FARM_COLORS.length];
+  }
+
+  // ============================================================
+  // FETCH — batched queries covering every farm at once, grouped
+  // client-side (same pattern as Farm Directory / Weight Data).
+  // ============================================================
+  function fetchGwp(){
+    return q(BENCHMARKS_URL, {
+      where: "metric_name='METHANE_GWP100_AR5'", outFields: "metric_value", f: "json"
+    }).then(function(data){
+      var v = data.features && data.features[0] && data.features[0].attributes.metric_value;
+      return (v != null) ? v : DEFAULT_GWP;
+    }).catch(function(){ return DEFAULT_GWP; });
+  }
+
+  function fetchMethodNote(){
+    return q(ASSUMPTIONS_URL, {
+      where: "1=1", outFields: "*", orderByFields: "last_updated DESC", resultRecordCount: 1, f: "json"
+    }).then(function(data){
+      var row = data.features && data.features[0] && data.features[0].attributes;
+      if (!row || row.dmi_pct_of_bodyweight == null || row.charmley_my_g_per_kg_dmi == null) return FALLBACK_METHOD_TEXT;
+      var dmiPct = (row.dmi_pct_of_bodyweight * 100).toFixed(1);
+      return "Baseline enteric methane is modelled from each animal's liveweight: estimated dry matter intake (" + dmiPct + "% of bodyweight) x " +
+        row.charmley_my_g_per_kg_dmi + " g CH4/kg DMI (" + (row.ym_source_note || "Charmley et al. 2016") + "). The abatement rate applied against that baseline scales with each farm's measured SeaFeed intake, within Sea Forest's stated dose-response range. CO2e figures use the AR5 100-year methane global warming potential factor.";
+    }).catch(function(){ return FALLBACK_METHOD_TEXT; });
+  }
+
+  // Full daily history, every farm + the pipeline's own aggregate rows —
+  // used both for the trial KPI band (aggregate rows) and each farm's
+  // trend chart (per-farm rows).
+  function fetchEmissionsHistory(){
+    return q(EMISSIONS_URL, {
+      where: "1=1",
+      outFields: "farm_name,treatment,record_date,intake_g_per_hd_day,abatement_rate,baseline_ch4_g_per_hd_day,methane_abated_g_per_hd_day",
+      orderByFields: "record_date ASC", resultRecordCount: "5000", f: "json"
+    }).then(function(data){
+      var byFarm = {}; // { farm: [ {..attrs..}, ... ] } — includes AGGREGATE_LABEL as one of the "farms"
+      data.features.forEach(function(f){
+        var a = f.attributes, farm = a.farm_name;
+        if (!farm) return;
+        if (!byFarm[farm]) byFarm[farm] = [];
+        byFarm[farm].push(a);
+      });
+      return byFarm;
+    }).catch(function(err){ console.error('Emissions history fetch failed:', err); return {}; });
+  }
+
+  // Latest cumulative CH4/head + head count per (farm, treatment), for
+  // the "cumulative CO2e abated" figures — the daily Emissions table only
+  // has the DAILY rate, cumulative totals live in Economics.
+  function fetchEconLatest(){
+    return q(ECON_URL, {
+      where: "treatment IN ('seafeed','control')",
+      outFields: "farm_name,treatment,cumulative_ch4_abated_kg_per_head,representative_head_count,calculation_date",
+      orderByFields: "calculation_date DESC", resultRecordCount: "2000", f: "json"
+    }).then(function(data){
+      var latest = {}; // { farm: { seafeed: {...}, control: {...} } }
+      data.features.forEach(function(f){
+        var a = f.attributes, farm = a.farm_name, t = a.treatment;
+        if (!farm || !t) return;
+        if (!latest[farm]) latest[farm] = {};
+        if (!latest[farm][t]) latest[farm][t] = a; // first row per (farm,treatment) since ordered DESC = most recent
+      });
+      return latest;
+    }).catch(function(err){ console.error('Economics fetch failed:', err); return {}; });
+  }
+
+  // ============================================================
+  // LOAD + RENDER
+  // ============================================================
+  function loadAll(){
+    Promise.all([fetchGwp(), fetchMethodNote(), fetchEmissionsHistory(), fetchEconLatest()]).then(function(results){
+      render(results[0], results[2], results[3]);
+      document.getElementById('mt-method-text').textContent = results[1];
+    }).catch(function(err){
+      console.error('Methane Data load failed:', err);
+      document.getElementById('mt-grid').innerHTML = '<div class="mt-loading">Could not load methane data. Check the browser console and the feature service URLs at the top of this page’s script.</div>';
+    });
+  }
+
+  function render(gwp, historyByFarm, econByFarm){
+    var farms = Object.keys(historyByFarm).filter(function(f){ return f !== AGGREGATE_LABEL; }).sort();
+
+    if (!farms.length) {
+      document.getElementById('mt-grid').innerHTML = '<div class="mt-loading">No emissions data found yet. This page will populate once the daily Emissions pipeline has run.</div>';
+      document.getElementById('mt-kpi-grid').innerHTML = '<div class="mt-loading">No trial-wide figures yet.</div>';
+      return;
+    }
+
+    renderKpis(gwp, historyByFarm, econByFarm, farms);
+
+    var staleItems = [];
+    document.getElementById('mt-grid').innerHTML = farms.map(function(farm, idx){
+      var color = farmColor(farm, farms);
+      var rows = (historyByFarm[farm] || []).filter(function(r){ return r.treatment === 'seafeed'; });
+      var latest = rows.length ? rows[rows.length - 1] : null;
+      var econ = (econByFarm[farm] && econByFarm[farm].seafeed) || null;
+      var isStale = latest && daysSinceEpochMs(latest.record_date) > STALE_AFTER_DAYS;
+      if (isStale) staleItems.push(farm + ': last reading ' + fmtDate(latest.record_date) + ' (' + Math.floor(daysSinceEpochMs(latest.record_date)) + ' days ago)');
+      return cardHtml('mt-' + idx, farm, color, latest, econ, isStale);
+    }).join('');
+
+    farms.forEach(function(farm, idx){
+      var rows = (historyByFarm[farm] || []).filter(function(r){ return r.treatment === 'seafeed'; });
+      renderChart('mt-' + idx, rows);
+    });
+
+    if (staleItems.length) {
+      var banner = document.getElementById('mt-alert-banner');
+      var text = document.getElementById('mt-alert-banner-text');
+      text.innerHTML = '<strong>' + staleItems.length + ' ' + (staleItems.length === 1 ? 'farm hasn’t' : 'farms haven’t') + ' logged new emissions data in over ' + STALE_AFTER_DAYS + ' days:</strong><ul>' +
+        staleItems.map(function(s){ return '<li>' + s + '</li>'; }).join('') + '</ul>';
+      banner.style.display = 'flex';
+    } else {
+      document.getElementById('mt-alert-banner').style.display = 'none';
+    }
+  }
+
+  // ------------------------------------------------------------
+  // KPI BAND — trial-wide figures. Abatement rate + intake come straight
+  // from the pipeline's own "All Farms (Trial Aggregate)" row (its
+  // head-count-weighted rollup, not re-derived here — see the file
+  // header comment for why). Cumulative CO2e is summed per-farm from
+  // Economics, same approach page-5-data.html's "Total CO2e abated"
+  // stat uses.
+  // ------------------------------------------------------------
+  function renderKpis(gwp, historyByFarm, econByFarm, farms){
+    var aggRows = (historyByFarm[AGGREGATE_LABEL] || []).filter(function(r){ return r.treatment === 'seafeed'; });
+    var latestAgg = aggRows.length ? aggRows[aggRows.length - 1] : null;
+
+    var totalKgCh4 = 0;
+    farms.forEach(function(farm){
+      var econ = econByFarm[farm] && econByFarm[farm].seafeed;
+      if (econ && econ.cumulative_ch4_abated_kg_per_head != null && econ.representative_head_count) {
+        totalKgCh4 += econ.cumulative_ch4_abated_kg_per_head * econ.representative_head_count;
+      }
+    });
+    var totalTonnesCo2e = (totalKgCh4 * gwp) / 1000;
+    var co2eDisplay = totalTonnesCo2e >= 1
+      ? totalTonnesCo2e.toFixed(2) + ' t'
+      : Math.round(totalTonnesCo2e * 1000).toLocaleString() + ' kg';
+
+    var farmsReporting = farms.filter(function(farm){
+      return (historyByFarm[farm] || []).some(function(r){ return r.treatment === 'seafeed' && r.methane_abated_g_per_hd_day != null; });
+    }).length;
+
+    var cards = [
+      { label: 'Trial CO2e abated to date', value: totalTonnesCo2e > 0 ? co2eDisplay : '–', note: 'Cumulative, SeaFeed vs modelled baseline' },
+      { label: 'Current abatement rate', value: latestAgg && latestAgg.abatement_rate != null ? latestAgg.abatement_rate + '%' : '–', note: latestAgg ? 'as of ' + fmtDate(latestAgg.record_date) : 'No data yet' },
+      { label: 'Current SeaFeed intake', value: latestAgg && latestAgg.intake_g_per_hd_day != null ? Math.round(latestAgg.intake_g_per_hd_day) + ' g/hd/day' : '–', note: 'Trial-wide, head-count-weighted' },
+      { label: 'Farms reporting', value: String(farmsReporting), note: farmsReporting === 1 ? 'farm with live methane data' : 'farms with live methane data' }
+    ];
+
+    document.getElementById('mt-kpi-grid').innerHTML = cards.map(function(c){
+      return '<div class="mt-kpi-card"><p class="mt-kpi-label">' + c.label + '</p><p class="mt-kpi-value">' + c.value + '</p><p class="mt-kpi-note">' + c.note + '</p></div>';
+    }).join('');
+  }
+
+  // ------------------------------------------------------------
+  // CARD MARKUP
+  // ------------------------------------------------------------
+  function cardHtml(prefix, farm, color, latest, econ, isStale){
+    var abatementRate = latest && latest.abatement_rate != null ? latest.abatement_rate + '%' : '–';
+    var abatedPerDay = latest && latest.methane_abated_g_per_hd_day != null ? Math.round(latest.methane_abated_g_per_hd_day) + ' g' : '–';
+    var cumulativeKg = econ && econ.cumulative_ch4_abated_kg_per_head != null ? econ.cumulative_ch4_abated_kg_per_head.toFixed(1) + ' kg' : '–';
+
+    return '<div class="mt-card" style="border-top-color:' + color + ';">' +
+      '<div class="mt-card-head"><span class="mt-dot" style="background:' + color + ';"></span><h2 class="mt-name">' + farm + '</h2>' +
+      (isStale ? '<span class="mt-stale-badge">Stale</span>' : '') +
+      '</div>' +
+      '<div class="mt-stat-grid">' +
+      '<div><span class="mt-stat-label">Abatement rate</span><span class="mt-stat-value">' + abatementRate + '</span><span class="mt-stat-sub">' + (latest ? 'as of ' + fmtDateShort(latest.record_date) : 'No data yet') + '</span></div>' +
+      '<div><span class="mt-stat-label">CH4 abated/day</span><span class="mt-stat-value">' + abatedPerDay + '</span><span class="mt-stat-sub">per head</span></div>' +
+      '<div><span class="mt-stat-label">Cumulative CH4</span><span class="mt-stat-value">' + cumulativeKg + '</span><span class="mt-stat-sub">per head, to date</span></div>' +
+      '</div>' +
+      '<div class="mt-chart-box"><canvas id="' + prefix + '-chart"></canvas><p class="mt-chart-empty" id="' + prefix + '-chart-empty">No emissions history to chart yet.</p></div>' +
+      '</div>';
+  }
+
+  // ------------------------------------------------------------
+  // CHART — baseline CH4 (what this mob would emit without SeaFeed, slate
+  // dashed) vs CH4 abated (mint, the actual cut) — same lineChart()
+  // conventions as Weight Data / farmer-portal-template.html, spanGaps so
+  // a missing day doesn't visually break the line.
+  // ------------------------------------------------------------
+  function renderChart(prefix, rows){
+    var canvas = document.getElementById(prefix + '-chart');
+    var emptyEl = document.getElementById(prefix + '-chart-empty');
+    if (!rows.length) { canvas.style.display = 'none'; emptyEl.style.display = 'block'; return; }
+
+    var labels = rows.map(function(r){ return fmtDateShort(r.record_date); });
+
+    new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          { label: 'Baseline CH4', data: rows.map(function(r){ return r.baseline_ch4_g_per_hd_day; }), borderColor: SLATE, backgroundColor: 'transparent', borderDash: [4, 3], spanGaps: true },
+          { label: 'CH4 abated', data: rows.map(function(r){ return r.methane_abated_g_per_hd_day; }), borderColor: MINT, backgroundColor: 'transparent', spanGaps: true }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: true, position: 'top', align: 'end', labels: { boxWidth: 6, usePointStyle: true, pointStyle: 'circle', font: { size: 10 }, color: '#73818c' } },
+          tooltip: { callbacks: { label: function(ctx){ return (ctx.dataset.label ? ctx.dataset.label + ': ' : '') + (ctx.parsed.y != null ? Math.round(ctx.parsed.y) + ' g' : '–'); } } }
+        },
+        scales: {
+          x: { ticks: { font: { size: 9 }, maxTicksLimit: 6, color: '#73818c' }, grid: { display: false }, border: { display: false } },
+          y: { ticks: { font: { size: 9 }, color: '#73818c', callback: function(v){ return Math.round(v) + 'g'; } }, grid: { color: '#eef2f4' }, border: { display: false } }
+        },
+        elements: { point: { radius: 0 }, line: { tension: 0.3, borderWidth: 2 } }
+      }
+    });
+  }
+
+  loadAll();
+
+})();
+</script>
+</body>
+</html>

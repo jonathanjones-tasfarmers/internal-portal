@@ -106,9 +106,9 @@
     --tf-red:#c0392b;
     --tf-warning:#c98a2e;
     --tf-white:#ffffff;
-    --surface-page:#faf9f6;
+    --surface-page:#ffffff; /* was #faf9f6 (cream) — switched to plain white 2026-09-08, per Jono's request */
     --surface-card:var(--tf-white);
-    --surface-sunken:var(--tf-slate-100);
+    --surface-sunken:#ffffff; /* was var(--tf-slate-100) (light slate tint) — switched to plain white 2026-09-08; elements that relied on this tint alone for definition picked up a companion border in the same pass, see each rule below */
     --text-heading:var(--tf-navy-900);
     --text-body:oklch(from var(--tf-navy-900) calc(l + 0.06) calc(c - 0.005) h);
     --text-muted:var(--tf-slate-600);
@@ -161,7 +161,7 @@
 
   .sp-supply-label { font-family: var(--font-display); font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 0 0 8px; }
   .sp-supply-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .sp-supply-col { background: var(--surface-sunken); border-radius: var(--radius-md); padding: 10px 12px; box-sizing: border-box; }
+  .sp-supply-col { background: var(--surface-sunken); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 10px 12px; box-sizing: border-box; }
   .sp-farm-card.pending .sp-supply-col { background: var(--tf-white); }
   .sp-supply-treatment { font-family: var(--font-display); font-size: 11.5px; font-weight: 700; color: var(--text-heading); margin: 0 0 6px; }
   .sp-supply-treatment.seafeed { color: var(--tf-seafeed); }
@@ -193,7 +193,7 @@
 <body>
 
 <p class="sp-section-label">Your farms</p>
-<p class="sp-section-sub">Lick block supply, weight gain, and visit status for each trial farm — at a glance.</p>
+<p class="sp-section-sub">Lick block supply, weight gain, and visit status for each trial farm, at a glance.</p>
 
 <div class="sp-alert-banner" id="sp-alert-banner">
   <span class="sp-alert-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L14.71 3.86a2 2 0 0 0-3.42 0Z"></path></svg></span>
@@ -349,8 +349,8 @@
         row.reorderByMs = reorderByMs;
         row.daysToEmpty = daysToEmpty;
         row.status = overdue ? 'overdue' : (soon ? 'soon' : 'ok');
-        row.note = outOfStock ? 'Out of stock — order now'
-          : overdue ? 'Past reorder date — order now'
+        row.note = outOfStock ? 'Out of stock: order now'
+          : overdue ? 'Past reorder date: order now'
           : Math.max(0, Math.round(daysToEmpty)) + ' days of supply left';
         rows.push(row);
       });
@@ -489,7 +489,7 @@
           '<div><p class="sp-farm-name">' + farm.name + '</p><p class="sp-farm-region">' + farm.region + '</p></div>' +
           '<span class="sp-visit-pill">Coming soon</span>' +
         '</div>' +
-        '<p class="sp-pending-note">Trial not yet underway — supply, ADG, and cost data will appear here automatically once lick block usage starts logging for this farm.</p>' +
+        '<p class="sp-pending-note">Trial not yet underway. Supply, ADG, and cost data will appear here automatically once lick block usage starts logging for this farm.</p>' +
       '</div>';
   }
 
@@ -522,7 +522,7 @@
 
     var grid = document.getElementById('sp-farm-grid');
     if (!farms.length) {
-      grid.innerHTML = '<p class="sp-empty-note">No farms are logging lick block usage yet — run 06. Lick_Block_Portal_Feed.py to populate this.</p>' + PENDING_FARMS.map(renderPendingCard).join('');
+      grid.innerHTML = '<p class="sp-empty-note">No farms are logging lick block usage yet. Run 06. Lick_Block_Portal_Feed.py to populate this.</p>' + PENDING_FARMS.map(renderPendingCard).join('');
     } else {
       grid.innerHTML = farms.map(function(farm){
         return renderFarmCard(farm, reorderRows, econByKey, econPrevByKey, directoryByFarm[farm]);
