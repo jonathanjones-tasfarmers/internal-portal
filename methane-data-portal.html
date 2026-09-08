@@ -131,6 +131,29 @@
   .mt-method-title { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: var(--text-heading); margin: 0 0 6px; }
   .mt-method-text { font-size: 12.5px; color: var(--text-muted); margin: 0; line-height: 1.6; }
 
+  /* Leaderboard — added 2026-09-08, per Jono's request, mirrors Weight
+     Data's ADG leaderboard pattern. Ranks farms by abatement rate %
+     (latest SeaFeed reading) rather than raw CH4 abated or cumulative
+     CO2e — a rate is fair to compare across farms of different herd
+     sizes and different trial start dates, where a cumulative figure
+     would just reward whichever farm has been running longest. Same
+     reasoning as why the Weight Data leaderboard ranks ADG advantage %
+     rather than raw kg gained. Unlike ADG advantage, abatement rate
+     can't go negative (it's a dose-response % against baseline, floored
+     at 0 by the pipeline), so there's no red/mint split here like Weight
+     Data's leaderboard has — every ranked row uses the one accent colour. */
+  .mt-leaderboard { margin-bottom: 28px; }
+  .mt-leaderboard-list { background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; }
+  .mt-lb-row { display: flex; align-items: center; gap: 14px; padding: 12px 18px; border-bottom: 1px solid var(--border-subtle); }
+  .mt-lb-row:last-child { border-bottom: none; }
+  .mt-lb-row.leader { background: rgba(58,169,137,0.06); }
+  .mt-lb-rank { font-family: var(--font-display); font-weight: 700; font-size: 14px; color: var(--text-muted); width: 20px; flex: none; text-align: center; }
+  .mt-lb-rank.gold { color: #b8860b; }
+  .mt-lb-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .mt-lb-name { font-family: var(--font-display); font-weight: 700; font-size: 14px; color: var(--text-heading); flex: 1; }
+  .mt-lb-pct { font-family: var(--font-display); font-weight: 700; font-size: 15px; min-width: 60px; text-align: right; color: var(--tf-seafeed); }
+  .mt-lb-unranked { padding: 10px 18px; font-size: 12px; color: var(--text-muted); border-top: 1px solid var(--border-subtle); }
+
   .mt-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; align-items: start; }
   .mt-loading { font-family: var(--font-display); font-size: 12px; color: var(--text-muted); padding: 20px 4px; }
 
@@ -182,6 +205,11 @@
     <div class="mt-kpi-card" aria-hidden="true"><p class="mt-kpi-label"><span class="mt-skel mt-skel-md" style="height:9px;"></span></p><p class="mt-kpi-value"><span class="mt-skel mt-skel-lg" style="height:24px;"></span></p></div>
     <div class="mt-kpi-card" aria-hidden="true"><p class="mt-kpi-label"><span class="mt-skel mt-skel-md" style="height:9px;"></span></p><p class="mt-kpi-value"><span class="mt-skel mt-skel-lg" style="height:24px;"></span></p></div>
     <div class="mt-kpi-card" aria-hidden="true"><p class="mt-kpi-label"><span class="mt-skel mt-skel-md" style="height:9px;"></span></p><p class="mt-kpi-value"><span class="mt-skel mt-skel-lg" style="height:24px;"></span></p></div>
+  </div>
+
+  <div class="mt-leaderboard" id="mt-leaderboard" style="display:none;">
+    <p class="mt-section-label">Abatement leaderboard &middot; latest SeaFeed reading</p>
+    <div class="mt-leaderboard-list" id="mt-leaderboard-list"></div>
   </div>
 
   <div class="mt-method-panel">
@@ -335,16 +363,27 @@
 
     renderKpis(gwp, historyByFarm, econByFarm, farms);
 
+    // Latest SeaFeed reading per farm — computed once, shared by the farm
+    // cards and the leaderboard below, so the two can never disagree with
+    // each other (same "single source of truth" convention as
+    // computeAdgPct() on the Weight Data page).
+    var latestByFarm = {};
+    farms.forEach(function(farm){
+      var rows = (historyByFarm[farm] || []).filter(function(r){ return r.treatment === 'seafeed'; });
+      latestByFarm[farm] = rows.length ? rows[rows.length - 1] : null;
+    });
+
     var staleItems = [];
     document.getElementById('mt-grid').innerHTML = farms.map(function(farm, idx){
       var color = farmColor(farm, farms);
-      var rows = (historyByFarm[farm] || []).filter(function(r){ return r.treatment === 'seafeed'; });
-      var latest = rows.length ? rows[rows.length - 1] : null;
+      var latest = latestByFarm[farm];
       var econ = (econByFarm[farm] && econByFarm[farm].seafeed) || null;
       var isStale = latest && daysSinceEpochMs(latest.record_date) > STALE_AFTER_DAYS;
       if (isStale) staleItems.push(farm + ': last reading ' + fmtDate(latest.record_date) + ' (' + Math.floor(daysSinceEpochMs(latest.record_date)) + ' days ago)');
       return cardHtml('mt-' + idx, farm, color, latest, econ, isStale);
     }).join('');
+
+    renderLeaderboard(farms, latestByFarm);
 
     farms.forEach(function(farm, idx){
       var rows = (historyByFarm[farm] || []).filter(function(r){ return r.treatment === 'seafeed'; });
@@ -400,6 +439,48 @@
     document.getElementById('mt-kpi-grid').innerHTML = cards.map(function(c){
       return '<div class="mt-kpi-card"><p class="mt-kpi-label">' + c.label + '</p><p class="mt-kpi-value">' + c.value + '</p><p class="mt-kpi-note">' + c.note + '</p></div>';
     }).join('');
+  }
+
+  // ------------------------------------------------------------
+  // LEADERBOARD — ranks farms by abatement rate % (latest SeaFeed
+  // reading, same figure shown on each card below, deliberately not a
+  // separate computation, see latestByFarm in render()). Farms with no
+  // reading yet are listed separately, unranked, rather than silently
+  // dropped, same convention as Weight Data's leaderboard.
+  // ------------------------------------------------------------
+  function renderLeaderboard(farms, latestByFarm){
+    var wrap = document.getElementById('mt-leaderboard');
+    var list = document.getElementById('mt-leaderboard-list');
+
+    var ranked = [];
+    var unranked = [];
+    farms.forEach(function(farm){
+      var latest = latestByFarm[farm];
+      var color = farmColor(farm, farms);
+      if (!latest || latest.abatement_rate == null) { unranked.push(farm); }
+      else { ranked.push({ farm: farm, pct: latest.abatement_rate, color: color }); }
+    });
+
+    if (!ranked.length) { wrap.style.display = 'none'; return; }
+
+    ranked.sort(function(a, b){ return b.pct - a.pct; });
+
+    var rowsHtml = ranked.map(function(r, idx){
+      var rank = idx + 1;
+      return '<div class="mt-lb-row' + (rank === 1 ? ' leader' : '') + '">' +
+        '<span class="mt-lb-rank' + (rank === 1 ? ' gold' : '') + '">#' + rank + '</span>' +
+        '<span class="mt-lb-dot" style="background:' + r.color + ';"></span>' +
+        '<span class="mt-lb-name">' + r.farm + '</span>' +
+        '<span class="mt-lb-pct">' + r.pct.toFixed(1) + '%</span>' +
+        '</div>';
+    }).join('');
+
+    var unrankedHtml = unranked.length
+      ? '<div class="mt-lb-unranked">Not yet ranked (no emissions reading yet): ' + unranked.join(', ') + '</div>'
+      : '';
+
+    list.innerHTML = rowsHtml + unrankedHtml;
+    wrap.style.display = 'block';
   }
 
   // ------------------------------------------------------------

@@ -113,6 +113,23 @@
   .wd-alert-banner-text ul { margin: 4px 0 0; padding-left: 18px; }
 
   .wd-section-label { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; margin: 0 0 14px 2px; }
+
+  /* KPI band, added 2026-09-08 per Jono's request, same "Trial snapshot"
+     pattern as the Methane Data page's mt-kpi-grid: top-bordered mint
+     accent cards for trial-wide headline figures, sourced from the
+     pipeline's own "All Farms (Trial Aggregate)" row rather than
+     re-derived client-side from the per-farm rows below (same
+     single-source-of-truth principle as everywhere else on this site,
+     see fetchAggregateEcon() in the script). Two of the four cards were
+     swapped from "current avg weight" to "$/kg liveweight gain" later the
+     same day, per Jono's follow-up request. */
+  .wd-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 28px; }
+  .wd-kpi-card { background: var(--surface-card); border: 1px solid var(--border-subtle); border-top: 4px solid var(--tf-seafeed); border-radius: var(--radius-lg); padding: 18px 20px; box-shadow: var(--shadow-sm); box-sizing: border-box; }
+  .wd-kpi-label { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 8px; }
+  .wd-kpi-value { font-family: var(--font-display); font-size: 28px; font-weight: 700; color: var(--text-heading); margin: 0; }
+  .wd-kpi-value.red { color: var(--tf-red); }
+  .wd-kpi-note { font-family: var(--font-display); font-size: 11.5px; color: var(--text-muted); margin: 6px 0 0; line-height: 1.4; }
+
   .wd-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; align-items: start; }
   .wd-loading { font-family: var(--font-display); font-size: 12px; color: var(--text-muted); padding: 20px 4px; }
 
@@ -195,6 +212,14 @@
   <div class="wd-alert-banner" id="wd-alert-banner" style="display:none;" role="alert" aria-live="polite">
     <svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
     <div class="wd-alert-banner-text" id="wd-alert-banner-text"></div>
+  </div>
+
+  <p class="wd-section-label">Trial snapshot</p>
+  <div class="wd-kpi-grid" id="wd-kpi-grid">
+    <div class="wd-kpi-card" aria-hidden="true"><p class="wd-kpi-label"><span class="wd-skel wd-skel-md" style="height:9px;"></span></p><p class="wd-kpi-value"><span class="wd-skel wd-skel-lg" style="height:24px;"></span></p></div>
+    <div class="wd-kpi-card" aria-hidden="true"><p class="wd-kpi-label"><span class="wd-skel wd-skel-md" style="height:9px;"></span></p><p class="wd-kpi-value"><span class="wd-skel wd-skel-lg" style="height:24px;"></span></p></div>
+    <div class="wd-kpi-card" aria-hidden="true"><p class="wd-kpi-label"><span class="wd-skel wd-skel-md" style="height:9px;"></span></p><p class="wd-kpi-value"><span class="wd-skel wd-skel-lg" style="height:24px;"></span></p></div>
+    <div class="wd-kpi-card" aria-hidden="true"><p class="wd-kpi-label"><span class="wd-skel wd-skel-md" style="height:9px;"></span></p><p class="wd-kpi-value"><span class="wd-skel wd-skel-lg" style="height:24px;"></span></p></div>
   </div>
 
   <div class="wd-leaderboard" id="wd-leaderboard" style="display:none;">
@@ -315,25 +340,56 @@
     }).catch(function(err){ console.error('Economics fetch failed:', err); return {}; });
   }
 
+  // ------------------------------------------------------------
+  // TRIAL SNAPSHOT — added 2026-09-08, per Jono's request for something
+  // like the Methane Data page's KPI band. Reads the pipeline's own
+  // "All Farms (Trial Aggregate)" rows (same head-count-weighted rollup
+  // the public site's figures come from) rather than re-deriving a
+  // trial-wide figure client-side from the per-farm rows above — this
+  // page doesn't fetch head_count or cost, so it couldn't rebuild a
+  // correctly-weighted $/kg figure anyway, and re-deriving would risk
+  // quietly disagreeing with the aggregate every other page already
+  // shows. Also carries cost_per_kg_gain_aud, which weight_gain_kg_per_head
+  // alone (already fetched by fetchEconLatest() for the per-farm cards)
+  // doesn't include.
+  // ------------------------------------------------------------
+  function fetchAggregateEcon(){
+    return q(ECON_URL, {
+      where: "farm_name='" + AGGREGATE_LABEL + "' AND treatment IN ('seafeed','control')",
+      outFields: "treatment,weight_gain_kg_per_head,days_of_data,cost_per_kg_gain_aud,calculation_date",
+      orderByFields: "calculation_date DESC", resultRecordCount: "50", f: "json"
+    }).then(function(data){
+      var latest = {}; // { seafeed: {...}, control: {...} }
+      data.features.forEach(function(f){
+        var a = f.attributes, t = a.treatment;
+        if (!t) return;
+        if (!latest[t]) latest[t] = a;
+      });
+      return latest;
+    }).catch(function(err){ console.error('Aggregate economics fetch failed:', err); return {}; });
+  }
+
   // ============================================================
   // LOAD + RENDER
   // ============================================================
   function loadAll(){
-    Promise.all([fetchCurrentWeights(), fetchWeightHistory(), fetchEconLatest()]).then(function(results){
-      render(results[0], results[1], results[2]);
+    Promise.all([fetchCurrentWeights(), fetchWeightHistory(), fetchEconLatest(), fetchAggregateEcon()]).then(function(results){
+      render(results[0], results[1], results[2], results[3]);
     }).catch(function(err){
       console.error('Weight Data load failed:', err);
       document.getElementById('wd-grid').innerHTML = '<div class="wd-loading">Could not load weight data. Check the browser console and the feature service URLs at the top of this page’s script.</div>';
     });
   }
 
-  function render(currentByFarm, historyByFarm, econByFarm){
+  function render(currentByFarm, historyByFarm, econByFarm, aggEcon){
     var grid = document.getElementById('wd-grid');
 
     var allFarms = Object.keys(currentByFarm);
     Object.keys(historyByFarm).forEach(function(f){ if (allFarms.indexOf(f) === -1) allFarms.push(f); });
     Object.keys(econByFarm).forEach(function(f){ if (allFarms.indexOf(f) === -1) allFarms.push(f); });
     allFarms.sort();
+
+    renderKpis(aggEcon, allFarms.length);
 
     if (!allFarms.length) {
       grid.innerHTML = '<div class="wd-loading">No farm weight data found yet. This page will populate once at least one farm has logged OptiWeigh readings.</div>';
@@ -376,6 +432,39 @@
     } else {
       document.getElementById('wd-alert-banner').style.display = 'none';
     }
+  }
+
+  // ------------------------------------------------------------
+  // KPI BAND — trial-wide headline figures. ADG advantage reuses
+  // computeAdgPct() against the aggregate's own seafeed/control pair, so
+  // it can never disagree with how a per-farm card's own advantage is
+  // worked out (see computeAdgPct() below). $/kg gain cards read
+  // cost_per_kg_gain_aud straight off the same aggregate econ row, which
+  // the pipeline documents as meaningful for both treatments (unlike
+  // cost-per-kg-abated, which is seafeed-only) — swapped in 2026-09-08
+  // in place of the original "current avg weight" cards, per Jono's
+  // request.
+  // ------------------------------------------------------------
+  function renderKpis(aggEcon, farmCount){
+    var pct = computeAdgPct(aggEcon || {});
+    var pctDisplay = pct == null ? '–' : (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%';
+    var pctClass = pct != null && pct < 0 ? ' red' : '';
+
+    var sfEcon = aggEcon && aggEcon.seafeed;
+    var ctEcon = aggEcon && aggEcon.control;
+    var sfGain = sfEcon && sfEcon.cost_per_kg_gain_aud != null ? sfEcon.cost_per_kg_gain_aud : null;
+    var ctGain = ctEcon && ctEcon.cost_per_kg_gain_aud != null ? ctEcon.cost_per_kg_gain_aud : null;
+
+    var cards = [
+      { label: 'Trial ADG advantage', value: pctDisplay, valueClass: pctClass, note: 'SeaFeed vs Control, trial-wide' },
+      { label: '$/kg liveweight gain, SeaFeed', value: sfGain != null ? '$' + sfGain.toFixed(2) : '–', note: sfGain != null ? 'trial-wide, to date' : 'Not enough data yet' },
+      { label: '$/kg liveweight gain, Control', value: ctGain != null ? '$' + ctGain.toFixed(2) : '–', note: ctGain != null ? 'trial-wide, to date' : 'Not enough data yet' },
+      { label: 'Farms reporting', value: String(farmCount), note: farmCount === 1 ? 'farm with live OptiWeigh data' : 'farms with live OptiWeigh data' }
+    ];
+
+    document.getElementById('wd-kpi-grid').innerHTML = cards.map(function(c){
+      return '<div class="wd-kpi-card"><p class="wd-kpi-label">' + c.label + '</p><p class="wd-kpi-value' + (c.valueClass || '') + '">' + c.value + '</p><p class="wd-kpi-note">' + c.note + '</p></div>';
+    }).join('');
   }
 
   // ------------------------------------------------------------
