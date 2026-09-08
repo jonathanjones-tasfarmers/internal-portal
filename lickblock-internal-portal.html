@@ -183,11 +183,22 @@
   .lbp-filters input { flex: 1 1 220px; }
 
   .lbp-table-wrap { overflow-x: auto; }
+  /* Row/header text sized down slightly (2026-09-08, per Jono's feedback
+     on the live page) — was reading larger than the rest of the site's
+     dense-table conventions once seen live. */
   table.lbp-table { width: 100%; border-collapse: collapse; font-family: var(--font-body); font-size: 12.5px; }
   table.lbp-table th, table.lbp-table td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border-subtle); white-space: nowrap; }
   table.lbp-table th { font-family: var(--font-display); font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); cursor: pointer; user-select: none; }
   table.lbp-table th:hover { color: var(--text-heading); }
   table.lbp-table th .lbp-sort-arrow { font-size: 9px; margin-left: 3px; opacity: 0.6; }
+  /* Table's own farm-name style, added 2026-09-08 — the Farm column used
+     to reuse .lbp-farm-name (sized for the big 16px card heading above),
+     which made it look oversized next to the rest of the row. Settled at
+     12.5px (matching the table's own body text size) after 11px read too
+     small against the rest of the row. margin-left gives it breathing
+     room from the coloured dot beside it, which used to sit flush against
+     the text. */
+  .lbp-table-farm-name { font-family: var(--font-display); font-weight: 700; font-size: 12.5px; margin-left: 6px; }
   table.lbp-table tbody tr:hover { background: var(--surface-sunken); }
   .lbp-table-empty, .lbp-table-loading { font-family: var(--font-display); font-size: 12px; color: var(--text-muted); padding: 20px 4px; }
   .lbp-pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-subtle); }
@@ -923,7 +934,7 @@
       var color = farmColor(r.trial_site);
       return '<tr>' +
         '<td>' + fmtDate(r.placement_time) + '</td>' +
-        '<td><span class="lbp-farm-dot" style="background:' + color + ';"></span><span class="lbp-farm-name" style="color:' + color + ';">' + (r.trial_site || '–') + '</span></td>' +
+        '<td><span class="lbp-farm-dot" style="background:' + color + ';"></span><span class="lbp-table-farm-name" style="color:' + color + ';">' + (r.trial_site || '–') + '</span></td>' +
         '<td><span class="lbp-treatment-pill ' + r.treatment + '">' + treatmentLabel(r.treatment) + '</span></td>' +
         '<td>' + (r.asset_id || '–') + '</td>' +
         '<td>' + (r.location_type || '–') + '</td>' +
