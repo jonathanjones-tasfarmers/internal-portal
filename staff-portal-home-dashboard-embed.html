@@ -195,12 +195,13 @@
      independent of the farm-card logic above, so it degrades on its own
      ("not set up yet") without breaking the rest of this embed if
      LEL_Onboarding_Targets isn't created yet. Deliberately compact —
-     current quarter only, for both species — full detail lives on
-     onboarding-roadmap-portal.html via the "View full roadmap" link. --- */
+     current quarter only, for both species — full detail (quarterly
+     timeline, per-farm pipeline) lives on onboarding-roadmap-portal.html,
+     linked from the header/footer nav and the Home page hero's quick-link
+     row instead. The "View full roadmap" link that used to sit in this
+     section's own header was removed 2026-09-09, per Jono's request. ---*/
   .sp-roadmap-section { margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--border-subtle); }
   .sp-roadmap-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
-  .sp-roadmap-link { font-family: var(--font-display); font-size: 12.5px; font-weight: 700; color: var(--tf-seafeed); text-decoration: none; }
-  .sp-roadmap-link:hover { text-decoration: underline; }
   .sp-roadmap-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
   .sp-roadmap-card { background: var(--surface-card); border: 1px solid var(--border-subtle); border-top: 4px solid var(--border-default); border-radius: var(--radius-lg); padding: 14px 16px; box-sizing: border-box; box-shadow: var(--shadow-sm); }
   .sp-roadmap-card.beef { border-top-color: var(--tf-seafeed); }
@@ -256,7 +257,6 @@
 <div class="sp-roadmap-section">
   <div class="sp-roadmap-head">
     <p class="sp-section-label" style="margin-bottom:0;">Onboarding roadmap, this quarter</p>
-    <a href="/pages/a3aa68d5815742f6a22020d24fa26a74" class="sp-roadmap-link">View full roadmap &rarr;</a>
   </div>
   <div class="sp-roadmap-grid" id="sp-roadmap-grid">
     <div class="sp-roadmap-card beef" aria-hidden="true"><p class="sp-roadmap-species">Beef farms</p><p class="sp-roadmap-value"><span class="pp-skel pp-skel-sm" style="height:18px;"></span></p></div>
