@@ -1,581 +1,1484 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en-AU">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!--
-  LEL Farm Directory — internal, Jono / Bronte / Tas only.
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  Built 2026-09-01, per Jono's request for a second Staff Portal tool
-  (after the Lick Block Tracker) to help the team do farm visits more
-  effectively. Same access pattern as lickblock-internal-portal.html:
-  unlisted, unauthenticated (plain fetch(), no login) — the link itself
-  is the access control, don't publish it anywhere public. This table
-  holds real contact names/phone numbers/addresses, one tier more
-  sensitive than lick block order counts — deliberately still using the
-  "same as today" no-login model per Jono's call on the ordering tool,
-  but if that ever needs tightening, a shared PIN in front of the write
-  actions is the agreed fallback (see setup guide).
-
-  DATA SOURCES:
-    - LEL_Lick_Block_Usage_History — read-only here, only used to get the
-      canonical, correctly-spelled list of farms currently in the trial
-      (distinct trial_site values). This is the SAME source of truth the
-      Lick Block Tracker derives its farm list from, so a farm can never
-      go out of sync between the two tools, and a brand-new farm shows up
-      here automatically (as an empty "no contact on file" card) the
-      moment it starts logging lick block visits — no code change needed.
-    - LEL_Farm_Directory — NEW table, one row per farm, holding the actual
-      contact/visit/notes data this page reads and writes. DIRECTORY_URL
-      below needs its real item's REST endpoint once Jono creates it —
-      see the setup guide. Degrades gracefully (shows a clear "not set up
-      yet" message) if that fetch 404s, same pattern as the Placements
-      table in the Lick Block Tracker.
-
-  One row per farm (one primary contact) — if a farm ever needs more than
-  one contact on file, that's a schema extension for later, not handled
-  here yet.
-
-  Free-text fields (contact name/notes/address) are interpolated straight
-  into innerHTML without HTML-escaping, matching every other table on
-  this site (e.g. asset_id/location_type in the Lick Block Tracker's
-  placements table) — consistent with the rest of the codebase, and this
-  is a small, trusted internal team typing into it, not public input.
--->
-<meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#041221">
-<title>Farm Directory | LEL internal</title>
-<style>
-  :root{
-    --tf-navy-900:#041221;
-    --tf-navy-800:oklch(from var(--tf-navy-900) calc(l + 0.08) c h);
-    --tf-slate-400:#a9b8c4;
-    --tf-slate-300:oklch(from var(--tf-slate-400) calc(l + 0.08) c h);
-    --tf-slate-200:oklch(from var(--tf-slate-400) calc(l + 0.14) c h);
-    --tf-slate-100:oklch(from var(--tf-slate-400) calc(l + 0.19) c h);
-    --tf-slate-600:oklch(from var(--tf-slate-400) calc(l - 0.18) c h);
-    --tf-seafeed:#3aa989;
-    --tf-red:#c0392b;
-    --tf-white:#ffffff;
-    --tf-warning:#c98a2e;
-    --surface-page:#ffffff; /* was #faf9f6 (cream) — switched to plain white 2026-09-08, per Jono's request */
-    --surface-sunken:#ffffff; /* was var(--tf-slate-100) (light slate tint) — switched to plain white 2026-09-08; elements that relied on this tint alone for definition picked up a companion border in the same pass, see each rule below */
-    --surface-card:var(--tf-white);
-    --text-heading:var(--tf-navy-900);
-    --text-body:oklch(from var(--tf-navy-900) calc(l + 0.06) calc(c - 0.005) h);
-    --text-muted:var(--tf-slate-600);
-    --border-subtle:var(--tf-slate-200);
-    --border-default:var(--tf-slate-300);
-    --radius-lg:12px; --radius-md:10px; --radius-sm:6px;
-    --shadow-sm:0 1px 2px rgba(4,18,33,0.08);
-    --font-display:Tahoma,Verdana,sans-serif;
-    --font-body:Verdana,Tahoma,sans-serif;
-  }
-  html, body { margin: 0; background: var(--surface-page); }
-  body { font-family: var(--font-body); color: var(--text-body); -webkit-font-smoothing:antialiased; }
-  .fd-page { max-width: 1320px; margin: 0 auto; padding: 0 32px 64px; box-sizing: border-box; }
-  @media (max-width: 720px) { .fd-page { padding: 0 16px 48px; } }
-
-  /* CHANGED 2026-09-02: same change as lickblock-internal-portal.html's
-     .lbp-hero — this page's dark navy ".fd-masthead" bar is now a light
-     hero matching the Home page's .sp-hero (staff-portal-home-hero.html):
-     eyebrow + big navy h1 + muted lede, bottom-border divider instead of
-     a filled bar. Kept at this page's own 1320px content width rather
-     than Home's narrower 1100px so it still lines up with .fd-page below
-     it (the old FIXED 2026-09-01 note here was about exactly that kind
-     of alignment mismatch — .fd-hero avoids it the same way .fd-page
-     does, by putting max-width, centering and padding on one element).
-     No quick-link buttons added, since the sticky header above already
-     covers cross-page navigation — ask if you want those here too. */
-  /* Bottom margin widened 24px -> 40px (2026-09-08, visual review) — the
-     "Farms" section label was sitting right under the hero's divider line
-     with barely a beat between them; the extra gap gives the eye room to
-     land before the first section, matching the "deliberate whitespace"
-     principle used across the LEL dashboard design conventions. */
-  .fd-hero { max-width: 1320px; margin: 0 auto; padding: 40px 32px 28px; box-sizing: border-box; border-bottom: 1px solid var(--border-subtle); margin-bottom: 40px; }
-  @media (max-width: 720px) { .fd-hero { padding: 28px 16px 20px; } }
-  /* Icon badge — same .sp-tool-icon pattern already used on the Home page's
-     quick-link cards (see staff-portal-home-tools.html), reused here as a
-     "you are here" cue since each tool page carries a copy of the same
-     icon shown on its own hero button on Home. Static HTML/CSS only, no
-     JS — Hub strips <script> execution from pasted content blocks, so any
-     "active page" indicator has to be baked into each page's own markup
-     rather than computed client-side. */
-  .fd-hero-icon { width: 40px; height: 40px; border-radius: var(--radius-md); background: var(--surface-sunken); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
-  .fd-hero-icon svg { width: 20px; height: 20px; stroke: var(--tf-seafeed); fill: none; stroke-width: 1.8; }
-  .fd-eyebrow { font-family: var(--font-display); font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin: 0 0 10px; }
-  .fd-hero h1 { font-family: var(--font-display); font-size: 30px; font-weight: 700; color: var(--text-heading); margin: 0 0 10px; }
-  .fd-hero-sub { font-size: 15px; color: var(--text-muted); margin: 0; max-width: 480px; line-height: 1.6; }
-
-  .fd-alert-banner { display: flex; align-items: flex-start; gap: 12px; background: rgba(192,57,43,0.08); border: 1px solid rgba(192,57,43,0.28); border-radius: var(--radius-lg); padding: 14px 20px; margin-bottom: 24px; }
-  .fd-alert-banner svg { flex-shrink: 0; width: 20px; height: 20px; stroke: var(--tf-red); fill: none; stroke-width: 2; margin-top: 1px; }
-  .fd-alert-banner-text { font-family: var(--font-display); font-size: 13.5px; color: var(--tf-red); line-height: 1.5; }
-  .fd-alert-banner-text ul { margin: 4px 0 0; padding-left: 18px; }
-
-  .fd-section-label { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; margin: 0 0 14px 2px; }
-  .fd-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start; }
-  .fd-loading { font-family: var(--font-display); font-size: 12px; color: var(--text-muted); padding: 20px 4px; }
-
-  .fd-card { background: var(--surface-card); border: 1px solid var(--border-subtle); border-top: 4px solid var(--border-default); border-radius: var(--radius-lg); padding: 20px 22px; box-shadow: var(--shadow-sm); box-sizing: border-box; }
-  .fd-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
-  .fd-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; }
-  .fd-name { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: var(--text-heading); margin: 0; }
-  .fd-days-ago { color: var(--text-muted); font-weight: 400; }
-
-  .fd-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin-bottom: 14px; }
-  .fd-info-grid > div.fd-span-2 { grid-column: 1 / -1; }
-  .fd-label { display: block; font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
-  .fd-value { font-size: 13px; color: var(--text-body); word-break: break-word; }
-  .fd-value a { color: var(--tf-seafeed); text-decoration: none; }
-  .fd-value a:hover { text-decoration: underline; }
-  .fd-value.overdue { color: var(--tf-red); font-weight: 700; }
-
-  .fd-visit-btn, .fd-add-btn { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: var(--text-heading); background: var(--surface-sunken); border: 1px solid var(--border-default); border-radius: var(--radius-sm); padding: 7px 11px; cursor: pointer; margin-bottom: 10px; }
-  .fd-visit-btn:hover, .fd-add-btn:hover { border-color: var(--tf-seafeed); }
-  .fd-inline-form { background: var(--surface-sunken); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px; margin-bottom: 12px; }
-  .fd-field-label { display: block; font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px; }
-  .fd-field-input { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; font-family: var(--font-body); font-size: 13px; padding: 7px 9px; border: 1px solid var(--border-default); border-radius: var(--radius-sm); background: var(--tf-white); color: var(--text-body); }
-  .fd-form-error { font-family: var(--font-display); font-size: 11px; color: var(--tf-red); min-height: 14px; margin: 2px 0 8px; }
-  .fd-form-actions { display: flex; gap: 8px; align-items: center; }
-  .fd-confirm-btn { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: var(--tf-white); background: var(--tf-seafeed); border: none; border-radius: var(--radius-sm); padding: 7px 14px; cursor: pointer; }
-  .fd-confirm-btn:disabled { opacity: 0.6; cursor: default; }
-  .fd-cancel-btn { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: var(--text-muted); background: transparent; border: 1px solid var(--border-default); border-radius: var(--radius-sm); padding: 7px 14px; cursor: pointer; }
-  .fd-saved-note { font-family: var(--font-display); font-size: 11px; color: var(--tf-seafeed); font-weight: 700; }
-
-  .fd-notes-label { display: block; font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
-  .fd-notes-input { display: block; width: 100%; box-sizing: border-box; min-height: 64px; font-family: var(--font-body); font-size: 13px; padding: 8px 9px; border: 1px solid var(--border-default); border-radius: var(--radius-sm); background: var(--tf-white); color: var(--text-body); resize: vertical; margin-bottom: 8px; }
-
-  /* Dashed border + slightly sunken fill (2026-09-08, visual review) — a
-     brand-new farm with no contact details on file used to look identical
-     in weight to a fully-filled card (same solid border, same white
-     background), making it hard to spot "this one needs attention" at a
-     glance in a bigger grid. Dashed border + a faint tint reads as "not
-     filled in yet" the way a form's empty field does. */
-  .fd-card-empty { border-top-color: var(--border-subtle); border-style: dashed; background: var(--surface-sunken); }
-  .fd-empty-note { font-size: 13px; color: var(--text-muted); margin: 0 0 12px; }
-
-  .fd-footer-note { font-family: var(--font-display); font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 40px; line-height: 1.6; }
-
-  /* --- loading skeleton (added 2026-09-03) — shown in #fd-grid while
-     loadAll()'s two fetches are in flight; render() below replaces the
-     whole #fd-grid.innerHTML on resolve, so no separate teardown needed.
-     Same .pp-skel shimmer pattern as farmer-portal-template.html, ghost
-     cards mirror filledCardHtml()'s real field layout so the loading
-     state doesn't jump/reflow when real cards land. --- */
-  @keyframes pp-shimmer{ 0%{ background-position:150% 0; } 100%{ background-position:-50% 0; } }
-  .pp-skel { display:inline-block; height:0.8em; vertical-align:middle; border-radius:6px; background-size:250% 100%; animation:pp-shimmer 1.4s ease-in-out infinite; background-image:linear-gradient(90deg, rgba(4,18,33,0.08) 25%, rgba(4,18,33,0.16) 37%, rgba(4,18,33,0.08) 63%); }
-  .pp-skel-lg { width:128px; }
-  .pp-skel-md { width:84px; }
-  .pp-skel-sm { width:52px; }
-  @media (prefers-reduced-motion: reduce) { .pp-skel { animation: none !important; } }
-</style>
-</head>
-<body>
-
-<div class="fd-hero">
-  <div class="fd-hero-icon" aria-hidden="true">
-    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-  </div>
-  <p class="fd-eyebrow">TasFarmers &middot; Low Emissions Livestock Project</p>
-  <h1>Farm Directory</h1>
-  <p class="fd-hero-sub">Low Emissions Livestock trial: internal project team view</p>
-</div>
-
-<div class="fd-page">
-
-  <div class="fd-alert-banner" id="fd-alert-banner" style="display:none;" role="alert" aria-live="polite">
-    <svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-    <div class="fd-alert-banner-text" id="fd-alert-banner-text"></div>
-  </div>
-
-  <p class="fd-section-label">Farms</p>
-  <div class="fd-grid" id="fd-grid">
-    <div class="fd-card" aria-hidden="true"><div class="fd-card-head"><span class="fd-dot" style="background:var(--border-default);"></span><span class="pp-skel pp-skel-md" style="height:15px;"></span></div><div class="fd-info-grid"><div><span class="fd-label">Contact</span><span class="pp-skel pp-skel-md"></span></div><div><span class="fd-label">Phone</span><span class="pp-skel pp-skel-sm"></span></div><div class="fd-span-2"><span class="fd-label">Email</span><span class="pp-skel pp-skel-lg"></span></div><div class="fd-span-2"><span class="fd-label">Address</span><span class="pp-skel pp-skel-lg"></span></div><div><span class="fd-label">Last visit</span><span class="pp-skel pp-skel-sm"></span></div><div><span class="fd-label">Next visit due</span><span class="pp-skel pp-skel-sm"></span></div></div></div>
-    <div class="fd-card" aria-hidden="true"><div class="fd-card-head"><span class="fd-dot" style="background:var(--border-default);"></span><span class="pp-skel pp-skel-md" style="height:15px;"></span></div><div class="fd-info-grid"><div><span class="fd-label">Contact</span><span class="pp-skel pp-skel-md"></span></div><div><span class="fd-label">Phone</span><span class="pp-skel pp-skel-sm"></span></div><div class="fd-span-2"><span class="fd-label">Email</span><span class="pp-skel pp-skel-lg"></span></div><div class="fd-span-2"><span class="fd-label">Address</span><span class="pp-skel pp-skel-lg"></span></div><div><span class="fd-label">Last visit</span><span class="pp-skel pp-skel-sm"></span></div><div><span class="fd-label">Next visit due</span><span class="pp-skel pp-skel-sm"></span></div></div></div>
-  </div>
-
-  <p class="fd-footer-note">
-    Contact and visit details are edited here and saved straight to LEL_Farm_Directory in ArcGIS Online &middot; Farm list drawn from LEL_Lick_Block_Usage_History &middot; Not for external distribution
-  </p>
-
-</div>
-
-<script>
-(function(){
-
-  // ============================================================
-  // CONFIG
-  // ============================================================
-  var USAGE_HISTORY_URL = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lick_Block_Usage_History/FeatureServer/0/query";
-  // NEW table — Jono creates this once (see setup guide), then updates
-  // the three URLs below to match its real REST endpoint. Left as a
-  // best-guess based on the service name AGOL will generate from the
-  // item title "LEL_Farm_Directory" — verify once created, since a name
-  // clash with an existing service could make AGOL append a suffix (the
-  // same gotcha the Placements table hit — see that setup note).
-  var DIRECTORY_URL        = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Farm_Directory/FeatureServer/0/query";
-  var DIRECTORY_ADD_URL    = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Farm_Directory/FeatureServer/0/addFeatures";
-  var DIRECTORY_UPDATE_URL = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Farm_Directory/FeatureServer/0/updateFeatures";
-
-  // Default gap suggested on "Mark visited today" — no strong rule behind
-  // this number, just a sensible starting point Bronte/Tas can always
-  // edit before confirming. Independent of REORDER_LEAD_DAYS in the Lick
-  // Block Tracker (that's a supply lead time, this is a visit cadence —
-  // no reason they should match).
-  var DEFAULT_VISIT_INTERVAL_DAYS = 28;
-
-  var FARM_COLORS = ['#2e6f9e', '#8659a3', '#2e8f8f', '#a3762e', '#5c6bc0'];
-
-  function q(url, params){
-    return fetch(url + "?" + new URLSearchParams(params)).then(function(res){ return res.json(); }).then(function(data){
-      if (data.error) throw new Error(data.error.message || "Query failed");
-      return data;
-    });
-  }
-
-  // Returns { farmName: ['seafeed', 'control', ...] } — replaces the old
-  // fetchKnownFarms(): querying trial_site+treatment together (still a
-  // single distinct-values query, same cost as before) gets us both the
-  // farm list AND which treatment groups are running at each farm, so the
-  // treatment pills on each card need no separate fetch.
-  function fetchFarmTreatments(){
-    return q(USAGE_HISTORY_URL, {
-      where: "1=1", outFields: "trial_site,treatment", returnDistinctValues: "true",
-      orderByFields: "trial_site ASC, treatment ASC", resultRecordCount: "200", f: "json"
-    }).then(function(data){
-      var map = {};
-      data.features.forEach(function(f){
-        var farm = f.attributes.trial_site, treatment = f.attributes.treatment;
-        if (!farm) return;
-        if (!map[farm]) map[farm] = [];
-        if (treatment && map[farm].indexOf(treatment) === -1) map[farm].push(treatment);
-      });
-      return map;
-    }).catch(function(err){
-      console.error('Farm treatments fetch failed:', err);
-      return {};
-    });
-  }
-
-  function fetchDirectory(){
-    return q(DIRECTORY_URL, {
-      where: "1=1",
-      outFields: "OBJECTID,trial_site,contact_name,contact_phone,contact_email,address,last_visit_date,next_visit_due,notes",
-      resultRecordCount: "500", f: "json"
-    }).then(function(data){ return data.features.map(function(f){ return f.attributes; }); }).catch(function(err){
-      console.warn('Directory fetch failed (table may not be set up yet):', err);
-      return null; // null = "not available", distinct from [] = "available but empty"
-    });
-  }
-
-  function writeFeature(url, attributes){
-    var body = new URLSearchParams({ f: "json", features: JSON.stringify([{ attributes: attributes }]) });
-    return fetch(url, { method: "POST", body: body }).then(function(res){ return res.json(); }).then(function(data){
-      if (data.error) throw new Error(data.error.message || "Write failed");
-      var result = (data.addResults || data.updateResults || [])[0];
-      if (!result || !result.success) {
-        throw new Error((result && result.error && result.error.description) || "ArcGIS Online rejected the write: the response gave no further detail.");
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#041221" />
+    <title>Farm Directory | LEL internal</title>
+    <style>
+      :root {
+        --tf-navy-900: #041221;
+        --tf-navy-800: oklch(from var(--tf-navy-900) calc(l + 0.08) c h);
+        --tf-slate-400: #a9b8c4;
+        --tf-slate-300: oklch(from var(--tf-slate-400) calc(l + 0.08) c h);
+        --tf-slate-200: oklch(from var(--tf-slate-400) calc(l + 0.14) c h);
+        --tf-slate-100: oklch(from var(--tf-slate-400) calc(l + 0.19) c h);
+        --tf-slate-600: oklch(from var(--tf-slate-400) calc(l - 0.18) c h);
+        --tf-seafeed: #3aa989;
+        --tf-red: #c0392b;
+        --tf-white: #ffffff;
+        --tf-warning: #c98a2e;
+        --surface-page: #ffffff;
+        --surface-sunken: #ffffff;
+        --surface-card: var(--tf-white);
+        --text-heading: var(--tf-navy-900);
+        --text-body: oklch(
+          from var(--tf-navy-900) calc(l + 0.06) calc(c - 0.005) h
+        );
+        --text-muted: var(--tf-slate-600);
+        --border-subtle: var(--tf-slate-200);
+        --border-default: var(--tf-slate-300);
+        --radius-lg: 12px;
+        --radius-md: 10px;
+        --radius-sm: 6px;
+        --shadow-sm: 0 1px 2px rgba(4, 18, 33, 0.08);
+        --font-display: Tahoma, Verdana, sans-serif;
+        --font-body: Verdana, Tahoma, sans-serif;
       }
-      return result;
-    });
-  }
-  function addDirectoryRow(attrs){ return writeFeature(DIRECTORY_ADD_URL, attrs); }
-  function updateDirectoryRow(objectId, attrs){
-    var full = { OBJECTID: objectId };
-    for (var k in attrs) full[k] = attrs[k];
-    return writeFeature(DIRECTORY_UPDATE_URL, full);
-  }
-
-  function fmtDate(ms){
-    if (ms == null) return '–';
-    return new Date(ms).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
-  }
-  function toDateInputValue(ms){
-    var d = new Date(ms);
-    var mm = String(d.getUTCMonth() + 1).padStart(2, '0');
-    var dd = String(d.getUTCDate()).padStart(2, '0');
-    return d.getUTCFullYear() + '-' + mm + '-' + dd;
-  }
-  function farmColor(farm, allFarms){
-    var idx = allFarms.indexOf(farm);
-    if (idx === -1) idx = 0;
-    return FARM_COLORS[idx % FARM_COLORS.length];
-  }
-  function treatmentLabel(t){ return t === 'seafeed' ? 'SeaFeed' : 'Control'; }
-  // "3 days ago" / "today" / "1 day ago" — a quicker read than doing the
-  // date maths yourself off the calendar date alone. Rounds to whole days
-  // on the LOCAL calendar day boundary (not a raw 24h count), so a visit
-  // logged this morning still reads "today" this afternoon.
-  function daysAgoText(ms){
-    if (ms == null) return '';
-    var startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
-    var startOfThat = new Date(ms); startOfThat.setHours(0, 0, 0, 0);
-    var days = Math.round((startOfToday - startOfThat) / 86400000);
-    if (days === 0) return 'today';
-    if (days === 1) return '1 day ago';
-    if (days > 1) return days + ' days ago';
-    return 'in ' + Math.abs(days) + ' day' + (days === -1 ? '' : 's'); // future-dated, edge case
-  }
-
-  // ============================================================
-  // LOAD
-  // ============================================================
-  function loadAll(){
-    return Promise.all([fetchFarmTreatments(), fetchDirectory()]).then(function(results){
-      var treatmentsByFarm = results[0]; // { farmName: ['seafeed', 'control', ...] }
-      var directoryRows = results[1]; // null if the table isn't set up yet
-      render(treatmentsByFarm, directoryRows);
-    }).catch(function(err){
-      console.error('Farm Directory load failed:', err);
-      document.getElementById('fd-grid').innerHTML = '<div class="fd-loading">Could not load farm directory. Check the browser console and the feature service URLs at the top of this page’s script.</div>';
-    });
-  }
-
-  function render(treatmentsByFarm, directoryRows){
-    var grid = document.getElementById('fd-grid');
-
-    if (directoryRows === null) {
-      grid.innerHTML = '<div class="fd-loading">Farm Directory isn’t set up yet. Create LEL_Farm_Directory in ArcGIS Online and update the three DIRECTORY_*_URL constants at the top of this page’s script (see the setup guide).</div>';
-      return;
-    }
-
-    var byFarm = {};
-    directoryRows.forEach(function(r){ byFarm[r.trial_site] = r; });
-
-    // Every known farm gets a card (populated or empty-state), then any
-    // directory row for a farm NOT in treatmentsByFarm (e.g. logged in
-    // AGOL before it ever showed up in Usage_History) still gets shown
-    // too, rather than silently disappearing — it just won't have any
-    // treatment pills, since we have no usage-history rows to derive them
-    // from.
-    var allFarms = Object.keys(treatmentsByFarm);
-    directoryRows.forEach(function(r){ if (allFarms.indexOf(r.trial_site) === -1) allFarms.push(r.trial_site); });
-    allFarms.sort();
-
-    var alertItems = [];
-    var now = Date.now();
-    allFarms.forEach(function(farm){
-      var row = byFarm[farm];
-      if (!row) { alertItems.push(farm + ': no contact details on file'); return; }
-      if (row.next_visit_due != null && row.next_visit_due < now) {
-        alertItems.push(farm + ': visit overdue (was due ' + fmtDate(row.next_visit_due) + ')');
+      html,
+      body {
+        margin: 0;
+        background: var(--surface-page);
       }
-    });
-
-    if (!allFarms.length) {
-      grid.innerHTML = '<div class="fd-loading">No farms found yet in LEL_Lick_Block_Usage_History. This page will populate once at least one farm has logged lick block usage.</div>';
-    } else {
-      grid.innerHTML = allFarms.map(function(farm, idx){
-        var color = farmColor(farm, allFarms);
-        var row = byFarm[farm];
-        var prefix = 'fd-' + idx;
-        return row ? filledCardHtml(prefix, farm, color, row) : emptyCardHtml(prefix, farm, color);
-      }).join('');
-
-      allFarms.forEach(function(farm, idx){
-        var row = byFarm[farm];
-        var prefix = 'fd-' + idx;
-        if (row) { wireVisitForm(prefix, row.OBJECTID); wireNotesSave(prefix, row.OBJECTID); }
-        else { wireAddForm(prefix, farm); }
-      });
-    }
-
-    if (alertItems.length) {
-      var banner = document.getElementById('fd-alert-banner');
-      var text = document.getElementById('fd-alert-banner-text');
-      text.innerHTML = '<strong>' + alertItems.length + ' ' + (alertItems.length === 1 ? 'farm needs' : 'farms need') + ' attention:</strong><ul>' +
-        alertItems.map(function(s){ return '<li>' + s + '</li>'; }).join('') + '</ul>';
-      banner.style.display = 'flex';
-    } else {
-      document.getElementById('fd-alert-banner').style.display = 'none';
-    }
-  }
-
-  // ------------------------------------------------------------
-  // CARD MARKUP
-  // ------------------------------------------------------------
-  function filledCardHtml(prefix, farm, color, row){
-    var overdue = row.next_visit_due != null && row.next_visit_due < Date.now();
-    var lastVisitAgo = daysAgoText(row.last_visit_date);
-    var nextDueAgo = daysAgoText(row.next_visit_due);
-    // Google Maps directions link — "dir/?api=1&destination=" takes a
-    // free-text address just as well as coordinates, no geocoding needed
-    // on our side. Opens in a new tab so the portal itself isn't navigated
-    // away from mid-visit-planning.
-    var directionsHtml = row.address
-      ? '<a href="https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(row.address) + '" target="_blank" rel="noopener">' + row.address + ' &#8599;</a>'
-      : '–';
-    return '<div class="fd-card" style="border-top-color:' + color + ';">' +
-      '<div class="fd-card-head"><span class="fd-dot" style="background:' + color + ';"></span><h2 class="fd-name">' + farm + '</h2></div>' +
-      '<div class="fd-info-grid">' +
-      '  <div><span class="fd-label">Contact</span><span class="fd-value">' + (row.contact_name || '–') + '</span></div>' +
-      '  <div><span class="fd-label">Phone</span><span class="fd-value">' + (row.contact_phone ? '<a href="tel:' + row.contact_phone + '">' + row.contact_phone + '</a>' : '–') + '</span></div>' +
-      '  <div class="fd-span-2"><span class="fd-label">Email</span><span class="fd-value">' + (row.contact_email ? '<a href="mailto:' + row.contact_email + '">' + row.contact_email + '</a>' : '–') + '</span></div>' +
-      '  <div class="fd-span-2"><span class="fd-label">Address</span><span class="fd-value">' + directionsHtml + '</span></div>' +
-      '  <div><span class="fd-label">Last visit</span><span class="fd-value">' + fmtDate(row.last_visit_date) + (lastVisitAgo ? ' <span class="fd-days-ago">(' + lastVisitAgo + ')</span>' : '') + '</span></div>' +
-      '  <div><span class="fd-label">Next visit due</span><span class="fd-value' + (overdue ? ' overdue' : '') + '">' + fmtDate(row.next_visit_due) + (nextDueAgo ? ' <span class="fd-days-ago">(' + nextDueAgo + ')</span>' : '') + '</span></div>' +
-      '</div>' +
-      '<button type="button" class="fd-visit-btn" id="' + prefix + '-visitbtn">Log a visit</button>' +
-      '<div class="fd-inline-form" id="' + prefix + '-visitform" style="display:none;">' +
-      '  <label class="fd-field-label">Visit date<input type="date" class="fd-field-input" id="' + prefix + '-visitdate"></label>' +
-      '  <label class="fd-field-label">Next visit due<input type="date" class="fd-field-input" id="' + prefix + '-nextdue"></label>' +
-      '  <p class="fd-form-error" id="' + prefix + '-visiterror"></p>' +
-      '  <div class="fd-form-actions">' +
-      '    <button type="button" class="fd-confirm-btn" id="' + prefix + '-visitconfirm">Confirm</button>' +
-      '    <button type="button" class="fd-cancel-btn" id="' + prefix + '-visitcancel">Cancel</button>' +
-      '  </div>' +
-      '</div>' +
-      '<label class="fd-notes-label">Notes</label>' +
-      '<textarea class="fd-notes-input" id="' + prefix + '-notes" maxlength="500">' + (row.notes || '') + '</textarea>' +
-      '<div class="fd-form-actions"><button type="button" class="fd-confirm-btn" id="' + prefix + '-savenotes">Save notes</button><span class="fd-saved-note" id="' + prefix + '-notessaved"></span></div>' +
-      '<p class="fd-form-error" id="' + prefix + '-noteserror"></p>' +
-      '</div>';
-  }
-
-  function emptyCardHtml(prefix, farm, color){
-    return '<div class="fd-card fd-card-empty">' +
-      '<div class="fd-card-head"><span class="fd-dot" style="background:' + color + ';"></span><h2 class="fd-name">' + farm + '</h2></div>' +
-      '<p class="fd-empty-note">No contact details on file yet.</p>' +
-      '<button type="button" class="fd-add-btn" id="' + prefix + '-addbtn">+ Add contact details</button>' +
-      '<div class="fd-inline-form" id="' + prefix + '-addform" style="display:none;">' +
-      '  <label class="fd-field-label">Contact name<input type="text" class="fd-field-input" id="' + prefix + '-addname"></label>' +
-      '  <label class="fd-field-label">Phone<input type="tel" class="fd-field-input" id="' + prefix + '-addphone"></label>' +
-      '  <label class="fd-field-label">Email<input type="email" class="fd-field-input" id="' + prefix + '-addemail"></label>' +
-      '  <label class="fd-field-label">Address<input type="text" class="fd-field-input" id="' + prefix + '-addaddress"></label>' +
-      '  <p class="fd-form-error" id="' + prefix + '-adderror"></p>' +
-      '  <div class="fd-form-actions">' +
-      '    <button type="button" class="fd-confirm-btn" id="' + prefix + '-addconfirm">Save</button>' +
-      '    <button type="button" class="fd-cancel-btn" id="' + prefix + '-addcancel">Cancel</button>' +
-      '  </div>' +
-      '</div>' +
-      '</div>';
-  }
-
-  // ------------------------------------------------------------
-  // WIRING
-  // ------------------------------------------------------------
-  function wireVisitForm(prefix, objectId){
-    var btn = document.getElementById(prefix + '-visitbtn');
-    var form = document.getElementById(prefix + '-visitform');
-    var visitDateInput = document.getElementById(prefix + '-visitdate');
-    var nextDueInput = document.getElementById(prefix + '-nextdue');
-    var errorEl = document.getElementById(prefix + '-visiterror');
-    var confirmBtn = document.getElementById(prefix + '-visitconfirm');
-    var cancelBtn = document.getElementById(prefix + '-visitcancel');
-
-    btn.addEventListener('click', function(){
-      errorEl.textContent = '';
-      visitDateInput.value = toDateInputValue(Date.now());
-      nextDueInput.value = toDateInputValue(Date.now() + DEFAULT_VISIT_INTERVAL_DAYS * 86400000);
-      form.style.display = 'block';
-      btn.style.display = 'none';
-    });
-    // Logging a backdated visit (e.g. "went out last Friday") should push
-    // the next-due suggestion out from THAT date, not from today — so the
-    // suggested next-due date re-bases itself whenever the visit date
-    // changes. This does overwrite any next-due value already typed in,
-    // which is an acceptable trade for a small internal tool — set the
-    // visit date first, then adjust next-due last if you want something
-    // other than the suggestion.
-    visitDateInput.addEventListener('change', function(){
-      if (!visitDateInput.value) return;
-      var visitMs = Date.parse(visitDateInput.value + 'T00:00:00Z');
-      nextDueInput.value = toDateInputValue(visitMs + DEFAULT_VISIT_INTERVAL_DAYS * 86400000);
-    });
-    cancelBtn.addEventListener('click', function(){
-      form.style.display = 'none';
-      btn.style.display = 'inline-block';
-    });
-    confirmBtn.addEventListener('click', function(){
-      if (!visitDateInput.value) { errorEl.textContent = 'Enter the date you visited.'; return; }
-      confirmBtn.disabled = true;
-      confirmBtn.textContent = 'Saving…';
-      errorEl.textContent = '';
-      updateDirectoryRow(objectId, {
-        last_visit_date: Date.parse(visitDateInput.value + 'T00:00:00Z'),
-        next_visit_due: nextDueInput.value ? Date.parse(nextDueInput.value + 'T00:00:00Z') : null
-      }).then(function(){
-        return loadAll();
-      }).catch(function(err){
-        errorEl.textContent = 'Could not save: ' + err.message;
-        confirmBtn.disabled = false;
-        confirmBtn.textContent = 'Confirm';
-      });
-    });
-  }
-
-  function wireNotesSave(prefix, objectId){
-    var textarea = document.getElementById(prefix + '-notes');
-    var saveBtn = document.getElementById(prefix + '-savenotes');
-    var savedNote = document.getElementById(prefix + '-notessaved');
-    var errorEl = document.getElementById(prefix + '-noteserror');
-
-    saveBtn.addEventListener('click', function(){
-      saveBtn.disabled = true;
-      saveBtn.textContent = 'Saving…';
-      errorEl.textContent = '';
-      savedNote.textContent = '';
-      updateDirectoryRow(objectId, { notes: textarea.value ? textarea.value.slice(0, 500) : null }).then(function(){
-        saveBtn.disabled = false;
-        saveBtn.textContent = 'Save notes';
-        savedNote.textContent = 'Saved ✓';
-      }).catch(function(err){
-        errorEl.textContent = 'Could not save: ' + err.message;
-        saveBtn.disabled = false;
-        saveBtn.textContent = 'Save notes';
-      });
-    });
-  }
-
-  function wireAddForm(prefix, farm){
-    var btn = document.getElementById(prefix + '-addbtn');
-    var form = document.getElementById(prefix + '-addform');
-    var nameInput = document.getElementById(prefix + '-addname');
-    var phoneInput = document.getElementById(prefix + '-addphone');
-    var emailInput = document.getElementById(prefix + '-addemail');
-    var addressInput = document.getElementById(prefix + '-addaddress');
-    var errorEl = document.getElementById(prefix + '-adderror');
-    var confirmBtn = document.getElementById(prefix + '-addconfirm');
-    var cancelBtn = document.getElementById(prefix + '-addcancel');
-
-    btn.addEventListener('click', function(){
-      errorEl.textContent = '';
-      form.style.display = 'block';
-      btn.style.display = 'none';
-      nameInput.focus();
-    });
-    cancelBtn.addEventListener('click', function(){
-      form.style.display = 'none';
-      btn.style.display = 'inline-block';
-    });
-    confirmBtn.addEventListener('click', function(){
-      if (!nameInput.value && !phoneInput.value && !addressInput.value) {
-        errorEl.textContent = 'Enter at least a contact name, phone, or address.';
-        return;
+      body {
+        font-family: var(--font-body);
+        color: var(--text-body);
+        -webkit-font-smoothing: antialiased;
       }
-      confirmBtn.disabled = true;
-      confirmBtn.textContent = 'Saving…';
-      errorEl.textContent = '';
-      addDirectoryRow({
-        trial_site: farm,
-        contact_name: nameInput.value || null,
-        contact_phone: phoneInput.value || null,
-        contact_email: emailInput.value || null,
-        address: addressInput.value || null,
-        notes: null, last_visit_date: null, next_visit_due: null
-      }).then(function(){
-        return loadAll();
-      }).catch(function(err){
-        errorEl.textContent = 'Could not save: ' + err.message + '. If this is the first entry, check that anonymous editing is turned on for LEL_Farm_Directory in ArcGIS Online (see setup note).';
-        confirmBtn.disabled = false;
-        confirmBtn.textContent = 'Save';
-      });
-    });
-  }
+      .fd-page {
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 0 32px 64px;
+        box-sizing: border-box;
+      }
+      @media (max-width: 720px) {
+        .fd-page {
+          padding: 0 16px 48px;
+        }
+      }
 
-  loadAll();
+      .fd-hero {
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 40px 32px 28px;
+        box-sizing: border-box;
+        border-bottom: 1px solid var(--border-subtle);
+        margin-bottom: 40px;
+      }
+      @media (max-width: 720px) {
+        .fd-hero {
+          padding: 28px 16px 20px;
+        }
+      }
+      .fd-hero-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--radius-md);
+        background: var(--surface-sunken);
+        border: 1px solid var(--border-subtle);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 16px;
+      }
+      .fd-hero-icon svg {
+        width: 20px;
+        height: 20px;
+        stroke: var(--tf-seafeed);
+        fill: none;
+        stroke-width: 1.8;
+      }
+      .fd-eyebrow {
+        font-family: var(--font-display);
+        font-size: 11.5px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin: 0 0 10px;
+      }
+      .fd-hero h1 {
+        font-family: var(--font-display);
+        font-size: 30px;
+        font-weight: 700;
+        color: var(--text-heading);
+        margin: 0 0 10px;
+      }
+      .fd-hero-sub {
+        font-size: 15px;
+        color: var(--text-muted);
+        margin: 0;
+        max-width: 480px;
+        line-height: 1.6;
+      }
 
-})();
-</script>
-</body>
+      .fd-alert-banner {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        background: rgba(192, 57, 43, 0.08);
+        border: 1px solid rgba(192, 57, 43, 0.28);
+        border-radius: var(--radius-lg);
+        padding: 14px 20px;
+        margin-bottom: 24px;
+      }
+      .fd-alert-banner svg {
+        flex-shrink: 0;
+        width: 20px;
+        height: 20px;
+        stroke: var(--tf-red);
+        fill: none;
+        stroke-width: 2;
+        margin-top: 1px;
+      }
+      .fd-alert-banner-text {
+        font-family: var(--font-display);
+        font-size: 13.5px;
+        color: var(--tf-red);
+        line-height: 1.5;
+      }
+      .fd-alert-banner-text ul {
+        margin: 4px 0 0;
+        padding-left: 18px;
+      }
+
+      .fd-section-label {
+        font-family: var(--font-display);
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        margin: 0 0 14px 2px;
+      }
+      .fd-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 16px;
+        align-items: start;
+      }
+      .fd-loading {
+        font-family: var(--font-display);
+        font-size: 12px;
+        color: var(--text-muted);
+        padding: 20px 4px;
+      }
+
+      .fd-card {
+        background: var(--surface-card);
+        border: 1px solid var(--border-subtle);
+        border-top: 4px solid var(--border-default);
+        border-radius: var(--radius-lg);
+        padding: 20px 22px;
+        box-shadow: var(--shadow-sm);
+        box-sizing: border-box;
+      }
+      .fd-card-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+      .fd-dot {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex: none;
+      }
+      .fd-name {
+        font-family: var(--font-display);
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-heading);
+        margin: 0;
+      }
+      .fd-days-ago {
+        color: var(--text-muted);
+        font-weight: 400;
+      }
+
+      .fd-info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px 14px;
+        margin-bottom: 14px;
+      }
+      .fd-info-grid > div.fd-span-2 {
+        grid-column: 1 / -1;
+      }
+      .fd-label {
+        display: block;
+        font-family: var(--font-display);
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 3px;
+      }
+      .fd-value {
+        font-size: 13px;
+        color: var(--text-body);
+        word-break: break-word;
+      }
+      .fd-value a {
+        color: var(--tf-seafeed);
+        text-decoration: none;
+      }
+      .fd-value a:hover {
+        text-decoration: underline;
+      }
+      .fd-value.overdue {
+        color: var(--tf-red);
+        font-weight: 700;
+      }
+
+      .fd-visit-btn,
+      .fd-add-btn {
+        font-family: var(--font-display);
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-heading);
+        background: var(--surface-sunken);
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-sm);
+        padding: 7px 11px;
+        cursor: pointer;
+        margin-bottom: 10px;
+      }
+      .fd-visit-btn:hover,
+      .fd-add-btn:hover {
+        border-color: var(--tf-seafeed);
+      }
+      .fd-inline-form {
+        background: var(--surface-sunken);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        padding: 12px;
+        margin-bottom: 12px;
+      }
+      .fd-field-label {
+        display: block;
+        font-family: var(--font-display);
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 8px;
+      }
+      .fd-field-input {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        margin-top: 4px;
+        font-family: var(--font-body);
+        font-size: 13px;
+        padding: 7px 9px;
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-sm);
+        background: var(--tf-white);
+        color: var(--text-body);
+      }
+      .fd-form-error {
+        font-family: var(--font-display);
+        font-size: 11px;
+        color: var(--tf-red);
+        min-height: 14px;
+        margin: 2px 0 8px;
+      }
+      .fd-form-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .fd-confirm-btn {
+        font-family: var(--font-display);
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--tf-white);
+        background: var(--tf-seafeed);
+        border: none;
+        border-radius: var(--radius-sm);
+        padding: 7px 14px;
+        cursor: pointer;
+      }
+      .fd-confirm-btn:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+      .fd-cancel-btn {
+        font-family: var(--font-display);
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-muted);
+        background: transparent;
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-sm);
+        padding: 7px 14px;
+        cursor: pointer;
+      }
+      .fd-saved-note {
+        font-family: var(--font-display);
+        font-size: 11px;
+        color: var(--tf-seafeed);
+        font-weight: 700;
+      }
+
+      .fd-notes-label {
+        display: block;
+        font-family: var(--font-display);
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 5px;
+      }
+      .fd-notes-input {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        min-height: 64px;
+        font-family: var(--font-body);
+        font-size: 13px;
+        padding: 8px 9px;
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-sm);
+        background: var(--tf-white);
+        color: var(--text-body);
+        resize: vertical;
+        margin-bottom: 8px;
+      }
+
+      .fd-card-empty {
+        border-top-color: var(--border-subtle);
+        border-style: dashed;
+        background: var(--surface-sunken);
+      }
+      .fd-empty-note {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin: 0 0 12px;
+      }
+
+      /* ------------------------------------------------------------
+         ONBOARDING PIPELINE — added 2026-09-09, per Jono's Onboarding
+         Roadmap request. Every farm row (real, already-dosing, or a
+         still-prospective one added purely to plan against) now carries
+         species/committed head/pipeline stage/target quarter. A farm
+         with usage history and no pipeline_stage set is treated as
+         "Active" by default (effectivePipelineStage() in the script) so
+         existing real farms don't need a backfill; a directory-only row
+         with no stage defaults to "Prospect" instead. See the
+         onboarding-roadmap-portal.html page for how this rolls up
+         against the LEL_Onboarding_Targets table.
+         ------------------------------------------------------------ */
+      .fd-stage-badge {
+        display: inline-flex;
+        align-items: center;
+        font-family: var(--font-display);
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        border-radius: 999px;
+        padding: 3px 9px;
+        border: 1px solid transparent;
+        margin-left: 8px;
+      }
+      .fd-stage-badge.prospect {
+        color: var(--text-muted);
+        background: var(--surface-sunken);
+        border-color: var(--border-default);
+      }
+      .fd-stage-badge.discussion {
+        color: var(--tf-warning);
+        background: oklch(from var(--tf-warning) l c h / 0.12);
+        border-color: oklch(from var(--tf-warning) l c h / 0.3);
+      }
+      .fd-stage-badge.signed {
+        color: #2e6f9e;
+        background: oklch(from #2e6f9e l c h / 0.1);
+        border-color: oklch(from #2e6f9e l c h / 0.3);
+      }
+      .fd-stage-badge.active {
+        color: var(--tf-seafeed);
+        background: oklch(from var(--tf-seafeed) l c h / 0.12);
+        border-color: oklch(from var(--tf-seafeed) l c h / 0.32);
+      }
+      .fd-pipeline-toggle {
+        font-family: var(--font-display);
+        font-size: 11.5px;
+        font-weight: 700;
+        color: var(--text-muted);
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        margin: 4px 0 10px;
+      }
+      .fd-pipeline-toggle:hover {
+        color: var(--tf-seafeed);
+      }
+      .fd-field-select {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        margin-top: 4px;
+        font-family: var(--font-body);
+        font-size: 13px;
+        padding: 7px 9px;
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-sm);
+        background: var(--tf-white);
+        color: var(--text-body);
+      }
+
+      .fd-newfarm-bar {
+        display: flex;
+        justify-content: flex-end;
+        margin: -6px 0 14px;
+      }
+      .fd-newfarm-btn {
+        font-family: var(--font-display);
+        font-size: 12.5px;
+        font-weight: 700;
+        color: var(--tf-white);
+        background: var(--tf-seafeed);
+        border: none;
+        border-radius: var(--radius-sm);
+        padding: 9px 15px;
+        cursor: pointer;
+      }
+      .fd-newfarm-btn:hover {
+        opacity: 0.92;
+      }
+      .fd-newfarm-panel {
+        background: var(--surface-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        padding: 20px 22px;
+        margin-bottom: 20px;
+      }
+      .fd-newfarm-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 10px 14px;
+      }
+
+      .fd-footer-note {
+        font-family: var(--font-display);
+        font-size: 11px;
+        color: var(--text-muted);
+        text-align: center;
+        margin-top: 40px;
+        line-height: 1.6;
+      }
+
+      @keyframes pp-shimmer {
+        0% {
+          background-position: 150% 0;
+        }
+        100% {
+          background-position: -50% 0;
+        }
+      }
+      .pp-skel {
+        display: inline-block;
+        height: 0.8em;
+        vertical-align: middle;
+        border-radius: 6px;
+        background-size: 250% 100%;
+        animation: pp-shimmer 1.4s ease-in-out infinite;
+        background-image: linear-gradient(
+          90deg,
+          rgba(4, 18, 33, 0.08) 25%,
+          rgba(4, 18, 33, 0.16) 37%,
+          rgba(4, 18, 33, 0.08) 63%
+        );
+      }
+      .pp-skel-lg {
+        width: 128px;
+      }
+      .pp-skel-md {
+        width: 84px;
+      }
+      .pp-skel-sm {
+        width: 52px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .pp-skel {
+          animation: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="fd-hero">
+      <div class="fd-hero-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+      </div>
+      <p class="fd-eyebrow">
+        TasFarmers &middot; Low Emissions Livestock Project
+      </p>
+      <h1>Farm Directory</h1>
+      <p class="fd-hero-sub">
+        Low Emissions Livestock trial: internal project team view
+      </p>
+    </div>
+
+    <div class="fd-page">
+      <div
+        class="fd-alert-banner"
+        id="fd-alert-banner"
+        style="display: none"
+        role="alert"
+        aria-live="polite"
+      >
+        <svg viewBox="0 0 24 24">
+          <path
+            d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"
+          ></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+        <div class="fd-alert-banner-text" id="fd-alert-banner-text"></div>
+      </div>
+
+      <div class="fd-newfarm-bar">
+        <button type="button" class="fd-newfarm-btn" id="fd-newfarm-btn">
+          + Add new farm
+        </button>
+      </div>
+      <div
+        class="fd-newfarm-panel"
+        id="fd-newfarm-panel"
+        style="display: none"
+      >
+        <p class="fd-field-label" style="margin-bottom: 12px">
+          New farm, prospect or already signed. This adds a row to Farm
+          Directory so it can be tracked on the Onboarding Roadmap before it
+          has any lick block or weight data of its own.
+        </p>
+        <div class="fd-newfarm-grid">
+          <label class="fd-field-label"
+            >Farm name *<input
+              type="text"
+              class="fd-field-input"
+              id="fd-newfarm-name"
+          /></label>
+          <label class="fd-field-label"
+            >Species
+            <select class="fd-field-select" id="fd-newfarm-species">
+              <option value="Beef">Beef</option>
+              <option value="Sheep">Sheep</option>
+            </select>
+          </label>
+          <label class="fd-field-label"
+            >Committed head count<input
+              type="number"
+              min="0"
+              class="fd-field-input"
+              id="fd-newfarm-head"
+          /></label>
+          <label class="fd-field-label"
+            >Pipeline stage
+            <select class="fd-field-select" id="fd-newfarm-stage">
+              <option value="Prospect">Prospect</option>
+              <option value="In discussion">In discussion</option>
+              <option value="Signed">Signed</option>
+              <option value="Active">Active</option>
+            </select>
+          </label>
+          <label class="fd-field-label"
+            >Target go-live quarter<input
+              type="text"
+              class="fd-field-input"
+              id="fd-newfarm-quarter"
+              placeholder="e.g. 2027 Q1"
+          /></label>
+          <label class="fd-field-label"
+            >Contact name<input
+              type="text"
+              class="fd-field-input"
+              id="fd-newfarm-contact"
+          /></label>
+        </div>
+        <p class="fd-form-error" id="fd-newfarm-error"></p>
+        <div class="fd-form-actions">
+          <button type="button" class="fd-confirm-btn" id="fd-newfarm-save">
+            Save
+          </button>
+          <button type="button" class="fd-cancel-btn" id="fd-newfarm-cancel">
+            Cancel
+          </button>
+        </div>
+      </div>
+
+      <p class="fd-section-label">Farms</p>
+      <div class="fd-grid" id="fd-grid">
+        <div class="fd-card" aria-hidden="true">
+          <div class="fd-card-head">
+            <span
+              class="fd-dot"
+              style="background: var(--border-default)"
+            ></span
+            ><span class="pp-skel pp-skel-md" style="height: 15px"></span>
+          </div>
+          <div class="fd-info-grid">
+            <div>
+              <span class="fd-label">Contact</span
+              ><span class="pp-skel pp-skel-md"></span>
+            </div>
+            <div>
+              <span class="fd-label">Phone</span
+              ><span class="pp-skel pp-skel-sm"></span>
+            </div>
+            <div class="fd-span-2">
+              <span class="fd-label">Email</span
+              ><span class="pp-skel pp-skel-lg"></span>
+            </div>
+            <div class="fd-span-2">
+              <span class="fd-label">Address</span
+              ><span class="pp-skel pp-skel-lg"></span>
+            </div>
+            <div>
+              <span class="fd-label">Last visit</span
+              ><span class="pp-skel pp-skel-sm"></span>
+            </div>
+            <div>
+              <span class="fd-label">Next visit due</span
+              ><span class="pp-skel pp-skel-sm"></span>
+            </div>
+          </div>
+        </div>
+        <div class="fd-card" aria-hidden="true">
+          <div class="fd-card-head">
+            <span
+              class="fd-dot"
+              style="background: var(--border-default)"
+            ></span
+            ><span class="pp-skel pp-skel-md" style="height: 15px"></span>
+          </div>
+          <div class="fd-info-grid">
+            <div>
+              <span class="fd-label">Contact</span
+              ><span class="pp-skel pp-skel-md"></span>
+            </div>
+            <div>
+              <span class="fd-label">Phone</span
+              ><span class="pp-skel pp-skel-sm"></span>
+            </div>
+            <div class="fd-span-2">
+              <span class="fd-label">Email</span
+              ><span class="pp-skel pp-skel-lg"></span>
+            </div>
+            <div class="fd-span-2">
+              <span class="fd-label">Address</span
+              ><span class="pp-skel pp-skel-lg"></span>
+            </div>
+            <div>
+              <span class="fd-label">Last visit</span
+              ><span class="pp-skel pp-skel-sm"></span>
+            </div>
+            <div>
+              <span class="fd-label">Next visit due</span
+              ><span class="pp-skel pp-skel-sm"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="fd-footer-note">
+        Contact and visit details are edited here and saved straight to
+        LEL_Farm_Directory in ArcGIS Online &middot; Farm list drawn from
+        LEL_Lick_Block_Usage_History &middot; Not for external distribution
+      </p>
+    </div>
+
+    <script>
+      (function () {
+        var USAGE_HISTORY_URL =
+          "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lick_Block_Usage_History/FeatureServer/0/query";
+
+        var DIRECTORY_URL =
+          "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Farm_Directory/FeatureServer/0/query";
+        var DIRECTORY_ADD_URL =
+          "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Farm_Directory/FeatureServer/0/addFeatures";
+        var DIRECTORY_UPDATE_URL =
+          "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Farm_Directory/FeatureServer/0/updateFeatures";
+
+        var DEFAULT_VISIT_INTERVAL_DAYS = 28;
+
+        var FARM_COLORS = [
+          "#2e6f9e",
+          "#8659a3",
+          "#2e8f8f",
+          "#a3762e",
+          "#5c6bc0",
+        ];
+
+        // Updated on every render() so wireNewFarmForm()'s duplicate-name
+        // check (added 2026-09-09) always sees the latest farm list without
+        // needing its own fetch.
+        var currentAllFarms = [];
+
+        function q(url, params) {
+          return fetch(url + "?" + new URLSearchParams(params))
+            .then(function (res) {
+              return res.json();
+            })
+            .then(function (data) {
+              if (data.error)
+                throw new Error(data.error.message || "Query failed");
+              return data;
+            });
+        }
+
+        function fetchFarmTreatments() {
+          return q(USAGE_HISTORY_URL, {
+            where: "1=1",
+            outFields: "trial_site,treatment",
+            returnDistinctValues: "true",
+            orderByFields: "trial_site ASC, treatment ASC",
+            resultRecordCount: "200",
+            f: "json",
+          })
+            .then(function (data) {
+              var map = {};
+              data.features.forEach(function (f) {
+                var farm = f.attributes.trial_site,
+                  treatment = f.attributes.treatment;
+                if (!farm) return;
+                if (!map[farm]) map[farm] = [];
+                if (treatment && map[farm].indexOf(treatment) === -1)
+                  map[farm].push(treatment);
+              });
+              return map;
+            })
+            .catch(function (err) {
+              console.error("Farm treatments fetch failed:", err);
+              return {};
+            });
+        }
+
+        function fetchDirectory() {
+          return q(DIRECTORY_URL, {
+            where: "1=1",
+            outFields:
+              "OBJECTID,trial_site,contact_name,contact_phone,contact_email,address,last_visit_date,next_visit_due,notes,species,committed_head_count,pipeline_stage,target_go_live_quarter",
+            resultRecordCount: "500",
+            f: "json",
+          })
+            .then(function (data) {
+              return data.features.map(function (f) {
+                return f.attributes;
+              });
+            })
+            .catch(function (err) {
+              console.warn(
+                "Directory fetch failed (table may not be set up yet):",
+                err,
+              );
+              return null; // null = "not available", distinct from [] = "available but empty"
+            });
+        }
+
+        function writeFeature(url, attributes) {
+          var body = new URLSearchParams({
+            f: "json",
+            features: JSON.stringify([{ attributes: attributes }]),
+          });
+          return fetch(url, { method: "POST", body: body })
+            .then(function (res) {
+              return res.json();
+            })
+            .then(function (data) {
+              if (data.error)
+                throw new Error(data.error.message || "Write failed");
+              var result = (data.addResults || data.updateResults || [])[0];
+              if (!result || !result.success) {
+                throw new Error(
+                  (result && result.error && result.error.description) ||
+                    "ArcGIS Online rejected the write: the response gave no further detail.",
+                );
+              }
+              return result;
+            });
+        }
+        function addDirectoryRow(attrs) {
+          return writeFeature(DIRECTORY_ADD_URL, attrs);
+        }
+        function updateDirectoryRow(objectId, attrs) {
+          var full = { OBJECTID: objectId };
+          for (var k in attrs) full[k] = attrs[k];
+          return writeFeature(DIRECTORY_UPDATE_URL, full);
+        }
+
+        function fmtDate(ms) {
+          if (ms == null) return "–";
+          return new Date(ms).toLocaleDateString("en-AU", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          });
+        }
+        function toDateInputValue(ms) {
+          var d = new Date(ms);
+          var mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+          var dd = String(d.getUTCDate()).padStart(2, "0");
+          return d.getUTCFullYear() + "-" + mm + "-" + dd;
+        }
+        function farmColor(farm, allFarms) {
+          var idx = allFarms.indexOf(farm);
+          if (idx === -1) idx = 0;
+          return FARM_COLORS[idx % FARM_COLORS.length];
+        }
+        function treatmentLabel(t) {
+          return t === "seafeed" ? "SeaFeed" : "Control";
+        }
+
+        // A farm with real lick block usage history and no pipeline_stage
+        // set is treated as "Active" (it's already dosing, whether or not
+        // anyone's gone back to set the field) — a directory-only row with
+        // no stage defaults to "Prospect" instead, since the only way it
+        // could exist yet is someone deliberately adding it ahead of any
+        // real activity.
+        function effectivePipelineStage(row, hasUsageHistory) {
+          if (row && row.pipeline_stage) return row.pipeline_stage;
+          return hasUsageHistory ? "Active" : "Prospect";
+        }
+        function stageBadgeHtml(stage) {
+          var cls =
+            stage === "Active"
+              ? "active"
+              : stage === "Signed"
+                ? "signed"
+                : stage === "In discussion"
+                  ? "discussion"
+                  : "prospect";
+          return (
+            '<span class="fd-stage-badge ' + cls + '">' + stage + "</span>"
+          );
+        }
+
+        function daysAgoText(ms) {
+          if (ms == null) return "";
+          var startOfToday = new Date();
+          startOfToday.setHours(0, 0, 0, 0);
+          var startOfThat = new Date(ms);
+          startOfThat.setHours(0, 0, 0, 0);
+          var days = Math.round((startOfToday - startOfThat) / 86400000);
+          if (days === 0) return "today";
+          if (days === 1) return "1 day ago";
+          if (days > 1) return days + " days ago";
+          return "in " + Math.abs(days) + " day" + (days === -1 ? "" : "s"); // future-dated, edge case
+        }
+
+        function loadAll() {
+          return Promise.all([fetchFarmTreatments(), fetchDirectory()])
+            .then(function (results) {
+              var treatmentsByFarm = results[0]; // { farmName: ['seafeed', 'control', ...] }
+              var directoryRows = results[1]; // null if the table isn't set up yet
+              render(treatmentsByFarm, directoryRows);
+            })
+            .catch(function (err) {
+              console.error("Farm Directory load failed:", err);
+              document.getElementById("fd-grid").innerHTML =
+                '<div class="fd-loading">Could not load farm directory. Check the browser console and the feature service URLs at the top of this page’s script.</div>';
+            });
+        }
+
+        function render(treatmentsByFarm, directoryRows) {
+          var grid = document.getElementById("fd-grid");
+
+          if (directoryRows === null) {
+            grid.innerHTML =
+              '<div class="fd-loading">Farm Directory isn’t set up yet. Create LEL_Farm_Directory in ArcGIS Online and update the three DIRECTORY_*_URL constants at the top of this page’s script (see the setup guide).</div>';
+            return;
+          }
+
+          var byFarm = {};
+          directoryRows.forEach(function (r) {
+            byFarm[r.trial_site] = r;
+          });
+
+          var allFarms = Object.keys(treatmentsByFarm);
+          directoryRows.forEach(function (r) {
+            if (allFarms.indexOf(r.trial_site) === -1)
+              allFarms.push(r.trial_site);
+          });
+          allFarms.sort();
+          currentAllFarms = allFarms;
+
+          var alertItems = [];
+          var now = Date.now();
+          allFarms.forEach(function (farm) {
+            var row = byFarm[farm];
+            if (!row) {
+              alertItems.push(farm + ": no contact details on file");
+              return;
+            }
+            if (row.next_visit_due != null && row.next_visit_due < now) {
+              alertItems.push(
+                farm +
+                  ": visit overdue (was due " +
+                  fmtDate(row.next_visit_due) +
+                  ")",
+              );
+            }
+          });
+
+          if (!allFarms.length) {
+            grid.innerHTML =
+              '<div class="fd-loading">No farms yet. Farms appear here once they’ve logged lick block usage, or once added below as a prospect for the Onboarding Roadmap.</div>';
+          } else {
+            grid.innerHTML = allFarms
+              .map(function (farm, idx) {
+                var color = farmColor(farm, allFarms);
+                var row = byFarm[farm];
+                var prefix = "fd-" + idx;
+                var hasUsageHistory = treatmentsByFarm.hasOwnProperty(farm);
+                return row
+                  ? filledCardHtml(prefix, farm, color, row, hasUsageHistory)
+                  : emptyCardHtml(prefix, farm, color);
+              })
+              .join("");
+
+            allFarms.forEach(function (farm, idx) {
+              var row = byFarm[farm];
+              var prefix = "fd-" + idx;
+              if (row) {
+                wireVisitForm(prefix, row.OBJECTID);
+                wireNotesSave(prefix, row.OBJECTID);
+                wirePipelineSave(prefix, row.OBJECTID);
+              } else {
+                wireAddForm(prefix, farm);
+              }
+            });
+          }
+
+          if (alertItems.length) {
+            var banner = document.getElementById("fd-alert-banner");
+            var text = document.getElementById("fd-alert-banner-text");
+            text.innerHTML =
+              "<strong>" +
+              alertItems.length +
+              " " +
+              (alertItems.length === 1 ? "farm needs" : "farms need") +
+              " attention:</strong><ul>" +
+              alertItems
+                .map(function (s) {
+                  return "<li>" + s + "</li>";
+                })
+                .join("") +
+              "</ul>";
+            banner.style.display = "flex";
+          } else {
+            document.getElementById("fd-alert-banner").style.display = "none";
+          }
+        }
+
+        function filledCardHtml(prefix, farm, color, row, hasUsageHistory) {
+          var overdue =
+            row.next_visit_due != null && row.next_visit_due < Date.now();
+          var lastVisitAgo = daysAgoText(row.last_visit_date);
+          var nextDueAgo = daysAgoText(row.next_visit_due);
+          var stage = effectivePipelineStage(row, hasUsageHistory);
+
+          var directionsHtml = row.address
+            ? '<a href="https://www.google.com/maps/dir/?api=1&destination=' +
+              encodeURIComponent(row.address) +
+              '" target="_blank" rel="noopener">' +
+              row.address +
+              " &#8599;</a>"
+            : "–";
+          return (
+            '<div class="fd-card" style="border-top-color:' +
+            color +
+            ';">' +
+            '<div class="fd-card-head"><span class="fd-dot" style="background:' +
+            color +
+            ';"></span><h2 class="fd-name">' +
+            farm +
+            "</h2>" +
+            stageBadgeHtml(stage) +
+            "</div>" +
+            '<div class="fd-info-grid">' +
+            '  <div><span class="fd-label">Species</span><span class="fd-value">' +
+            (row.species || "–") +
+            "</span></div>" +
+            '  <div><span class="fd-label">Committed head</span><span class="fd-value">' +
+            (row.committed_head_count != null
+              ? row.committed_head_count
+              : "–") +
+            "</span></div>" +
+            '  <div><span class="fd-label">Contact</span><span class="fd-value">' +
+            (row.contact_name || "–") +
+            "</span></div>" +
+            '  <div><span class="fd-label">Phone</span><span class="fd-value">' +
+            (row.contact_phone
+              ? '<a href="tel:' +
+                row.contact_phone +
+                '">' +
+                row.contact_phone +
+                "</a>"
+              : "–") +
+            "</span></div>" +
+            '  <div class="fd-span-2"><span class="fd-label">Email</span><span class="fd-value">' +
+            (row.contact_email
+              ? '<a href="mailto:' +
+                row.contact_email +
+                '">' +
+                row.contact_email +
+                "</a>"
+              : "–") +
+            "</span></div>" +
+            '  <div class="fd-span-2"><span class="fd-label">Address</span><span class="fd-value">' +
+            directionsHtml +
+            "</span></div>" +
+            '  <div><span class="fd-label">Last visit</span><span class="fd-value">' +
+            fmtDate(row.last_visit_date) +
+            (lastVisitAgo
+              ? ' <span class="fd-days-ago">(' + lastVisitAgo + ")</span>"
+              : "") +
+            "</span></div>" +
+            '  <div><span class="fd-label">Next visit due</span><span class="fd-value' +
+            (overdue ? " overdue" : "") +
+            '">' +
+            fmtDate(row.next_visit_due) +
+            (nextDueAgo
+              ? ' <span class="fd-days-ago">(' + nextDueAgo + ")</span>"
+              : "") +
+            "</span></div>" +
+            "</div>" +
+            '<button type="button" class="fd-visit-btn" id="' +
+            prefix +
+            '-visitbtn">Log a visit</button>' +
+            '<div class="fd-inline-form" id="' +
+            prefix +
+            '-visitform" style="display:none;">' +
+            '  <label class="fd-field-label">Visit date<input type="date" class="fd-field-input" id="' +
+            prefix +
+            '-visitdate"></label>' +
+            '  <label class="fd-field-label">Next visit due<input type="date" class="fd-field-input" id="' +
+            prefix +
+            '-nextdue"></label>' +
+            '  <p class="fd-form-error" id="' +
+            prefix +
+            '-visiterror"></p>' +
+            '  <div class="fd-form-actions">' +
+            '    <button type="button" class="fd-confirm-btn" id="' +
+            prefix +
+            '-visitconfirm">Confirm</button>' +
+            '    <button type="button" class="fd-cancel-btn" id="' +
+            prefix +
+            '-visitcancel">Cancel</button>' +
+            "  </div>" +
+            "</div>" +
+            '<label class="fd-notes-label">Notes</label>' +
+            '<textarea class="fd-notes-input" id="' +
+            prefix +
+            '-notes" maxlength="500">' +
+            (row.notes || "") +
+            "</textarea>" +
+            '<div class="fd-form-actions"><button type="button" class="fd-confirm-btn" id="' +
+            prefix +
+            '-savenotes">Save notes</button><span class="fd-saved-note" id="' +
+            prefix +
+            '-notessaved"></span></div>' +
+            '<p class="fd-form-error" id="' +
+            prefix +
+            '-noteserror"></p>' +
+            '<button type="button" class="fd-pipeline-toggle" id="' +
+            prefix +
+            '-pipelinetoggle">Edit pipeline details ▾</button>' +
+            '<div class="fd-inline-form" id="' +
+            prefix +
+            '-pipelineform" style="display:none;">' +
+            '  <label class="fd-field-label">Species' +
+            '    <select class="fd-field-select" id="' +
+            prefix +
+            '-species">' +
+            '      <option value=""' +
+            (row.species ? "" : " selected") +
+            ">–</option>" +
+            '      <option value="Beef"' +
+            (row.species === "Beef" ? " selected" : "") +
+            ">Beef</option>" +
+            '      <option value="Sheep"' +
+            (row.species === "Sheep" ? " selected" : "") +
+            ">Sheep</option>" +
+            "    </select>" +
+            "  </label>" +
+            '  <label class="fd-field-label">Committed head count<input type="number" min="0" class="fd-field-input" id="' +
+            prefix +
+            '-head" value="' +
+            (row.committed_head_count != null ? row.committed_head_count : "") +
+            '"></label>' +
+            '  <label class="fd-field-label">Pipeline stage' +
+            '    <select class="fd-field-select" id="' +
+            prefix +
+            '-stage">' +
+            ["Prospect", "In discussion", "Signed", "Active"]
+              .map(function (s) {
+                return (
+                  '<option value="' +
+                  s +
+                  '"' +
+                  (stage === s ? " selected" : "") +
+                  ">" +
+                  s +
+                  "</option>"
+                );
+              })
+              .join("") +
+            "    </select>" +
+            "  </label>" +
+            '  <label class="fd-field-label">Target go-live quarter<input type="text" class="fd-field-input" id="' +
+            prefix +
+            '-quarter" value="' +
+            (row.target_go_live_quarter || "") +
+            '" placeholder="e.g. 2027 Q1"></label>' +
+            '  <p class="fd-form-error" id="' +
+            prefix +
+            '-pipelineerror"></p>' +
+            '  <div class="fd-form-actions"><button type="button" class="fd-confirm-btn" id="' +
+            prefix +
+            '-pipelinesave">Save pipeline details</button><span class="fd-saved-note" id="' +
+            prefix +
+            '-pipelinesaved"></span></div>' +
+            "</div>" +
+            "</div>"
+          );
+        }
+
+        function emptyCardHtml(prefix, farm, color) {
+          return (
+            '<div class="fd-card fd-card-empty">' +
+            '<div class="fd-card-head"><span class="fd-dot" style="background:' +
+            color +
+            ';"></span><h2 class="fd-name">' +
+            farm +
+            "</h2></div>" +
+            '<p class="fd-empty-note">No contact details on file yet.</p>' +
+            '<button type="button" class="fd-add-btn" id="' +
+            prefix +
+            '-addbtn">+ Add contact details</button>' +
+            '<div class="fd-inline-form" id="' +
+            prefix +
+            '-addform" style="display:none;">' +
+            '  <label class="fd-field-label">Contact name<input type="text" class="fd-field-input" id="' +
+            prefix +
+            '-addname"></label>' +
+            '  <label class="fd-field-label">Phone<input type="tel" class="fd-field-input" id="' +
+            prefix +
+            '-addphone"></label>' +
+            '  <label class="fd-field-label">Email<input type="email" class="fd-field-input" id="' +
+            prefix +
+            '-addemail"></label>' +
+            '  <label class="fd-field-label">Address<input type="text" class="fd-field-input" id="' +
+            prefix +
+            '-addaddress"></label>' +
+            '  <p class="fd-form-error" id="' +
+            prefix +
+            '-adderror"></p>' +
+            '  <div class="fd-form-actions">' +
+            '    <button type="button" class="fd-confirm-btn" id="' +
+            prefix +
+            '-addconfirm">Save</button>' +
+            '    <button type="button" class="fd-cancel-btn" id="' +
+            prefix +
+            '-addcancel">Cancel</button>' +
+            "  </div>" +
+            "</div>" +
+            "</div>"
+          );
+        }
+
+        // ------------------------------------------------------------
+        // WIRING
+        // ------------------------------------------------------------
+        function wireVisitForm(prefix, objectId) {
+          var btn = document.getElementById(prefix + "-visitbtn");
+          var form = document.getElementById(prefix + "-visitform");
+          var visitDateInput = document.getElementById(prefix + "-visitdate");
+          var nextDueInput = document.getElementById(prefix + "-nextdue");
+          var errorEl = document.getElementById(prefix + "-visiterror");
+          var confirmBtn = document.getElementById(prefix + "-visitconfirm");
+          var cancelBtn = document.getElementById(prefix + "-visitcancel");
+
+          btn.addEventListener("click", function () {
+            errorEl.textContent = "";
+            visitDateInput.value = toDateInputValue(Date.now());
+            nextDueInput.value = toDateInputValue(
+              Date.now() + DEFAULT_VISIT_INTERVAL_DAYS * 86400000,
+            );
+            form.style.display = "block";
+            btn.style.display = "none";
+          });
+
+          visitDateInput.addEventListener("change", function () {
+            if (!visitDateInput.value) return;
+            var visitMs = Date.parse(visitDateInput.value + "T00:00:00Z");
+            nextDueInput.value = toDateInputValue(
+              visitMs + DEFAULT_VISIT_INTERVAL_DAYS * 86400000,
+            );
+          });
+          cancelBtn.addEventListener("click", function () {
+            form.style.display = "none";
+            btn.style.display = "inline-block";
+          });
+          confirmBtn.addEventListener("click", function () {
+            if (!visitDateInput.value) {
+              errorEl.textContent = "Enter the date you visited.";
+              return;
+            }
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = "Saving…";
+            errorEl.textContent = "";
+            updateDirectoryRow(objectId, {
+              last_visit_date: Date.parse(visitDateInput.value + "T00:00:00Z"),
+              next_visit_due: nextDueInput.value
+                ? Date.parse(nextDueInput.value + "T00:00:00Z")
+                : null,
+            })
+              .then(function () {
+                return loadAll();
+              })
+              .catch(function (err) {
+                errorEl.textContent = "Could not save: " + err.message;
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = "Confirm";
+              });
+          });
+        }
+
+        function wireNotesSave(prefix, objectId) {
+          var textarea = document.getElementById(prefix + "-notes");
+          var saveBtn = document.getElementById(prefix + "-savenotes");
+          var savedNote = document.getElementById(prefix + "-notessaved");
+          var errorEl = document.getElementById(prefix + "-noteserror");
+
+          saveBtn.addEventListener("click", function () {
+            saveBtn.disabled = true;
+            saveBtn.textContent = "Saving…";
+            errorEl.textContent = "";
+            savedNote.textContent = "";
+            updateDirectoryRow(objectId, {
+              notes: textarea.value ? textarea.value.slice(0, 500) : null,
+            })
+              .then(function () {
+                saveBtn.disabled = false;
+                saveBtn.textContent = "Save notes";
+                savedNote.textContent = "Saved ✓";
+              })
+              .catch(function (err) {
+                errorEl.textContent = "Could not save: " + err.message;
+                saveBtn.disabled = false;
+                saveBtn.textContent = "Save notes";
+              });
+          });
+        }
+
+        function wirePipelineSave(prefix, objectId) {
+          var toggleBtn = document.getElementById(prefix + "-pipelinetoggle");
+          var form = document.getElementById(prefix + "-pipelineform");
+          var speciesSel = document.getElementById(prefix + "-species");
+          var headInput = document.getElementById(prefix + "-head");
+          var stageSel = document.getElementById(prefix + "-stage");
+          var quarterInput = document.getElementById(prefix + "-quarter");
+          var errorEl = document.getElementById(prefix + "-pipelineerror");
+          var saveBtn = document.getElementById(prefix + "-pipelinesave");
+          var savedNote = document.getElementById(prefix + "-pipelinesaved");
+
+          toggleBtn.addEventListener("click", function () {
+            var showing = form.style.display !== "none";
+            form.style.display = showing ? "none" : "block";
+            toggleBtn.textContent = showing
+              ? "Edit pipeline details ▾"
+              : "Edit pipeline details ▴";
+          });
+
+          saveBtn.addEventListener("click", function () {
+            saveBtn.disabled = true;
+            saveBtn.textContent = "Saving…";
+            errorEl.textContent = "";
+            savedNote.textContent = "";
+            updateDirectoryRow(objectId, {
+              species: speciesSel.value || null,
+              committed_head_count: headInput.value
+                ? parseInt(headInput.value, 10)
+                : null,
+              pipeline_stage: stageSel.value || null,
+              target_go_live_quarter: quarterInput.value
+                ? quarterInput.value.slice(0, 10)
+                : null,
+            })
+              .then(function () {
+                return loadAll();
+              })
+              .catch(function (err) {
+                errorEl.textContent = "Could not save: " + err.message;
+                saveBtn.disabled = false;
+                saveBtn.textContent = "Save pipeline details";
+              });
+          });
+        }
+
+        function wireAddForm(prefix, farm) {
+          var btn = document.getElementById(prefix + "-addbtn");
+          var form = document.getElementById(prefix + "-addform");
+          var nameInput = document.getElementById(prefix + "-addname");
+          var phoneInput = document.getElementById(prefix + "-addphone");
+          var emailInput = document.getElementById(prefix + "-addemail");
+          var addressInput = document.getElementById(prefix + "-addaddress");
+          var errorEl = document.getElementById(prefix + "-adderror");
+          var confirmBtn = document.getElementById(prefix + "-addconfirm");
+          var cancelBtn = document.getElementById(prefix + "-addcancel");
+
+          btn.addEventListener("click", function () {
+            errorEl.textContent = "";
+            form.style.display = "block";
+            btn.style.display = "none";
+            nameInput.focus();
+          });
+          cancelBtn.addEventListener("click", function () {
+            form.style.display = "none";
+            btn.style.display = "inline-block";
+          });
+          confirmBtn.addEventListener("click", function () {
+            if (!nameInput.value && !phoneInput.value && !addressInput.value) {
+              errorEl.textContent =
+                "Enter at least a contact name, phone, or address.";
+              return;
+            }
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = "Saving…";
+            errorEl.textContent = "";
+            addDirectoryRow({
+              trial_site: farm,
+              contact_name: nameInput.value || null,
+              contact_phone: phoneInput.value || null,
+              contact_email: emailInput.value || null,
+              address: addressInput.value || null,
+              notes: null,
+              last_visit_date: null,
+              next_visit_due: null,
+            })
+              .then(function () {
+                return loadAll();
+              })
+              .catch(function (err) {
+                errorEl.textContent =
+                  "Could not save: " +
+                  err.message +
+                  ". If this is the first entry, check that anonymous editing is turned on for LEL_Farm_Directory in ArcGIS Online (see setup note).";
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = "Save";
+              });
+          });
+        }
+
+        // New-farm capture, added 2026-09-09 for the Onboarding Roadmap.
+        // Unlike wireAddForm() above (which only fills in contact details
+        // for a farm name already discovered via lick block usage), this
+        // creates a brand-new LEL_Farm_Directory row from scratch, so a
+        // prospect can be tracked here before it has any real trial
+        // activity at all. Wired once, outside render(), since the button
+        // is static markup that render() never rebuilds.
+        function wireNewFarmForm() {
+          var openBtn = document.getElementById("fd-newfarm-btn");
+          var panel = document.getElementById("fd-newfarm-panel");
+          var nameInput = document.getElementById("fd-newfarm-name");
+          var speciesSel = document.getElementById("fd-newfarm-species");
+          var headInput = document.getElementById("fd-newfarm-head");
+          var stageSel = document.getElementById("fd-newfarm-stage");
+          var quarterInput = document.getElementById("fd-newfarm-quarter");
+          var contactInput = document.getElementById("fd-newfarm-contact");
+          var errorEl = document.getElementById("fd-newfarm-error");
+          var saveBtn = document.getElementById("fd-newfarm-save");
+          var cancelBtn = document.getElementById("fd-newfarm-cancel");
+
+          openBtn.addEventListener("click", function () {
+            errorEl.textContent = "";
+            panel.style.display = "block";
+            openBtn.style.display = "none";
+            nameInput.focus();
+          });
+          cancelBtn.addEventListener("click", function () {
+            panel.style.display = "none";
+            openBtn.style.display = "inline-block";
+            errorEl.textContent = "";
+          });
+          saveBtn.addEventListener("click", function () {
+            var name = nameInput.value.trim();
+            if (!name) {
+              errorEl.textContent = "Enter a farm name.";
+              return;
+            }
+            if (currentAllFarms.indexOf(name) !== -1) {
+              errorEl.textContent =
+                "A farm called “" +
+                name +
+                "” already exists. Find it below to edit it instead.";
+              return;
+            }
+            saveBtn.disabled = true;
+            saveBtn.textContent = "Saving…";
+            errorEl.textContent = "";
+            addDirectoryRow({
+              trial_site: name,
+              species: speciesSel.value || null,
+              committed_head_count: headInput.value
+                ? parseInt(headInput.value, 10)
+                : null,
+              pipeline_stage: stageSel.value || "Prospect",
+              target_go_live_quarter: quarterInput.value
+                ? quarterInput.value.slice(0, 10)
+                : null,
+              contact_name: contactInput.value || null,
+              contact_phone: null,
+              contact_email: null,
+              address: null,
+              notes: null,
+              last_visit_date: null,
+              next_visit_due: null,
+            })
+              .then(function () {
+                nameInput.value = "";
+                headInput.value = "";
+                quarterInput.value = "";
+                contactInput.value = "";
+                stageSel.value = "Prospect";
+                panel.style.display = "none";
+                openBtn.style.display = "inline-block";
+                saveBtn.disabled = false;
+                saveBtn.textContent = "Save";
+                return loadAll();
+              })
+              .catch(function (err) {
+                errorEl.textContent =
+                  "Could not save: " +
+                  err.message +
+                  ". If this is the first entry, check that anonymous editing is turned on for LEL_Farm_Directory in ArcGIS Online (see setup note).";
+                saveBtn.disabled = false;
+                saveBtn.textContent = "Save";
+              });
+          });
+        }
+
+        wireNewFarmForm();
+        loadAll();
+      })();
+    </script>
+  </body>
 </html>

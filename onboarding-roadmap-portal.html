@@ -1,0 +1,923 @@
+<!doctype html>
+<html lang="en-AU">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#041221" />
+    <title>Onboarding Roadmap | LEL internal</title>
+
+    <!--
+      LEL Staff Portal — Onboarding Roadmap tool page.
+
+      NEW 2026-09-09, per Jono's request: a planning/tracking view for when
+      new beef and sheep producers need to be brought into the trial, and
+      what head count they need to commit, so it lines up with the funded
+      budget's own rollout targets rather than an ad hoc guess.
+
+      DATA SOURCES:
+      1. LEL_Onboarding_Targets (NEW TABLE, Jono to create in AGOL) — one
+         row per species/year/quarter, holding the CUMULATIVE farms and
+         head count the trial should have committed by the end of that
+         quarter. Seeded from the live "01. TLEL Project Budget.xlsx" ->
+         Feed Optimiser sheet (2026/2027/2028 annual targets), split evenly
+         across each year's four quarters since the budget itself only
+         stages by calendar year. Fully editable afterwards, this table IS
+         the plan, update it directly in AGOL whenever the budget or
+         rollout assumptions change.
+      2. LEL_Farm_Directory — same table the Farm Directory tool page
+         reads/writes, extended 2026-09-09 with four new fields: species,
+         committed_head_count, pipeline_stage (Prospect / In discussion /
+         Signed / Active), target_go_live_quarter. This page treats a farm
+         as "Active" if it either has pipeline_stage = 'Active' OR has real
+         lick block usage history and no stage set at all (see
+         effectivePipelineStage() below — same fallback logic as Farm
+         Directory's own script, kept in sync deliberately).
+      3. LEL_Lick_Block_Usage_History — read-only here, purely to support
+         the Active fallback above (same query Farm Directory already
+         runs).
+
+      IMPORTANT SETUP NOTE for Jono: Bowood Farm, Eastbourne Farm and TRT
+      Pastoral are already real/committed farms, but as of this page's
+      build they have NO species or committed_head_count set on their
+      Farm Directory rows yet (those fields didn't exist before today).
+      Until they're backfilled, this page's "actual" totals will read as 0
+      for both species even though 3 farms are genuinely already running.
+      Fill those two fields in on all three existing farm rows first.
+
+      Design tokens, hero pattern, section labels, skeleton shimmer and
+      footer note all copied from farm-directory-portal.html's own :root
+      block and conventions, same as every other Staff Portal page.
+    -->
+
+    <style>
+      :root {
+        --tf-navy-900: #041221;
+        --tf-slate-400: #a9b8c4;
+        --tf-slate-300: oklch(from var(--tf-slate-400) calc(l + 0.08) c h);
+        --tf-slate-200: oklch(from var(--tf-slate-400) calc(l + 0.14) c h);
+        --tf-slate-100: oklch(from var(--tf-slate-400) calc(l + 0.19) c h);
+        --tf-slate-600: oklch(from var(--tf-slate-400) calc(l - 0.18) c h);
+        --tf-seafeed: #3aa989;
+        --tf-red: #c0392b;
+        --tf-white: #ffffff;
+        --tf-warning: #c98a2e;
+        --tf-sheep: #2e6f9e;
+        --surface-page: #ffffff;
+        --surface-sunken: #ffffff;
+        --surface-card: var(--tf-white);
+        --text-heading: var(--tf-navy-900);
+        --text-body: oklch(
+          from var(--tf-navy-900) calc(l + 0.06) calc(c - 0.005) h
+        );
+        --text-muted: var(--tf-slate-600);
+        --border-subtle: var(--tf-slate-200);
+        --border-default: var(--tf-slate-300);
+        --radius-lg: 12px;
+        --radius-md: 10px;
+        --radius-sm: 6px;
+        --shadow-sm: 0 1px 2px rgba(4, 18, 33, 0.08);
+        --font-display: Tahoma, Verdana, sans-serif;
+        --font-body: Verdana, Tahoma, sans-serif;
+      }
+      html,
+      body {
+        margin: 0;
+        background: var(--surface-page);
+      }
+      body {
+        font-family: var(--font-body);
+        color: var(--text-body);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .or-hero {
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 40px 32px 28px;
+        box-sizing: border-box;
+        border-bottom: 1px solid var(--border-subtle);
+        margin-bottom: 40px;
+      }
+      @media (max-width: 720px) {
+        .or-hero {
+          padding: 28px 16px 20px;
+        }
+      }
+      .or-hero-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--radius-md);
+        background: var(--surface-sunken);
+        border: 1px solid var(--border-subtle);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 16px;
+      }
+      .or-hero-icon svg {
+        width: 20px;
+        height: 20px;
+        stroke: var(--tf-seafeed);
+        fill: none;
+        stroke-width: 1.8;
+      }
+      .or-eyebrow {
+        font-family: var(--font-display);
+        font-size: 11.5px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin: 0 0 10px;
+      }
+      .or-hero h1 {
+        font-family: var(--font-display);
+        font-size: 30px;
+        font-weight: 700;
+        color: var(--text-heading);
+        margin: 0 0 10px;
+      }
+      .or-hero-sub {
+        font-size: 15px;
+        color: var(--text-muted);
+        margin: 0;
+        max-width: 560px;
+        line-height: 1.6;
+      }
+
+      .or-page {
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 0 32px 64px;
+        box-sizing: border-box;
+      }
+      @media (max-width: 720px) {
+        .or-page {
+          padding: 0 16px 48px;
+        }
+      }
+
+      .or-alert-banner {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        background: rgba(201, 138, 46, 0.1);
+        border: 1px solid rgba(201, 138, 46, 0.32);
+        border-radius: var(--radius-lg);
+        padding: 14px 20px;
+        margin-bottom: 24px;
+      }
+      .or-alert-banner svg {
+        flex-shrink: 0;
+        width: 20px;
+        height: 20px;
+        stroke: var(--tf-warning);
+        fill: none;
+        stroke-width: 2;
+        margin-top: 1px;
+      }
+      .or-alert-banner-text {
+        font-family: var(--font-display);
+        font-size: 13.5px;
+        color: #8a5f1f;
+        line-height: 1.5;
+      }
+      .or-alert-banner-text ul {
+        margin: 4px 0 0;
+        padding-left: 18px;
+      }
+
+      .or-section-label {
+        font-family: var(--font-display);
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        margin: 0 0 14px 2px;
+      }
+      .or-loading {
+        font-family: var(--font-display);
+        font-size: 12px;
+        color: var(--text-muted);
+        padding: 20px 4px;
+      }
+
+      /* --- KPI band --- */
+      .or-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+        margin-bottom: 36px;
+      }
+      .or-kpi-card {
+        background: var(--surface-card);
+        border: 1px solid var(--border-subtle);
+        border-top: 4px solid var(--border-default);
+        border-radius: var(--radius-lg);
+        padding: 18px 20px;
+        box-shadow: var(--shadow-sm);
+        box-sizing: border-box;
+      }
+      .or-kpi-card.beef {
+        border-top-color: var(--tf-seafeed);
+      }
+      .or-kpi-card.sheep {
+        border-top-color: var(--tf-sheep);
+      }
+      .or-kpi-label {
+        font-family: var(--font-display);
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin: 0 0 8px;
+      }
+      .or-kpi-value {
+        font-family: var(--font-display);
+        font-size: 26px;
+        font-weight: 700;
+        color: var(--text-heading);
+        margin: 0;
+      }
+      .or-kpi-value .of {
+        font-size: 15px;
+        font-weight: 400;
+        color: var(--text-muted);
+      }
+      .or-kpi-note {
+        font-family: var(--font-display);
+        font-size: 11.5px;
+        margin: 8px 0 0;
+        line-height: 1.4;
+      }
+      .or-kpi-note.ontrack {
+        color: var(--tf-seafeed);
+        font-weight: 700;
+      }
+      .or-kpi-note.behind {
+        color: var(--tf-red);
+        font-weight: 700;
+      }
+      .or-kpi-note.muted {
+        color: var(--text-muted);
+      }
+
+      /* --- horizontal quarterly timeline --- */
+      .or-timeline-scroll {
+        overflow-x: auto;
+        margin-bottom: 36px;
+        padding-bottom: 6px;
+      }
+      .or-timeline-track {
+        display: flex;
+        gap: 12px;
+        min-width: min-content;
+      }
+      .or-quarter-card {
+        flex: none;
+        width: 176px;
+        background: var(--surface-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        padding: 14px 16px;
+        box-shadow: var(--shadow-sm);
+        box-sizing: border-box;
+      }
+      .or-quarter-card.now {
+        border-color: var(--tf-seafeed);
+        border-width: 2px;
+        box-shadow: 0 0 0 3px oklch(from var(--tf-seafeed) l c h / 0.12);
+      }
+      .or-quarter-label {
+        font-family: var(--font-display);
+        font-size: 12.5px;
+        font-weight: 700;
+        color: var(--text-heading);
+        margin: 0 0 2px;
+      }
+      .or-now-tag {
+        display: inline-block;
+        font-family: var(--font-display);
+        font-size: 9.5px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--tf-seafeed);
+        margin-bottom: 10px;
+      }
+      .or-quarter-species-row {
+        border-top: 1px solid var(--border-subtle);
+        padding-top: 8px;
+        margin-top: 8px;
+      }
+      .or-quarter-species-row:first-of-type {
+        border-top: none;
+        padding-top: 0;
+        margin-top: 10px;
+      }
+      .or-quarter-species-label {
+        font-family: var(--font-display);
+        font-size: 10.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        margin: 0 0 3px;
+      }
+      .or-quarter-species-label.beef {
+        color: var(--tf-seafeed);
+      }
+      .or-quarter-species-label.sheep {
+        color: var(--tf-sheep);
+      }
+      .or-quarter-stat {
+        font-size: 12px;
+        color: var(--text-body);
+        line-height: 1.5;
+        margin: 0;
+      }
+      .or-quarter-stat .muted {
+        color: var(--text-muted);
+      }
+
+      /* --- pipeline list --- */
+      .or-pipeline-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 14px;
+      }
+      .or-pipeline-card {
+        background: var(--surface-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        padding: 16px 18px;
+        box-shadow: var(--shadow-sm);
+        box-sizing: border-box;
+      }
+      .or-pipeline-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 6px;
+      }
+      .or-pipeline-name {
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 14.5px;
+        color: var(--text-heading);
+      }
+      .or-pipeline-meta {
+        font-size: 12.5px;
+        color: var(--text-muted);
+        line-height: 1.6;
+        margin: 0;
+      }
+      .or-stage-badge {
+        display: inline-flex;
+        align-items: center;
+        font-family: var(--font-display);
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        border-radius: 999px;
+        padding: 3px 9px;
+        border: 1px solid transparent;
+        flex: none;
+      }
+      .or-stage-badge.prospect {
+        color: var(--text-muted);
+        background: var(--surface-sunken);
+        border-color: var(--border-default);
+      }
+      .or-stage-badge.discussion {
+        color: var(--tf-warning);
+        background: oklch(from var(--tf-warning) l c h / 0.12);
+        border-color: oklch(from var(--tf-warning) l c h / 0.3);
+      }
+      .or-stage-badge.signed {
+        color: var(--tf-sheep);
+        background: oklch(from var(--tf-sheep) l c h / 0.1);
+        border-color: oklch(from var(--tf-sheep) l c h / 0.3);
+      }
+      .or-stage-badge.active {
+        color: var(--tf-seafeed);
+        background: oklch(from var(--tf-seafeed) l c h / 0.12);
+        border-color: oklch(from var(--tf-seafeed) l c h / 0.32);
+      }
+
+      .or-footer-note {
+        font-family: var(--font-display);
+        font-size: 11px;
+        color: var(--text-muted);
+        text-align: center;
+        margin-top: 40px;
+        line-height: 1.6;
+      }
+
+      @keyframes or-shimmer {
+        0% {
+          background-position: 150% 0;
+        }
+        100% {
+          background-position: -50% 0;
+        }
+      }
+      .or-skel {
+        display: inline-block;
+        height: 0.8em;
+        vertical-align: middle;
+        border-radius: 6px;
+        background-size: 250% 100%;
+        animation: or-shimmer 1.4s ease-in-out infinite;
+        background-image: linear-gradient(
+          90deg,
+          rgba(4, 18, 33, 0.08) 25%,
+          rgba(4, 18, 33, 0.16) 37%,
+          rgba(4, 18, 33, 0.08) 63%
+        );
+      }
+      .or-skel-lg {
+        width: 128px;
+      }
+      .or-skel-md {
+        width: 84px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .or-skel {
+          animation: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="or-hero">
+      <div class="or-hero-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M3 3v18h18"></path>
+          <circle cx="8" cy="14" r="1.5"></circle>
+          <circle cx="13" cy="9" r="1.5"></circle>
+          <circle cx="18" cy="12" r="1.5"></circle>
+          <path d="M8 14 13 9 18 12"></path>
+        </svg>
+      </div>
+      <p class="or-eyebrow">
+        TasFarmers &middot; Low Emissions Livestock Project
+      </p>
+      <h1>Onboarding Roadmap</h1>
+      <p class="or-hero-sub">
+        Planned vs actual producer onboarding, beef and sheep, quarterly
+        through to the end of 2028. Targets come from the funded budget's
+        own rollout plan, not a separate guess.
+      </p>
+    </div>
+
+    <div class="or-page">
+      <div
+        class="or-alert-banner"
+        id="or-alert-banner"
+        style="display: none"
+        role="alert"
+        aria-live="polite"
+      >
+        <svg viewBox="0 0 24 24">
+          <path
+            d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"
+          ></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+        <div class="or-alert-banner-text" id="or-alert-banner-text"></div>
+      </div>
+
+      <p class="or-section-label">This quarter</p>
+      <div class="or-kpi-grid" id="or-kpi-grid">
+        <div class="or-kpi-card beef" aria-hidden="true">
+          <p class="or-kpi-label">
+            <span class="or-skel or-skel-md" style="height: 9px"></span>
+          </p>
+          <p class="or-kpi-value">
+            <span class="or-skel or-skel-lg" style="height: 22px"></span>
+          </p>
+        </div>
+        <div class="or-kpi-card beef" aria-hidden="true">
+          <p class="or-kpi-label">
+            <span class="or-skel or-skel-md" style="height: 9px"></span>
+          </p>
+          <p class="or-kpi-value">
+            <span class="or-skel or-skel-lg" style="height: 22px"></span>
+          </p>
+        </div>
+        <div class="or-kpi-card sheep" aria-hidden="true">
+          <p class="or-kpi-label">
+            <span class="or-skel or-skel-md" style="height: 9px"></span>
+          </p>
+          <p class="or-kpi-value">
+            <span class="or-skel or-skel-lg" style="height: 22px"></span>
+          </p>
+        </div>
+        <div class="or-kpi-card sheep" aria-hidden="true">
+          <p class="or-kpi-label">
+            <span class="or-skel or-skel-md" style="height: 9px"></span>
+          </p>
+          <p class="or-kpi-value">
+            <span class="or-skel or-skel-lg" style="height: 22px"></span>
+          </p>
+        </div>
+      </div>
+
+      <p class="or-section-label">Quarterly targets, 2026&ndash;2028</p>
+      <div class="or-timeline-scroll">
+        <div class="or-timeline-track" id="or-timeline-track">
+          <div class="or-loading">Loading roadmap targets&hellip;</div>
+        </div>
+      </div>
+
+      <p class="or-section-label">Pipeline</p>
+      <div class="or-pipeline-grid" id="or-pipeline-grid">
+        <div class="or-loading">Loading pipeline&hellip;</div>
+      </div>
+
+      <p class="or-footer-note">
+        Targets are edited directly in LEL_Onboarding_Targets in ArcGIS
+        Online &middot; Pipeline stages are edited on the Farm Directory
+        page &middot; Not for external distribution
+      </p>
+    </div>
+
+    <script>
+      (function () {
+        var DIRECTORY_URL =
+          "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Farm_Directory/FeatureServer/0/query";
+        var USAGE_HISTORY_URL =
+          "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lick_Block_Usage_History/FeatureServer/0/query";
+        var TARGETS_URL =
+          "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Onboarding_Targets/FeatureServer/0/query";
+
+        var SPECIES = ["Beef", "Sheep"];
+        var SPECIES_ACCENT = { Beef: "var(--tf-seafeed)", Sheep: "var(--tf-sheep)" };
+
+        // Fixed 2026 Q1 - 2028 Q4 range, matching the budget model's own
+        // three-year rollout window (Feed Optimiser sheet). Extend this if
+        // the grant period is ever extended past 2028.
+        var QUARTERS = [];
+        [2026, 2027, 2028].forEach(function (year) {
+          [1, 2, 3, 4].forEach(function (q) {
+            QUARTERS.push({ year: year, quarter: q });
+          });
+        });
+
+        function q(url, params) {
+          return fetch(url + "?" + new URLSearchParams(params))
+            .then(function (res) {
+              return res.json();
+            })
+            .then(function (data) {
+              if (data.error)
+                throw new Error(data.error.message || "Query failed");
+              return data;
+            });
+        }
+
+        function fetchTargets() {
+          return q(TARGETS_URL, {
+            where: "1=1",
+            // NOTE: the AGOL field is "year_", not "year" — Jono had to
+            // rename it when creating LEL_Onboarding_Targets since "year"
+            // collides with a reserved SQL function name in this service.
+            outFields:
+              "species,year_,quarter,target_farms_cumulative,target_head_cumulative,notes",
+            resultRecordCount: "200",
+            f: "json",
+          })
+            .then(function (data) {
+              return data.features.map(function (f) {
+                return f.attributes;
+              });
+            })
+            .catch(function (err) {
+              console.warn(
+                "Targets fetch failed (table may not be set up yet):",
+                err,
+              );
+              return null; // null = "not available", distinct from [] = "available but empty"
+            });
+        }
+
+        function fetchDirectoryPipeline() {
+          return q(DIRECTORY_URL, {
+            where: "1=1",
+            outFields:
+              "trial_site,species,committed_head_count,pipeline_stage,target_go_live_quarter",
+            resultRecordCount: "500",
+            f: "json",
+          })
+            .then(function (data) {
+              return data.features.map(function (f) {
+                return f.attributes;
+              });
+            })
+            .catch(function (err) {
+              console.error("Farm Directory fetch failed:", err);
+              return [];
+            });
+        }
+
+        function fetchUsageFarms() {
+          return q(USAGE_HISTORY_URL, {
+            where: "1=1",
+            outFields: "trial_site",
+            returnDistinctValues: "true",
+            resultRecordCount: "200",
+            f: "json",
+          })
+            .then(function (data) {
+              var set = {};
+              data.features.forEach(function (f) {
+                if (f.attributes.trial_site) set[f.attributes.trial_site] = true;
+              });
+              return set;
+            })
+            .catch(function (err) {
+              console.error("Usage history fetch failed:", err);
+              return {};
+            });
+        }
+
+        // Same fallback rule as Farm Directory's own script, kept in sync
+        // deliberately: a directory row with no pipeline_stage set is
+        // "Active" if it has real usage history, "Prospect" otherwise.
+        function effectivePipelineStage(row, hasUsageHistory) {
+          if (row && row.pipeline_stage) return row.pipeline_stage;
+          return hasUsageHistory ? "Active" : "Prospect";
+        }
+        function stageBadgeHtml(stage) {
+          var cls =
+            stage === "Active"
+              ? "active"
+              : stage === "Signed"
+                ? "signed"
+                : stage === "In discussion"
+                  ? "discussion"
+                  : "prospect";
+          return (
+            '<span class="or-stage-badge ' + cls + '">' + stage + "</span>"
+          );
+        }
+
+        function currentQuarter() {
+          var now = new Date();
+          return {
+            year: now.getFullYear(),
+            quarter: Math.floor(now.getMonth() / 3) + 1,
+          };
+        }
+
+        function loadAll() {
+          Promise.all([fetchTargets(), fetchDirectoryPipeline(), fetchUsageFarms()])
+            .then(function (results) {
+              render(results[0], results[1], results[2]);
+            })
+            .catch(function (err) {
+              console.error("Onboarding Roadmap load failed:", err);
+              document.getElementById("or-timeline-track").innerHTML =
+                '<div class="or-loading">Could not load the roadmap. Check the browser console and the feature service URLs at the top of this page’s script.</div>';
+            });
+        }
+
+        function render(targets, directoryRows, usageFarms) {
+          var today = currentQuarter();
+
+          // ---- actuals per species, from Farm Directory ----
+          var actuals = {};
+          SPECIES.forEach(function (s) {
+            actuals[s] = { farms: 0, head: 0, prospects: 0, discussion: 0, signed: 0 };
+          });
+          directoryRows.forEach(function (row) {
+            if (!row.species || SPECIES.indexOf(row.species) === -1) return;
+            var hasUsage = !!usageFarms[row.trial_site];
+            var stage = effectivePipelineStage(row, hasUsage);
+            var head = row.committed_head_count || 0;
+            if (stage === "Active") {
+              actuals[row.species].farms += 1;
+              actuals[row.species].head += head;
+            } else if (stage === "Signed") {
+              actuals[row.species].signed += 1;
+            } else if (stage === "In discussion") {
+              actuals[row.species].discussion += 1;
+            } else {
+              actuals[row.species].prospects += 1;
+            }
+          });
+
+          // ---- targets lookup ----
+          var targetsByKey = null;
+          if (targets !== null) {
+            targetsByKey = {};
+            targets.forEach(function (t) {
+              // t.year_, not t.year — see the outFields comment in
+              // fetchTargets() above.
+              targetsByKey[t.species + "_" + t.year_ + "_" + t.quarter] = t;
+            });
+          }
+
+          renderKpis(targetsByKey, actuals, today);
+          renderTimeline(targetsByKey, today);
+          renderPipeline(directoryRows, usageFarms);
+        }
+
+        function targetFor(targetsByKey, species, year, quarter) {
+          if (!targetsByKey) return null;
+          return targetsByKey[species + "_" + year + "_" + quarter] || null;
+        }
+
+        function renderKpis(targetsByKey, actuals, today) {
+          var cards = [];
+          var alertItems = [];
+
+          SPECIES.forEach(function (species) {
+            var t = targetFor(targetsByKey, species, today.year, today.quarter);
+            var a = actuals[species];
+            var farmsTarget = t ? t.target_farms_cumulative : null;
+            var headTarget = t ? t.target_head_cumulative : null;
+
+            var farmsNote, farmsClass;
+            if (farmsTarget == null) {
+              farmsNote = "No target set for this quarter yet";
+              farmsClass = "muted";
+            } else if (a.farms >= farmsTarget) {
+              farmsNote = "On track (target " + farmsTarget + ")";
+              farmsClass = "ontrack";
+            } else {
+              farmsNote =
+                (farmsTarget - a.farms) +
+                " short of the " +
+                farmsTarget +
+                "-farm target";
+              farmsClass = "behind";
+              alertItems.push(
+                species +
+                  " is behind schedule: " +
+                  a.farms +
+                  " committed vs " +
+                  farmsTarget +
+                  " targeted for " +
+                  today.year +
+                  " Q" +
+                  today.quarter,
+              );
+            }
+
+            cards.push({
+              species: species,
+              label: species + " farms committed",
+              value:
+                a.farms + (farmsTarget != null ? '<span class="of"> / ' + farmsTarget + "</span>" : ""),
+              note: farmsNote,
+              noteClass: farmsClass,
+            });
+            cards.push({
+              species: species,
+              label: species + " head committed",
+              value:
+                a.head.toLocaleString() +
+                (headTarget != null
+                  ? '<span class="of"> / ' + headTarget.toLocaleString() + "</span>"
+                  : ""),
+              note:
+                a.prospects + a.discussion + a.signed > 0
+                  ? a.prospects + a.discussion + a.signed + " more in the pipeline (not yet active)"
+                  : "No further prospects logged yet",
+              noteClass: "muted",
+            });
+          });
+
+          document.getElementById("or-kpi-grid").innerHTML = cards
+            .map(function (c) {
+              return (
+                '<div class="or-kpi-card ' +
+                c.species.toLowerCase() +
+                '"><p class="or-kpi-label">' +
+                c.label +
+                '</p><p class="or-kpi-value">' +
+                c.value +
+                '</p><p class="or-kpi-note ' +
+                c.noteClass +
+                '">' +
+                c.note +
+                "</p></div>"
+              );
+            })
+            .join("");
+
+          var banner = document.getElementById("or-alert-banner");
+          var text = document.getElementById("or-alert-banner-text");
+          if (alertItems.length) {
+            text.innerHTML =
+              "<strong>Behind the plan:</strong><ul>" +
+              alertItems.map(function (s) { return "<li>" + s + "</li>"; }).join("") +
+              "</ul>";
+            banner.style.display = "flex";
+          } else {
+            banner.style.display = "none";
+          }
+        }
+
+        function renderTimeline(targetsByKey, today) {
+          var track = document.getElementById("or-timeline-track");
+
+          if (targetsByKey === null) {
+            track.innerHTML =
+              '<div class="or-loading">Onboarding targets aren’t set up yet. Create LEL_Onboarding_Targets in ArcGIS Online and seed it with the quarterly rollout figures (see the setup guide).</div>';
+            return;
+          }
+
+          track.innerHTML = QUARTERS.map(function (qtr) {
+            var isNow = qtr.year === today.year && qtr.quarter === today.quarter;
+            var speciesRows = SPECIES.map(function (species) {
+              var t = targetFor(targetsByKey, species, qtr.year, qtr.quarter);
+              return (
+                '<div class="or-quarter-species-row">' +
+                '<p class="or-quarter-species-label ' +
+                species.toLowerCase() +
+                '">' +
+                species +
+                "</p>" +
+                '<p class="or-quarter-stat">' +
+                (t
+                  ? t.target_farms_cumulative +
+                    ' farms <span class="muted">&middot; ' +
+                    t.target_head_cumulative.toLocaleString() +
+                    " head</span>"
+                  : '<span class="muted">No target set</span>') +
+                "</p>" +
+                "</div>"
+              );
+            }).join("");
+            return (
+              '<div class="or-quarter-card' +
+              (isNow ? " now" : "") +
+              '">' +
+              (isNow ? '<span class="or-now-tag">Current quarter</span>' : "") +
+              '<p class="or-quarter-label">' +
+              qtr.year +
+              " Q" +
+              qtr.quarter +
+              "</p>" +
+              speciesRows +
+              "</div>"
+            );
+          }).join("");
+        }
+
+        function renderPipeline(directoryRows, usageFarms) {
+          var grid = document.getElementById("or-pipeline-grid");
+          var withSpecies = directoryRows.filter(function (r) {
+            return r.species && SPECIES.indexOf(r.species) !== -1;
+          });
+
+          if (!withSpecies.length) {
+            grid.innerHTML =
+              '<div class="or-loading">No farms have species set yet. Add species, committed head count and a pipeline stage to each farm on the Farm Directory page.</div>';
+            return;
+          }
+
+          withSpecies.sort(function (a, b) {
+            return a.trial_site.localeCompare(b.trial_site);
+          });
+
+          grid.innerHTML = withSpecies
+            .map(function (row) {
+              var hasUsage = !!usageFarms[row.trial_site];
+              var stage = effectivePipelineStage(row, hasUsage);
+              return (
+                '<div class="or-pipeline-card">' +
+                '<div class="or-pipeline-head"><span class="or-pipeline-name">' +
+                row.trial_site +
+                "</span>" +
+                stageBadgeHtml(stage) +
+                "</div>" +
+                '<p class="or-pipeline-meta">' +
+                row.species +
+                (row.committed_head_count != null
+                  ? " &middot; " + row.committed_head_count + " head committed"
+                  : " &middot; head count not yet set") +
+                (row.target_go_live_quarter
+                  ? " &middot; targeting " + row.target_go_live_quarter
+                  : "") +
+                "</p>" +
+                "</div>"
+              );
+            })
+            .join("");
+        }
+
+        loadAll();
+      })();
+    </script>
+  </body>
+</html>

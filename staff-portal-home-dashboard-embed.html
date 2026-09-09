@@ -188,6 +188,30 @@
   .pp-skel-md { width:80px; }
   .pp-skel-sm { width:52px; }
   @media (prefers-reduced-motion: reduce) { .pp-skel { animation: none !important; } }
+
+  /* --- Onboarding Roadmap preview strip — added 2026-09-09, per Jono's
+     request for a Home page presence for the new roadmap tool. Self-
+     contained: its own fetch/render block at the bottom of the script,
+     independent of the farm-card logic above, so it degrades on its own
+     ("not set up yet") without breaking the rest of this embed if
+     LEL_Onboarding_Targets isn't created yet. Deliberately compact —
+     current quarter only, for both species — full detail lives on
+     onboarding-roadmap-portal.html via the "View full roadmap" link. --- */
+  .sp-roadmap-section { margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--border-subtle); }
+  .sp-roadmap-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .sp-roadmap-link { font-family: var(--font-display); font-size: 12.5px; font-weight: 700; color: var(--tf-seafeed); text-decoration: none; }
+  .sp-roadmap-link:hover { text-decoration: underline; }
+  .sp-roadmap-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+  .sp-roadmap-card { background: var(--surface-card); border: 1px solid var(--border-subtle); border-top: 4px solid var(--border-default); border-radius: var(--radius-lg); padding: 14px 16px; box-sizing: border-box; box-shadow: var(--shadow-sm); }
+  .sp-roadmap-card.beef { border-top-color: var(--tf-seafeed); }
+  .sp-roadmap-card.sheep { border-top-color: #2e6f9e; }
+  .sp-roadmap-species { font-family: var(--font-display); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 0 0 6px; }
+  .sp-roadmap-value { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--text-heading); margin: 0; }
+  .sp-roadmap-value .of { font-size: 13px; font-weight: 400; color: var(--text-muted); }
+  .sp-roadmap-note { font-size: 11.5px; margin: 6px 0 0; line-height: 1.4; }
+  .sp-roadmap-note.ontrack { color: var(--tf-seafeed); font-weight: 700; }
+  .sp-roadmap-note.behind { color: var(--tf-red); font-weight: 700; }
+  .sp-roadmap-note.muted { color: var(--text-muted); }
 </style>
 </head>
 <body>
@@ -228,6 +252,17 @@
 </div>
 
 <p class="sp-freshness" id="sp-freshness"></p>
+
+<div class="sp-roadmap-section">
+  <div class="sp-roadmap-head">
+    <p class="sp-section-label" style="margin-bottom:0;">Onboarding roadmap, this quarter</p>
+    <a href="/pages/a3aa68d5815742f6a22020d24fa26a74" class="sp-roadmap-link">View full roadmap &rarr;</a>
+  </div>
+  <div class="sp-roadmap-grid" id="sp-roadmap-grid">
+    <div class="sp-roadmap-card beef" aria-hidden="true"><p class="sp-roadmap-species">Beef farms</p><p class="sp-roadmap-value"><span class="pp-skel pp-skel-sm" style="height:18px;"></span></p></div>
+    <div class="sp-roadmap-card sheep" aria-hidden="true"><p class="sp-roadmap-species">Sheep farms</p><p class="sp-roadmap-value"><span class="pp-skel pp-skel-sm" style="height:18px;"></span></p></div>
+  </div>
+</div>
 
 <script>
 (function(){
@@ -543,6 +578,99 @@
   }).catch(function(err){
     console.error('Farm status dashboard failed:', err);
     document.getElementById('sp-farm-grid').innerHTML = '<p class="sp-empty-note">Could not load farm status.</p>';
+  });
+})();
+
+// ------------------------------------------------------------
+// ONBOARDING ROADMAP PREVIEW — added 2026-09-09. Deliberately its own
+// self-contained IIFE, not folded into the farm-status logic above, so a
+// problem with either one (e.g. LEL_Onboarding_Targets not created yet)
+// can never break the other. Shows just the CURRENT quarter's beef/sheep
+// farm-count target vs actual — full quarterly timeline and per-farm
+// pipeline list live on onboarding-roadmap-portal.html instead. Same
+// effectivePipelineStage() fallback logic as Farm Directory's own script
+// and the full roadmap page, kept in sync deliberately: a directory row
+// with no pipeline_stage set counts as "Active" if it has real usage
+// history, "Prospect" otherwise.
+// ------------------------------------------------------------
+(function(){
+  var TARGETS_URL   = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Onboarding_Targets/FeatureServer/0/query";
+  var DIRECTORY_URL2 = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Farm_Directory/FeatureServer/0/query";
+  var USAGE_URL2     = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lick_Block_Usage_History/FeatureServer/0/query";
+  var SPECIES2 = ["Beef", "Sheep"];
+
+  function q2(url, params){
+    return fetch(url + "?" + new URLSearchParams(params)).then(function(res){ return res.json(); }).then(function(data){
+      if (data.error) throw new Error(data.error.message || "Query failed");
+      return data;
+    });
+  }
+
+  // effectivePipelineStage() duplicated here rather than shared, since
+  // this embed and Farm Directory/the roadmap page are three separate
+  // pasted/standalone files with no shared JS module between them (same
+  // reason every other cross-page constant on this site is duplicated,
+  // not imported).
+  function effectivePipelineStage2(row, hasUsageHistory){
+    if (row && row.pipeline_stage) return row.pipeline_stage;
+    return hasUsageHistory ? "Active" : "Prospect";
+  }
+
+  Promise.all([
+    q2(DIRECTORY_URL2, { where: "1=1", outFields: "trial_site,species,pipeline_stage", resultRecordCount: "500", f: "json" }).then(function(d){ return d.features.map(function(f){ return f.attributes; }); }).catch(function(){ return []; }),
+    q2(USAGE_URL2, { where: "1=1", outFields: "trial_site", returnDistinctValues: "true", resultRecordCount: "200", f: "json" }).then(function(d){
+      var set = {}; d.features.forEach(function(f){ if (f.attributes.trial_site) set[f.attributes.trial_site] = true; }); return set;
+    }).catch(function(){ return {}; }),
+    (function(){
+      var now = new Date();
+      var year = now.getFullYear();
+      var quarter = Math.floor(now.getMonth() / 3) + 1;
+      // Field is "year_", not "year" -- Jono had to rename it in AGOL
+      // since "year" collides with a reserved SQL function name.
+      return q2(TARGETS_URL, { where: "year_=" + year + " AND quarter=" + quarter, outFields: "species,target_farms_cumulative", resultRecordCount: "10", f: "json" })
+        .then(function(d){
+          var byspecies = {};
+          d.features.forEach(function(f){ byspecies[f.attributes.species] = f.attributes.target_farms_cumulative; });
+          return byspecies;
+        })
+        .catch(function(){ return null; }); // null = targets table not set up yet
+    })()
+  ]).then(function(results){
+    var directoryRows = results[0];
+    var usageFarms = results[1];
+    var targetsBySpecies = results[2];
+
+    var actualFarms = { Beef: 0, Sheep: 0 };
+    directoryRows.forEach(function(row){
+      if (!row.species || SPECIES2.indexOf(row.species) === -1) return;
+      var hasUsage = !!usageFarms[row.trial_site];
+      if (effectivePipelineStage2(row, hasUsage) === "Active") actualFarms[row.species] += 1;
+    });
+
+    var grid = document.getElementById('sp-roadmap-grid');
+    grid.innerHTML = SPECIES2.map(function(species){
+      var target = targetsBySpecies ? targetsBySpecies[species] : null;
+      var actual = actualFarms[species];
+      var note, noteClass;
+      if (target == null) {
+        note = targetsBySpecies === null ? 'Targets not set up yet' : 'No target set for this quarter';
+        noteClass = 'muted';
+      } else if (actual >= target) {
+        note = 'On track';
+        noteClass = 'ontrack';
+      } else {
+        note = (target - actual) + ' short of target';
+        noteClass = 'behind';
+      }
+      return '<div class="sp-roadmap-card ' + species.toLowerCase() + '">' +
+        '<p class="sp-roadmap-species">' + species + ' farms</p>' +
+        '<p class="sp-roadmap-value">' + actual + (target != null ? '<span class="of"> / ' + target + '</span>' : '') + '</p>' +
+        '<p class="sp-roadmap-note ' + noteClass + '">' + note + '</p>' +
+        '</div>';
+    }).join('');
+  }).catch(function(err){
+    console.error('Onboarding roadmap preview failed:', err);
+    document.getElementById('sp-roadmap-grid').innerHTML = '<p class="sp-empty-note">Could not load the onboarding roadmap preview.</p>';
   });
 })();
 </script>
