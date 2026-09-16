@@ -53,6 +53,46 @@
   template.html) — this page's whole point is farm-specific numbers, so a
   farm with no Economics history yet just shows "not enough data", not a
   borrowed trial-wide figure mislabelled as its own.
+
+  RAINFALL & TEMPERATURE CHART — added 2026-09-16, per Jono's request to
+  think through weather as a variable this project is exposed to. Backed
+  by the new LEL_Weather_Data table (12. Weather_Data_Sync.py, daily,
+  Open-Meteo), one row per (region, day). This page maps each farm to its
+  public_region (FARM_REGION_MAP below — same mapping as LEL_Farm_
+  Directory.public_region and page-2-farms.html's regional map; keep all
+  three in sync if a farm's region ever changes) and plots that region's
+  daily rainfall (bars) against mean temperature (line, secondary axis)
+  directly beneath the existing weight-trend chart for the same farm and
+  timeframe, so a dip or jump in weight is easy to eyeball against what
+  the weather was doing at the time. This is deliberately a VISUAL
+  diagnostic only — no on-page correlation coefficient — see Pressure_vs_
+  ADG_Correlation_Test_v2.py (01. Python Scripts) for the actual
+  screening-level statistics behind why this was worth building; that
+  script found rainfall r~=0.32-0.35 and temperature r~=-0.21 to -0.32
+  against weight-gain deltas on ~96 days of Bowood data, real but not
+  remotely enough to state as a finding, hence this stays a staff-only
+  eyeballing tool rather than a public-site claim.
+
+  SECOND PASS — added 2026-09-16, per Jono's follow-up on what else to show. Three additions,
+  all staying inside the "screening-level, staff-only" posture above rather than upgrading
+  anything to a stated finding:
+    1. The weight-trend chart (renderChart) now draws a small orange dot along the bottom of
+       the chart on any day the region was in a heat-stress category (THI-based, from the
+       weather table) — a "rug plot" of hot days sitting right under the weight lines, so a dip
+       is easy to eyeball against a hot stretch without needing the correlation numbers at all.
+    2. A collapsible "Show detail" panel per farm (collapsed by default, so the default card
+       view is unchanged) containing a lag-profile chart — r at every lag from 0-6 days, not
+       just the two fixed lags used in the always-visible panel above — so the WHEN of a
+       relationship is visible, not just whether one exists at the fixed lag. Deliberately shows
+       every lag rather than auto-picking "the best one", for the same p-hacking reason the fixed
+       lags exist in the first place.
+    3. The same detail panel also has a scatter plot per weather variable (weight-gain change vs
+       rainfall/temperature, with a trend line) — the correct chart type for showing a
+       correlation directly, rather than asking the reader to eyeball two stacked time series.
+  ADG was deliberately NOT overlaid directly onto the rainfall/temperature chart above — a third
+  axis/unit on an already dual-axis chart was judged to hurt readability more than it helps, and
+  a scatter plot answers the "is there a relationship" question more directly than an overlay
+  would anyway.
 -->
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#041221">
@@ -166,6 +206,48 @@
   .wd-chart-box { position: relative; height: 210px; margin-top: 4px; }
   .wd-chart-empty { font-size: 12.5px; color: var(--text-muted); text-align: center; padding: 40px 0; display: none; }
 
+  /* Rainfall & temperature — added 2026-09-16. Shorter than the weight
+     chart above it (150px vs 210px) since it's a secondary/supporting
+     chart, not the card's headline figure — same "the number is the
+     hero" proportion logic as everywhere else on this site, just applied
+     to chart height instead of font size. */
+  .wd-weather-label { display: flex; align-items: center; justify-content: space-between; margin: 16px 0 2px; }
+  .wd-weather-label span.wd-label { margin: 0; }
+  .wd-weather-note { font-size: 10.5px; color: var(--text-muted); }
+  .wd-weather-note.warn { color: var(--tf-warning); font-weight: 700; }
+  /* Enlarged 150px -> 260px, 2026-09-16, per Jono's request to make this
+     chart easier to read — now taller than the weight chart above it
+     (210px) rather than shorter, since it carries the correlation panel
+     below it as its reason to exist, not just a supporting glance. */
+  .wd-chart-box.wd-weather-box { height: 260px; }
+
+  /* Weather-effect correlation panel — added 2026-09-16, per Jono's
+     request to see the correlation itself rather than just eyeballing
+     two stacked charts. Same sunken-box treatment as .wd-weight-row
+     above (plain-white --surface-sunken + border, per this page's
+     2026-09-08 white-background pass) so it reads as one connected unit
+     with the chart above it, not a bolted-on afterthought. */
+  .wd-corr-panel { margin-top: 12px; padding: 14px 16px; background: var(--surface-sunken); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); }
+  .wd-corr-row { margin-bottom: 12px; }
+  .wd-corr-row:last-of-type { margin-bottom: 10px; }
+  .wd-corr-row-label { display: block; font-family: var(--font-display); font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .wd-corr-cells { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .wd-corr-caveat { font-size: 10.5px; color: var(--text-muted); font-style: italic; line-height: 1.4; margin: 2px 0 0; }
+
+  /* Detail panel (lag profile + scatter) — added 2026-09-16, per Jono's
+     follow-up on what else to show. Collapsed by default (display:none on
+     the panel), so the card's default footprint is unchanged from before
+     this pass — this is a deliberate "look closer if you want to" layer,
+     not something added to the always-visible view, see the file header
+     comment for the reasoning. Dashed top border distinguishes it from the
+     solid-bordered .wd-corr-panel above it as a secondary, optional tier. */
+  .wd-detail-toggle { margin-top: 10px; background: none; border: 1px solid var(--border-default); border-radius: 999px; padding: 6px 14px; font-family: var(--font-display); font-size: 11.5px; font-weight: 700; color: var(--text-muted); cursor: pointer; }
+  .wd-detail-toggle:hover { color: var(--text-heading); border-color: var(--tf-seafeed); }
+  .wd-detail-panel { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border-subtle); }
+  .wd-detail-block { margin-bottom: 18px; }
+  .wd-detail-block:last-of-type { margin-bottom: 8px; }
+  .wd-lag-chart-box, .wd-scatter-chart-box { position: relative; height: 130px; margin-top: 4px; }
+
   .wd-fallback-note { font-size: 12px; color: var(--text-muted); margin: 10px 0 0; font-style: italic; }
 
   /* Leaderboard — added 2026-09-07, per Jono's request. Ranks farms by
@@ -242,7 +324,7 @@
   </div>
 
   <p class="wd-footer-note">
-    Weight data from OptiWeigh_Cattle_Weights (current weight, trend chart) &middot; Weight gain/ADG figures from LEL_Economics_Data &middot; Not for external distribution
+    Weight data from OptiWeigh_Cattle_Weights (current weight, trend chart) &middot; Weight gain/ADG figures from LEL_Economics_Data &middot; Rainfall/temperature from LEL_Weather_Data (Open-Meteo, by region) &middot; Not for external distribution
   </p>
 
 </div>
@@ -255,11 +337,23 @@
   // ============================================================
   var PRODUCTIVITY_URL = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/OptiWeigh_Cattle_Weights/FeatureServer/0/query";
   var ECON_URL          = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Economics_Data/FeatureServer/0/query";
+  var WEATHER_URL       = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Weather_Data/FeatureServer/0/query";
 
   var AGGREGATE_LABEL = "All Farms (Trial Aggregate)";
   var STALE_AFTER_DAYS = 14; // matches every other page on this site
   var FARM_COLORS = ['#2e6f9e', '#8659a3', '#2e8f8f', '#a3762e', '#5c6bc0']; // same order/palette as Farm Directory, so a given farm reads as the same colour on both tools
   var MINT = '#3aa989', SLATE = '#a9b8c4', RED = '#c0392b';
+  var RAIN_BLUE = '#4a90c4', TEMP_ORANGE = '#c9782e';
+
+  // Same mapping as LEL_Farm_Directory.public_region and page-2-farms.html's
+  // regional map — see this file's header comment for why these three must
+  // stay in sync. A farm with no entry here (e.g. a brand-new one not yet
+  // added) just doesn't get a weather chart, rather than the page erroring.
+  var FARM_REGION_MAP = {
+    'Bowood Farm': 'North-East Tasmania',
+    'Eastbourne Farm': 'Northern Tasmania',
+    'TRT Pastoral': 'Southern King Island'
+  };
 
   function q(url, params){
     return fetch(url + "?" + new URLSearchParams(params)).then(function(res){ return res.json(); }).then(function(data){
@@ -369,19 +463,44 @@
     }).catch(function(err){ console.error('Aggregate economics fetch failed:', err); return {}; });
   }
 
+  // ------------------------------------------------------------
+  // WEATHER — added 2026-09-16. One query covering every region at once
+  // (same "one query, not one per region" pattern as the fetches above),
+  // grouped client-side by region. Missing/not-yet-created table (or a
+  // network error) resolves to {} rather than rejecting, same as every
+  // other fetch* here — a farm just doesn't get a weather chart rather
+  // than breaking the page.
+  // ------------------------------------------------------------
+  function fetchWeatherHistory(){
+    return q(WEATHER_URL, {
+      where: "1=1",
+      outFields: "region,obs_date,precip_sum_mm,temp_mean_c,thi_mean,heat_stress_category",
+      orderByFields: "obs_date ASC", resultRecordCount: "4000", f: "json"
+    }).then(function(data){
+      var byRegion = {};
+      data.features.forEach(function(f){
+        var a = f.attributes, region = a.region;
+        if (!region) return;
+        if (!byRegion[region]) byRegion[region] = [];
+        byRegion[region].push(a);
+      });
+      return byRegion;
+    }).catch(function(err){ console.error('Weather history fetch failed (LEL_Weather_Data may not exist yet):', err); return {}; });
+  }
+
   // ============================================================
   // LOAD + RENDER
   // ============================================================
   function loadAll(){
-    Promise.all([fetchCurrentWeights(), fetchWeightHistory(), fetchEconLatest(), fetchAggregateEcon()]).then(function(results){
-      render(results[0], results[1], results[2], results[3]);
+    Promise.all([fetchCurrentWeights(), fetchWeightHistory(), fetchEconLatest(), fetchAggregateEcon(), fetchWeatherHistory()]).then(function(results){
+      render(results[0], results[1], results[2], results[3], results[4]);
     }).catch(function(err){
       console.error('Weight Data load failed:', err);
       document.getElementById('wd-grid').innerHTML = '<div class="wd-loading">Could not load weight data. Check the browser console and the feature service URLs at the top of this page’s script.</div>';
     });
   }
 
-  function render(currentByFarm, historyByFarm, econByFarm, aggEcon){
+  function render(currentByFarm, historyByFarm, econByFarm, aggEcon, weatherByRegion){
     var grid = document.getElementById('wd-grid');
 
     var allFarms = Object.keys(currentByFarm);
@@ -413,14 +532,34 @@
       var cur = currentByFarm[farm] || {};
       var econ = econByFarm[farm] || {};
       var isStale = staleItems.some(function(s){ return s.indexOf(farm + ':') === 0; });
-      return cardHtml('wd-' + idx, farm, color, cur, econ, isStale);
+      var region = FARM_REGION_MAP[farm];
+      var weatherRows = region ? (weatherByRegion[region] || []) : [];
+      var weatherEffect = region ? computeWeatherEffect(historyByFarm[farm] || [], weatherRows) : null;
+      return cardHtml('wd-' + idx, farm, color, cur, econ, isStale, weatherEffect);
     }).join('');
 
     renderLeaderboard(allFarms, econByFarm);
 
     allFarms.forEach(function(farm, idx){
+      var prefix = 'wd-' + idx;
       var rows = historyByFarm[farm] || [];
-      renderChart('wd-' + idx, rows);
+      var region = FARM_REGION_MAP[farm];
+      var weatherRows = region ? (weatherByRegion[region] || []) : [];
+
+      // Heat-stress rug-plot marks — added 2026-09-16, see file header
+      // "SECOND PASS" note. A plain date-set keyed the same way dayKey()
+      // keys everything else in this file.
+      var heatStressDates = {};
+      weatherRows.forEach(function(w){
+        if (w.heat_stress_category && w.heat_stress_category !== 'none') heatStressDates[dayKey(w.obs_date)] = true;
+      });
+
+      renderChart(prefix, rows, heatStressDates);
+      renderWeatherChart(prefix, weatherRows);
+
+      if (region && rows.length && weatherRows.length) {
+        wireDetailToggle(prefix, buildCorrelationContext(rows, weatherRows));
+      }
     });
 
     if (staleItems.length) {
@@ -516,6 +655,207 @@
   }
 
   // ------------------------------------------------------------
+  // WEATHER EFFECT — added 2026-09-16, per Jono's request to see the
+  // correlation between weather and ADG directly rather than just
+  // eyeballing two stacked charts. Reuses the exact methodology already
+  // validated offline in Pressure_vs_ADG_Correlation_Test_v2.py (01.
+  // Python Scripts): a day-over-day delta in rolling_weight_14d as an
+  // ADG proxy (the SAME field the weight-trend chart above already
+  // plots — nothing new is fetched), Pearson r against rainfall at
+  // same-day (lag 0) and temperature at a 3-day lag. Those two lags are
+  // FIXED here, not re-searched live per farm per pageload — that
+  // script's own screening run found rainfall strongest at lag 0-1
+  // (r~=0.32-0.35) and temperature strongest at lag 3-5 (r~=-0.21 to
+  // -0.32); auto-picking whichever lag looks best on THIS farm's own
+  // noise each time the page loads would cherry-pick a coincidence and
+  // overstate it. This stays a SCREENING correlation on a still-small,
+  // still-growing sample, not a controlled or causal finding — see
+  // MIN_CORR_N and the caveat text in weatherEffectHtml() below.
+  // ------------------------------------------------------------
+  var RAIN_LAG_DAYS = 0, TEMP_LAG_DAYS = 3;
+  var MIN_CORR_N = 20; // below this, r is noise dressed up as a finding — show "not enough data yet" instead
+
+  function pearson(xs, ys){
+    var n = xs.length;
+    if (n < 3) return null;
+    var mx = xs.reduce(function(a,b){ return a+b; }, 0) / n;
+    var my = ys.reduce(function(a,b){ return a+b; }, 0) / n;
+    var cov = 0, vx = 0, vy = 0;
+    for (var i = 0; i < n; i++){
+      var dx = xs[i] - mx, dy = ys[i] - my;
+      cov += dx*dy; vx += dx*dx; vy += dy*dy;
+    }
+    if (vx === 0 || vy === 0) return null;
+    return cov / Math.sqrt(vx*vy);
+  }
+
+  function dayKey(ms){ return new Date(ms).toISOString().slice(0, 10); }
+  function daysBetweenKeys(a, b){ return Math.round((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 86400000); }
+  function shiftDayKey(key, days){
+    var d = new Date(key + 'T00:00:00Z');
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
+  }
+
+  // Day-over-day delta of rolling_weight_14d for ONE treatment, keyed by
+  // the LATER day of each pair — only genuinely consecutive calendar
+  // days count (same rule as the Python test script), so a sync gap or
+  // stale unit never gets treated as one big multi-day jump.
+  function weightDeltasByDate(rows, treatment){
+    var byDate = {};
+    rows.forEach(function(r){
+      if (r.treatment_group === treatment) byDate[dayKey(r.snapshot_date)] = r.rolling_weight_14d;
+    });
+    var days = Object.keys(byDate).sort();
+    var deltas = {};
+    for (var i = 1; i < days.length; i++){
+      var d = days[i], dPrev = days[i - 1];
+      if (daysBetweenKeys(dPrev, d) !== 1) continue;
+      deltas[d] = byDate[d] - byDate[dPrev];
+    }
+    return deltas;
+  }
+
+  function correlateAgainstWeather(deltasByDate, weatherByDate, field, lagDays){
+    var xs = [], ys = [];
+    Object.keys(deltasByDate).forEach(function(d){
+      var weatherDay = shiftDayKey(d, -lagDays); // weather lagDays BEFORE the delta's date
+      var w = weatherByDate[weatherDay];
+      if (w && w[field] != null){ xs.push(w[field]); ys.push(deltasByDate[d]); }
+    });
+    return { r: pearson(xs, ys), n: xs.length };
+  }
+
+  // buildCorrelationContext() is the one place weight history + weather
+  // history get turned into "deltas by date" + "weather by date" — both
+  // computeWeatherEffect() (the always-visible fixed-lag panel) and the
+  // detail panel's lag-profile/scatter charts below build on this same
+  // context, so a farm's numbers can never quietly disagree between the
+  // two views.
+  function buildCorrelationContext(weightRows, weatherRows){
+    var weatherByDate = {};
+    weatherRows.forEach(function(w){ weatherByDate[dayKey(w.obs_date)] = w; });
+    return {
+      sfDeltas: weightDeltasByDate(weightRows, 'seafeed'),
+      ctDeltas: weightDeltasByDate(weightRows, 'control'),
+      weatherByDate: weatherByDate
+    };
+  }
+
+  function computeWeatherEffect(weightRows, weatherRows){
+    if (!weightRows.length || !weatherRows.length) return null;
+    var ctx = buildCorrelationContext(weightRows, weatherRows);
+
+    return {
+      rainfall: {
+        seafeed: correlateAgainstWeather(ctx.sfDeltas, ctx.weatherByDate, 'precip_sum_mm', RAIN_LAG_DAYS),
+        control: correlateAgainstWeather(ctx.ctDeltas, ctx.weatherByDate, 'precip_sum_mm', RAIN_LAG_DAYS)
+      },
+      temp: {
+        seafeed: correlateAgainstWeather(ctx.sfDeltas, ctx.weatherByDate, 'temp_mean_c', TEMP_LAG_DAYS),
+        control: correlateAgainstWeather(ctx.ctDeltas, ctx.weatherByDate, 'temp_mean_c', TEMP_LAG_DAYS)
+      }
+    };
+  }
+
+  // ------------------------------------------------------------
+  // DETAIL PANEL DATA — lag profile (r at every lag 0-6 days, SeaFeed
+  // only, to keep the collapsed-by-default panel compact) and scatter
+  // pairs (the raw points a reader can eyeball directly, plus a simple
+  // least-squares trend line once there's enough of them). Added
+  // 2026-09-16 — see the file header "SECOND PASS" note.
+  // ------------------------------------------------------------
+  var LAG_RANGE = [0, 1, 2, 3, 4, 5, 6];
+
+  function lagProfile(ctx, field){
+    return LAG_RANGE.map(function(lag){
+      var stat = correlateAgainstWeather(ctx.sfDeltas, ctx.weatherByDate, field, lag);
+      return { lag: lag, r: stat.r, n: stat.n };
+    });
+  }
+
+  function scatterPairs(ctx, field, lagDays){
+    var points = [];
+    Object.keys(ctx.sfDeltas).forEach(function(d){
+      var weatherDay = shiftDayKey(d, -lagDays);
+      var w = ctx.weatherByDate[weatherDay];
+      if (w && w[field] != null) points.push({ x: w[field], y: ctx.sfDeltas[d] });
+    });
+    return points;
+  }
+
+  // Plain least-squares line through the scatter points — this is what
+  // the trend line dataset in renderScatterChart() draws, only once
+  // there's a reasonable sample (see MIN_CORR_N gate at the call site),
+  // so a handful of points never gets an overconfident line through them.
+  function linearFit(points){
+    var n = points.length;
+    if (n < 2) return null;
+    var sx = 0, sy = 0, sxx = 0, sxy = 0;
+    points.forEach(function(p){ sx += p.x; sy += p.y; sxx += p.x * p.x; sxy += p.x * p.y; });
+    var denom = n * sxx - sx * sx;
+    if (denom === 0) return null;
+    var slope = (n * sxy - sx * sy) / denom;
+    var intercept = (sy - slope * sx) / n;
+    return { slope: slope, intercept: intercept };
+  }
+
+  function strengthLabel(r){
+    var a = Math.abs(r);
+    if (a < 0.1) return 'no clear link';
+    if (a < 0.3) return 'weak';
+    if (a < 0.5) return 'moderate';
+    return 'strong';
+  }
+
+  function corrCellHtml(label, stat){
+    if (!stat || stat.r == null || stat.n < MIN_CORR_N){
+      return '<div><span class="wd-label">' + label + '</span><span class="wd-value">–</span><div class="wd-value-sub">Not enough paired data yet</div></div>';
+    }
+    return '<div><span class="wd-label">' + label + '</span><span class="wd-value">' + (stat.r >= 0 ? '+' : '') + stat.r.toFixed(2) + '</span>' +
+      '<div class="wd-value-sub">' + strengthLabel(stat.r) + ' &middot; n=' + stat.n + '</div></div>';
+  }
+
+  function weatherEffectHtml(effect){
+    if (!effect) return '';
+    return '<div class="wd-corr-panel">' +
+      '<div class="wd-corr-row"><span class="wd-corr-row-label">Rainfall &middot; same day</span>' +
+        '<div class="wd-corr-cells">' + corrCellHtml('SeaFeed', effect.rainfall.seafeed) + corrCellHtml('Control', effect.rainfall.control) + '</div></div>' +
+      '<div class="wd-corr-row"><span class="wd-corr-row-label">Temperature &middot; effect 3 days after</span>' +
+        '<div class="wd-corr-cells">' + corrCellHtml('SeaFeed', effect.temp.seafeed) + corrCellHtml('Control', effect.temp.control) + '</div></div>' +
+      '<p class="wd-corr-caveat">Pearson r between daily weight-gain change and weather &mdash; screening-level only, not a controlled result. Treat a number here as worth a closer look, not as a finding.</p>' +
+      '</div>';
+  }
+
+  // Collapsed-by-default detail panel — lag profile + scatter charts.
+  // Charts are built lazily on first expand (renderDetailCharts, wired up
+  // in wireDetailToggle), not at page load, since a hidden canvas can't
+  // size itself correctly and there's no point spending the work on a
+  // panel most page loads will never open.
+  function detailSectionHtml(prefix){
+    return '<button type="button" class="wd-detail-toggle" id="' + prefix + '-detail-toggle" aria-expanded="false">Show lag &amp; relationship detail &#9662;</button>' +
+      '<div class="wd-detail-panel" id="' + prefix + '-detail-panel" style="display:none;">' +
+        '<div class="wd-detail-block">' +
+          '<p class="wd-corr-row-label">Rainfall &middot; r by days-after lag (SeaFeed)</p>' +
+          '<div class="wd-lag-chart-box"><canvas id="' + prefix + '-lag-rain"></canvas></div>' +
+        '</div>' +
+        '<div class="wd-detail-block">' +
+          '<p class="wd-corr-row-label">Temperature &middot; r by days-after lag (SeaFeed)</p>' +
+          '<div class="wd-lag-chart-box"><canvas id="' + prefix + '-lag-temp"></canvas></div>' +
+        '</div>' +
+        '<div class="wd-detail-block">' +
+          '<p class="wd-corr-row-label">Rainfall vs weight-gain change &middot; same day (SeaFeed)</p>' +
+          '<div class="wd-scatter-chart-box"><canvas id="' + prefix + '-scatter-rain"></canvas><p class="wd-chart-empty" id="' + prefix + '-scatter-rain-empty">Not enough paired data yet.</p></div>' +
+        '</div>' +
+        '<div class="wd-detail-block">' +
+          '<p class="wd-corr-row-label">Temperature vs weight-gain change &middot; effect 3 days after (SeaFeed)</p>' +
+          '<div class="wd-scatter-chart-box"><canvas id="' + prefix + '-scatter-temp"></canvas><p class="wd-chart-empty" id="' + prefix + '-scatter-temp-empty">Not enough paired data yet.</p></div>' +
+        '</div>' +
+        '<p class="wd-corr-caveat">Every lag and every day shown here, not just the best-looking one &mdash; screening-level only, same caveat as above.</p>' +
+      '</div>';
+  }
+
+  // ------------------------------------------------------------
   // LEADERBOARD — ranks farms by computeAdgPct() descending. Farms with
   // no valid figure yet (see computeAdgPct's null cases) are listed
   // separately, unranked, rather than silently dropped — worth knowing
@@ -558,7 +898,7 @@
     wrap.style.display = 'block';
   }
 
-  function cardHtml(prefix, farm, color, cur, econ, isStale){
+  function cardHtml(prefix, farm, color, cur, econ, isStale, weatherEffect){
     var showFallbackNote = (!econ.seafeed || !econ.control) && (econ.seafeed || econ.control);
     return '<div class="wd-card" style="border-top-color:' + color + ';">' +
       '<div class="wd-card-head"><span class="wd-dot" style="background:' + color + ';"></span><h2 class="wd-name">' + farm + '</h2>' +
@@ -575,6 +915,12 @@
       '</div>' +
       '<div class="wd-chart-box"><canvas id="' + prefix + '-chart"></canvas><p class="wd-chart-empty" id="' + prefix + '-chart-empty">No weight history to chart yet.</p></div>' +
       (showFallbackNote ? '<p class="wd-fallback-note">Only one treatment group has weight-gain history at this farm yet. The other is likely a newer unit still building up readings.</p>' : '') +
+      (FARM_REGION_MAP[farm] ?
+        '<div class="wd-weather-label"><span class="wd-label">Rainfall &amp; temperature (' + FARM_REGION_MAP[farm] + ')</span><span class="wd-weather-note" id="' + prefix + '-weather-note"></span></div>' +
+        '<div class="wd-chart-box wd-weather-box"><canvas id="' + prefix + '-weather-chart"></canvas><p class="wd-chart-empty" id="' + prefix + '-weather-chart-empty">No weather history yet.</p></div>' +
+        weatherEffectHtml(weatherEffect) +
+        detailSectionHtml(prefix)
+        : '') +
       '</div>';
   }
 
@@ -583,7 +929,7 @@
   // page-5-data.html: SeaFeed = mint, Control = slate, spanGaps so a
   // missing day on one line doesn't visually break it.
   // ------------------------------------------------------------
-  function renderChart(prefix, rows){
+  function renderChart(prefix, rows, heatStressDates){
     var canvas = document.getElementById(prefix + '-chart');
     var emptyEl = document.getElementById(prefix + '-chart-empty');
     if (!rows.length) { canvas.style.display = 'none'; emptyEl.style.display = 'block'; return; }
@@ -595,13 +941,109 @@
     });
     var dates = Object.keys(byDate).map(Number).sort(function(a, b){ return a - b; });
 
+    var datasets = [
+      { label: 'SeaFeed', data: dates.map(function(d){ return byDate[d].seafeed != null ? byDate[d].seafeed : null; }), borderColor: MINT, backgroundColor: 'transparent', spanGaps: true },
+      { label: 'Control', data: dates.map(function(d){ return byDate[d].control != null ? byDate[d].control : null; }), borderColor: SLATE, backgroundColor: 'transparent', spanGaps: true }
+    ];
+
+    // Heat-stress rug plot — added 2026-09-16, see file header "SECOND
+    // PASS" note. A row of small orange dots sitting just under the
+    // lowest weight line, one per day the region was in a heat-stress
+    // category, so a dip is easy to eyeball against a hot stretch without
+    // needing the correlation panel below at all. Placed on the SAME
+    // category x-axis/index as the weight lines (not a separate scatter
+    // dataset with its own numeric axis) via a per-point radius array —
+    // radius 0 (invisible) on every ordinary day, radius 4 on a
+    // heat-stress day. Only added when at least one heat-stress day
+    // actually falls in this chart's date range, so a farm/period with
+    // none doesn't pick up an empty "Heat stress" legend entry.
+    if (heatStressDates) {
+      var allWeightVals = [];
+      dates.forEach(function(d){
+        if (byDate[d].seafeed != null) allWeightVals.push(byDate[d].seafeed);
+        if (byDate[d].control != null) allWeightVals.push(byDate[d].control);
+      });
+      var hasHeatDay = dates.some(function(d){ return heatStressDates[dayKey(d)]; });
+      if (allWeightVals.length && hasHeatDay) {
+        var minW = Math.min.apply(null, allWeightVals);
+        var maxW = Math.max.apply(null, allWeightVals);
+        var markerY = minW - (maxW - minW) * 0.08 - 1; // just below the lowest line, scaled to this farm's own weight range
+        datasets.push({
+          label: 'Heat stress',
+          data: dates.map(function(d){ return heatStressDates[dayKey(d)] ? markerY : null; }),
+          showLine: false,
+          pointRadius: dates.map(function(d){ return heatStressDates[dayKey(d)] ? 4 : 0; }),
+          pointBackgroundColor: TEMP_ORANGE,
+          pointBorderColor: TEMP_ORANGE,
+          spanGaps: false
+        });
+      }
+    }
+
     new Chart(canvas, {
       type: 'line',
       data: {
         labels: dates.map(fmtDateShort),
+        datasets: datasets
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: true, position: 'top', align: 'end', labels: { boxWidth: 6, usePointStyle: true, pointStyle: 'circle', font: { size: 10 }, color: '#73818c' } },
+          tooltip: {
+            filter: function(item){ return item.dataset.label !== 'Heat stress' || item.parsed.y != null; },
+            callbacks: { label: function(ctx){
+              if (ctx.dataset.label === 'Heat stress') return 'Heat-stress day (region-wide)';
+              return (ctx.dataset.label ? ctx.dataset.label + ': ' : '') + (ctx.parsed.y != null ? Math.round(ctx.parsed.y) + ' kg' : '–');
+            } }
+          }
+        },
+        scales: {
+          x: { ticks: { font: { size: 9 }, maxTicksLimit: 6, color: '#73818c' }, grid: { display: false }, border: { display: false } },
+          y: { ticks: { font: { size: 9 }, color: '#73818c', callback: function(v){ return Math.round(v) + 'kg'; } }, grid: { color: '#eef2f4' }, border: { display: false } }
+        },
+        elements: { point: { radius: 0 }, line: { tension: 0.3, borderWidth: 2 } }
+      }
+    });
+  }
+
+  // ------------------------------------------------------------
+  // WEATHER CHART — added 2026-09-16. Rainfall as bars (left axis),
+  // mean temperature as a line (right axis, y1) — the standard way to
+  // pair two different units on one chart without one series flattening
+  // the other. Same x-axis date range as the weight chart directly above
+  // it on the card, so the two are easy to eyeball together. Also surfaces
+  // a small "X heat-stress day(s) in the last 30" note next to the chart
+  // label when the THI category crossed "mild" or worse — see 12. Weather_
+  // Data_Sync.py for the THI formula/thresholds (Mader et al. 2006).
+  // ------------------------------------------------------------
+  function renderWeatherChart(prefix, rows){
+    var canvas = document.getElementById(prefix + '-weather-chart');
+    if (!canvas) return; // farm has no FARM_REGION_MAP entry — no weather section rendered for it
+    var emptyEl = document.getElementById(prefix + '-weather-chart-empty');
+    var noteEl = document.getElementById(prefix + '-weather-note');
+
+    if (!rows.length) { canvas.style.display = 'none'; emptyEl.style.display = 'block'; return; }
+
+    var sorted = rows.slice().sort(function(a, b){ return a.obs_date - b.obs_date; });
+
+    var thirtyDaysAgo = Date.now() - 30 * 86400000;
+    var heatStressDays = sorted.filter(function(r){
+      return r.obs_date >= thirtyDaysAgo && r.heat_stress_category && r.heat_stress_category !== 'none';
+    }).length;
+    if (noteEl) {
+      noteEl.textContent = heatStressDays > 0 ? heatStressDays + ' heat-stress day' + (heatStressDays === 1 ? '' : 's') + ' (30d)' : '';
+      noteEl.className = 'wd-weather-note' + (heatStressDays > 0 ? ' warn' : '');
+    }
+
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: sorted.map(function(r){ return fmtDateShort(r.obs_date); }),
         datasets: [
-          { label: 'SeaFeed', data: dates.map(function(d){ return byDate[d].seafeed != null ? byDate[d].seafeed : null; }), borderColor: MINT, backgroundColor: 'transparent', spanGaps: true },
-          { label: 'Control', data: dates.map(function(d){ return byDate[d].control != null ? byDate[d].control : null; }), borderColor: SLATE, backgroundColor: 'transparent', spanGaps: true }
+          { type: 'bar', label: 'Rainfall', data: sorted.map(function(r){ return r.precip_sum_mm; }), backgroundColor: RAIN_BLUE, borderWidth: 0, yAxisID: 'y', order: 2, barPercentage: 0.7 },
+          { type: 'line', label: 'Mean temp', data: sorted.map(function(r){ return r.temp_mean_c; }), borderColor: TEMP_ORANGE, backgroundColor: 'transparent', yAxisID: 'y1', spanGaps: true, order: 1 }
         ]
       },
       options: {
@@ -609,13 +1051,140 @@
         interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: { display: true, position: 'top', align: 'end', labels: { boxWidth: 6, usePointStyle: true, pointStyle: 'circle', font: { size: 10 }, color: '#73818c' } },
-          tooltip: { callbacks: { label: function(ctx){ return (ctx.dataset.label ? ctx.dataset.label + ': ' : '') + (ctx.parsed.y != null ? Math.round(ctx.parsed.y) + ' kg' : '–'); } } }
+          tooltip: { callbacks: { label: function(ctx){
+            if (ctx.dataset.label === 'Rainfall') return 'Rainfall: ' + (ctx.parsed.y != null ? ctx.parsed.y.toFixed(1) + ' mm' : '–');
+            return 'Mean temp: ' + (ctx.parsed.y != null ? ctx.parsed.y.toFixed(1) + '°C' : '–');
+          } } }
         },
         scales: {
           x: { ticks: { font: { size: 9 }, maxTicksLimit: 6, color: '#73818c' }, grid: { display: false }, border: { display: false } },
-          y: { ticks: { font: { size: 9 }, color: '#73818c', callback: function(v){ return Math.round(v) + 'kg'; } }, grid: { color: '#eef2f4' }, border: { display: false } }
+          y: { position: 'left', beginAtZero: true, ticks: { font: { size: 9 }, color: '#73818c', callback: function(v){ return v + 'mm'; } }, grid: { color: '#eef2f4' }, border: { display: false } },
+          y1: { position: 'right', ticks: { font: { size: 9 }, color: '#73818c', callback: function(v){ return v + '°C'; } }, grid: { display: false }, border: { display: false } }
         },
         elements: { point: { radius: 0 }, line: { tension: 0.3, borderWidth: 2 } }
+      }
+    });
+  }
+
+  // ------------------------------------------------------------
+  // DETAIL PANEL — collapsed by default (see .wd-detail-panel CSS and
+  // detailSectionHtml() above). Charts are built lazily, the first time a
+  // farm's panel is actually opened, rather than at page load — a
+  // display:none canvas can't size itself, and most page loads will never
+  // open most of these panels anyway. Added 2026-09-16, see file header
+  // "SECOND PASS" note.
+  // ------------------------------------------------------------
+  function wireDetailToggle(prefix, ctx){
+    var btn = document.getElementById(prefix + '-detail-toggle');
+    var panel = document.getElementById(prefix + '-detail-panel');
+    if (!btn || !panel) return;
+    var built = false;
+    btn.addEventListener('click', function(){
+      var isOpen = panel.style.display !== 'none';
+      if (isOpen) {
+        panel.style.display = 'none';
+        btn.setAttribute('aria-expanded', 'false');
+        btn.innerHTML = 'Show lag &amp; relationship detail &#9662;';
+      } else {
+        panel.style.display = 'block';
+        btn.setAttribute('aria-expanded', 'true');
+        btn.innerHTML = 'Hide lag &amp; relationship detail &#9652;';
+        if (!built) {
+          built = true;
+          renderDetailCharts(prefix, ctx);
+        }
+      }
+    });
+  }
+
+  function renderDetailCharts(prefix, ctx){
+    renderLagChart(prefix + '-lag-rain', lagProfile(ctx, 'precip_sum_mm'), RAIN_BLUE);
+    renderLagChart(prefix + '-lag-temp', lagProfile(ctx, 'temp_mean_c'), TEMP_ORANGE);
+    renderScatterChart(prefix + '-scatter-rain', scatterPairs(ctx, 'precip_sum_mm', RAIN_LAG_DAYS), RAIN_BLUE, 'mm rain');
+    renderScatterChart(prefix + '-scatter-temp', scatterPairs(ctx, 'temp_mean_c', TEMP_LAG_DAYS), TEMP_ORANGE, '°C');
+  }
+
+  // Small bar chart, r on a fixed -1..1 axis, one bar per lag (0-6 days
+  // after the weather reading — e.g. the "3d" bar is r between a day's
+  // rainfall/temp and the weight-gain change measured 3 days later).
+  // Labelled "days after" rather than "days earlier" (2026-09-16, per
+  // Jono's call) since it reads as the actual cause-then-effect story —
+  // the pairing itself is unchanged either way, see correlateAgainstWeather().
+  // A lag with fewer than MIN_CORR_N paired days is left as a gap (null)
+  // rather than plotting a noisy r, same "not enough data yet" gate the
+  // always-visible panel above uses.
+  function renderLagChart(canvasId, lagStats, color){
+    var canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: lagStats.map(function(s){ return s.lag + 'd'; }),
+        datasets: [{ data: lagStats.map(function(s){ return (s.r != null && s.n >= MIN_CORR_N) ? s.r : null; }), backgroundColor: color, borderWidth: 0, barPercentage: 0.6 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: function(c){
+            var s = lagStats[c.dataIndex];
+            if (s.r == null || s.n < MIN_CORR_N) return 'Not enough paired data (n=' + s.n + ')';
+            return 'r=' + (s.r >= 0 ? '+' : '') + s.r.toFixed(2) + ' (n=' + s.n + ')';
+          } } }
+        },
+        scales: {
+          x: { title: { display: true, text: 'days after', font: { size: 9 }, color: '#73818c' }, ticks: { font: { size: 9 }, color: '#73818c' }, grid: { display: false }, border: { display: false } },
+          y: { min: -1, max: 1, ticks: { font: { size: 9 }, color: '#73818c', stepSize: 0.5 }, grid: { color: '#eef2f4' }, border: { display: false } }
+        }
+      }
+    });
+  }
+
+  // Scatter of daily weight-gain change vs the weather value that lag
+  // pairs it with, plus a least-squares trend line once there's a
+  // reasonable sample (MIN_CORR_N) — below that, the raw dots still show
+  // (a handful of points is still honest information) but no line is
+  // drawn through them, since a trend line on 5 points overstates what's
+  // there.
+  function renderScatterChart(canvasId, points, color, xUnit){
+    var canvas = document.getElementById(canvasId);
+    var emptyEl = document.getElementById(canvasId + '-empty');
+    if (!canvas) return;
+    if (points.length < 3) {
+      canvas.style.display = 'none';
+      if (emptyEl) emptyEl.style.display = 'block';
+      return;
+    }
+
+    var datasets = [{ label: 'Days', data: points, backgroundColor: color, pointRadius: 3, pointHoverRadius: 4 }];
+    if (points.length >= MIN_CORR_N) {
+      var fit = linearFit(points);
+      if (fit) {
+        var xs = points.map(function(p){ return p.x; });
+        var xMin = Math.min.apply(null, xs), xMax = Math.max.apply(null, xs);
+        datasets.push({
+          type: 'line', label: 'Trend', data: [{ x: xMin, y: fit.slope * xMin + fit.intercept }, { x: xMax, y: fit.slope * xMax + fit.intercept }],
+          borderColor: '#041221', borderWidth: 1.5, borderDash: [4, 3], pointRadius: 0, fill: false
+        });
+      }
+    }
+
+    new Chart(canvas, {
+      type: 'scatter',
+      data: { datasets: datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: function(c){
+            if (c.dataset.label === 'Trend') return null;
+            return c.parsed.x.toFixed(1) + ' ' + xUnit + ' → ' + (c.parsed.y >= 0 ? '+' : '') + c.parsed.y.toFixed(2) + ' kg/day change';
+          } } }
+        },
+        scales: {
+          x: { title: { display: true, text: xUnit, font: { size: 9 }, color: '#73818c' }, ticks: { font: { size: 9 }, color: '#73818c' }, grid: { color: '#eef2f4' }, border: { display: false } },
+          y: { title: { display: true, text: 'weight-gain change (kg/day)', font: { size: 9 }, color: '#73818c' }, ticks: { font: { size: 9 }, color: '#73818c' }, grid: { color: '#eef2f4' }, border: { display: false } }
+        }
       }
     });
   }
