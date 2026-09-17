@@ -177,6 +177,7 @@
       }
       .roi-field-group-label { font-family: var(--font-display); font-size: 10.5px; font-weight: 700; color: var(--tf-seafeed); text-transform: uppercase; letter-spacing: 0.05em; margin: 12px 0 8px; }
       .roi-field-group-label:first-child { margin-top: 0; }
+      .roi-field-note { font-size: 10.5px; color: var(--text-muted); margin: 4px 0 0; line-height: 1.3; }
 
       /* ---------- Add farm card ---------- */
       .roi-card-empty {
@@ -204,6 +205,38 @@
 
       .roi-footer-note { font-family: var(--font-display); font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 40px; line-height: 1.7; }
       .roi-footer-note a { color: var(--tf-seafeed); }
+
+      /* ---------- Live check (added 2026-09-16, per Jono's call) ----------
+         Per-card panel comparing the REAL observed SeaFeed-vs-Control gain
+         (LEL_Economics_Data, same fair-comparison-window figures the Weight
+         Data page reads) against the $ contribution figure this page already
+         computes above it — the "is this farm actually on target" answer,
+         as opposed to the hypothetical roi-benefit-note's "what WOULD be
+         needed". Colour follows the site's standard mint=good/red=behind
+         convention; a farm with no live match or not enough data yet gets a
+         neutral/muted state rather than a false verdict. */
+      .roi-live-check { margin: 12px 0; padding: 14px 16px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); background: var(--surface-sunken); }
+      .roi-live-check.roi-live-mint { border-color: rgba(58,169,137,0.35); background: rgba(58,169,137,0.06); }
+      .roi-live-check.roi-live-red { border-color: rgba(192,57,43,0.28); background: rgba(192,57,43,0.05); }
+      .roi-live-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+      .roi-live-title { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+      .roi-live-badge { font-family: var(--font-display); font-size: 10.5px; font-weight: 700; border-radius: 999px; padding: 3px 10px; flex: none; }
+      .roi-live-badge.mint { background: rgba(58,169,137,0.16); color: #1f6e56; }
+      .roi-live-badge.red { background: rgba(192,57,43,0.13); color: var(--tf-red); }
+      .roi-live-badge.muted { background: var(--border-subtle); color: var(--text-muted); }
+      .roi-live-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 4px 0; }
+      .roi-live-row + .roi-live-row { border-top: 1px solid var(--border-subtle); }
+      .roi-live-label { font-size: 12px; color: var(--text-muted); }
+      .roi-live-value { font-family: var(--font-display); font-size: 13.5px; font-weight: 700; color: var(--text-heading); white-space: nowrap; }
+      .roi-live-value.mint { color: var(--tf-seafeed); }
+      .roi-live-value.red { color: var(--tf-red); }
+      .roi-live-row.roi-live-headline .roi-live-label { font-size: 12.5px; color: var(--text-body); }
+      .roi-live-row.roi-live-headline .roi-live-value { font-size: 16px; }
+      .roi-live-note { font-size: 12px; color: var(--text-muted); line-height: 1.5; margin: 0; }
+      .roi-live-caveat { font-size: 10.5px; color: var(--text-muted); font-style: italic; line-height: 1.4; margin: 8px 0 0; }
+
+      .roi-live-summary-wrap { margin-bottom: 28px; }
+      .roi-live-summary-note { font-size: 12px; color: var(--text-muted); margin: -6px 0 14px 2px; }
     </style>
   </head>
   <body>
@@ -226,6 +259,12 @@
 
       <div class="roi-summary" id="roi-summary"></div>
 
+      <div class="roi-live-summary-wrap">
+        <p class="roi-section-label">Live check &middot; trial to date</p>
+        <p class="roi-live-summary-note" id="roi-live-summary-note">Loading live trial data&hellip;</p>
+        <div class="roi-summary" id="roi-live-summary"></div>
+      </div>
+
       <div class="roi-section-row">
         <p class="roi-section-label">Farms</p>
         <button type="button" class="roi-reset-btn" id="reset-btn">Reset to trial defaults</button>
@@ -233,7 +272,7 @@
       <div class="roi-grid" id="roi-grid"></div>
 
       <p class="roi-footer-note">
-        SeaFeed cost, contribution rate and benefit-pathway defaults reproduce the live TLEL Project Budget model (Supplement Costs, Farmer Break-Even, Project Budget sheets, as at 8 Sep 2026). Head counts default to each farm's 2026 deployment from the Beef Farm Head/Mob table &mdash; edit them to match what's actually on the ground when you're talking to a farmer. Cards and any farms you add are saved in this browser only.
+        SeaFeed cost, contribution rate and benefit-pathway defaults reproduce the live TLEL Project Budget model (Supplement Costs, Farmer Break-Even, Project Budget sheets, as at 8 Sep 2026). Head counts default to each farm's 2026 deployment from the Beef Farm Head/Mob table &mdash; edit them to match what's actually on the ground when you're talking to a farmer. Dose auto-fills per farm from the Lick Block Tracker's own measured consumption rate (LEL_Lick_Block_Usage_History), not a flat trial-wide assumption &mdash; edit it once and this page stops touching it. Sale price auto-fills from the MLA National Heavy Steer Indicator (a national figure, override it with local knowledge) &mdash; edit it once and this page stops touching it. The Live check panels compare that against the real SeaFeed-vs-Control gain from LEL_Economics_Data &mdash; trial evidence to date, not a guarantee, see the caveat on each card. Cards and any farms you add are saved in this browser only.
       </p>
     </div>
 
@@ -248,7 +287,9 @@
         contributionRate: 60.23, // % (live rate, Project Budget!D86)
         carryingCost: 1.00,   // $/head/day
         saleWeight: 500,      // kg/head
-        salePrice: 4.00       // $/kg liveweight
+        salePrice: 4.00,      // $/kg liveweight — fallback until the MLA fetch below resolves
+        salePriceAuto: true,  // true = this card's salePrice tracks the live MLA fetch; flips to false the moment a user types their own number in, see the input handler below
+        doseAuto: true        // true = this card's dose tracks the live Lick Block Tracker rate for its farm name; flips to false on manual edit, same pattern as salePriceAuto
       };
 
       var SEED_FARMS = [
@@ -264,13 +305,26 @@
         });
       }
 
+      // Cards saved before 2026-09-16 won't have salePriceAuto in storage —
+      // normalize() backfills it as true (still auto-following) on load, so
+      // an old browser's saved cards still pick up the live MLA price
+      // instead of being silently stuck on whatever the default happened to
+      // be when they were first saved.
+      function normalize(list) {
+        return list.map(function (c) {
+          if (c.salePriceAuto === undefined) c.salePriceAuto = true;
+          if (c.doseAuto === undefined) c.doseAuto = true;
+          return c;
+        });
+      }
+
       function loadCards() {
         try {
           var raw = localStorage.getItem(STORAGE_KEY);
           if (!raw) return seedCards();
           var parsed = JSON.parse(raw);
           if (!Array.isArray(parsed) || !parsed.length) return seedCards();
-          return parsed;
+          return normalize(parsed);
         } catch (e) {
           return seedCards();
         }
@@ -282,6 +336,93 @@
 
       var cards = loadCards();
       var openForms = {};
+
+      // ============================================================
+      // LIVE DATA — added 2026-09-16, per Jono's call to check real
+      // productivity gains against the contribution rate rather than just
+      // the hypothetical "what would be needed" benefit-note below. Two
+      // independent fetches, each failing gracefully to its own fallback
+      // (an empty econByFarm just means every card shows "not enough live
+      // data yet"; a failed MLA fetch just leaves salePrice on its $4.00
+      // default) — neither blocks the page's existing offline/localStorage
+      // behaviour, which renders immediately from cached cards regardless.
+      // ============================================================
+      var ECON_URL = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Economics_Data/FeatureServer/0/query";
+      var AGGREGATE_LABEL = "All Farms (Trial Aggregate)";
+      var econByFarm = {};
+      var econReady = false;
+      var mlaPriceDate = null;
+      var mlaFetchFailed = false;
+
+      function fetchEconLatest() {
+        return fetch(ECON_URL + "?" + new URLSearchParams({
+          where: "farm_name<>'" + AGGREGATE_LABEL + "' AND treatment IN ('seafeed','control')",
+          outFields: "farm_name,treatment,weight_gain_kg_per_head,days_of_data,calculation_date",
+          orderByFields: "calculation_date DESC", resultRecordCount: "2000", f: "json"
+        })).then(function (res) { return res.json(); }).then(function (data) {
+          var latest = {};
+          (data.features || []).forEach(function (f) {
+            var a = f.attributes, farm = a.farm_name, t = a.treatment;
+            if (!farm || !t) return;
+            if (!latest[farm]) latest[farm] = {};
+            if (!latest[farm][t]) latest[farm][t] = a; // first row per (farm,treatment) since ordered DESC = most recent
+          });
+          return latest;
+        }).catch(function (err) { console.error('Economics fetch failed:', err); return {}; });
+      }
+
+      // Same MLA Statistics API this page's sibling calculator
+      // (seafeed-cost-of-production-calculator.html) already uses — free,
+      // no key, indicatorID 4 = National Heavy Steer Indicator, c/kg
+      // liveweight. National, not Tasmania-specific (see that file's own
+      // comment for why); always shown as an editable starting point.
+      var MLA_URL = "https://api-mlastatistics.mla.com.au/report/5";
+      var MLA_INDICATOR_ID = 4;
+      var MLA_INDICATOR_LABEL = "MLA National Heavy Steer Indicator";
+
+      function fetchIndicativeSalePrice() {
+        var from = new Date();
+        from.setDate(from.getDate() - 14);
+        var fromDate = from.toISOString().slice(0, 10);
+        var params = new URLSearchParams({ indicatorID: String(MLA_INDICATOR_ID), fromDate: fromDate });
+        return fetch(MLA_URL + "?" + params).then(function (res) { return res.json(); }).then(function (data) {
+          if (!data.data || !data.data.length) return null;
+          var latest = data.data[data.data.length - 1]; // rows come back chronological ascending
+          return { dollarsPerKg: latest.indicator_value / 100, date: latest.calendar_date };
+        }).catch(function (err) { console.error('MLA price fetch failed:', err); return null; });
+      }
+
+      // Real per-farm SeaFeed dose rate, added 2026-09-17 per Jono's call —
+      // instead of every card assuming the same 150g/head/day, pull what
+      // each farm's own lick blocks are actually delivering. Same table
+      // (LEL_Lick_Block_Usage_History) and field the Lick Block Tracker
+      // page headlines, one row per (farm, treatment) per day —
+      // avg_consumption_g_per_hd_day there is already the pipeline's
+      // "most recent closed interval, not an all-time average" figure (see
+      // 06. Lick_Block_Portal_Feed.py's own comment on that field), so the
+      // single latest snapshot per farm IS the right "current rate" to use
+      // here too, no extra averaging needed. seafeed-only: this dose field
+      // feeds the SeaFeed cost calc specifically, Control's own consumption
+      // (if tracked) isn't part of what a farmer contributes toward.
+      var USAGE_HISTORY_URL = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lick_Block_Usage_History/FeatureServer/0/query";
+      var doseByFarm = {};
+      var doseReady = false;
+
+      function fetchLatestDoseRates() {
+        return fetch(USAGE_HISTORY_URL + "?" + new URLSearchParams({
+          where: "treatment='seafeed'",
+          outFields: "snapshot_date,trial_site,avg_consumption_g_per_hd_day",
+          orderByFields: "snapshot_date DESC", resultRecordCount: "2000", f: "json"
+        })).then(function (res) { return res.json(); }).then(function (data) {
+          var latest = {};
+          (data.features || []).forEach(function (f) {
+            var a = f.attributes, farm = a.trial_site;
+            if (!farm || a.avg_consumption_g_per_hd_day == null) return;
+            if (!(farm in latest)) latest[farm] = a.avg_consumption_g_per_hd_day; // first row per farm since ordered DESC = most recent
+          });
+          return latest;
+        }).catch(function (err) { console.error('Lick Block dose-rate fetch failed:', err); return {}; });
+      }
 
       function fmt(v, d) {
         if (d === undefined) d = 2;
@@ -320,6 +461,78 @@
         };
       }
 
+      // ------------------------------------------------------------
+      // LIVE CHECK — the real-data counterpart to the hypothetical
+      // roi-benefit-note above: instead of "what WOULD need to come back",
+      // this is "what HAS come back so far, on the actual trial data".
+      //
+      // Matched to a live farm purely by the card's current name string
+      // (same farm_name values as every other Staff Portal page) — a
+      // renamed or hypothetical "Add farm" card just shows "no live data
+      // for this name" rather than erroring.
+      //
+      // Advantage math reuses computeAdgPct()'s exact methodology from
+      // weight-data-portal.html: each treatment's own weight_gain_kg_per_head
+      // divided by its OWN days_of_data (never a shared min()), because
+      // SeaFeed and Control units at a farm can have slightly different
+      // amounts of reading history even within the Economics pipeline's
+      // shared fair-comparison-start window (data gaps affect each
+      // independently). The g/day advantage is then annualised (x365) and
+      // valued at this card's own sale price, so it lands in the exact same
+      // "$/head/year" unit the contribution-required figure above is
+      // already expressed in — makes the two directly comparable without
+      // introducing a second convention.
+      // ------------------------------------------------------------
+      function computeLiveCheck(card) {
+        if (!econReady) return { status: 'loading' };
+        var econ = econByFarm[card.name];
+        if (!econ) return { status: 'no-match' };
+        var sf = econ.seafeed, ct = econ.control;
+        if (!sf || !ct || sf.weight_gain_kg_per_head == null || ct.weight_gain_kg_per_head == null || !sf.days_of_data || !ct.days_of_data) {
+          return { status: 'no-data' };
+        }
+        var sfRateGPerDay = (sf.weight_gain_kg_per_head / sf.days_of_data) * 1000;
+        var ctRateGPerDay = (ct.weight_gain_kg_per_head / ct.days_of_data) * 1000;
+        var advantageGPerDay = sfRateGPerDay - ctRateGPerDay;
+        var advantageKgPerYear = (advantageGPerDay / 1000) * 365;
+        var valueGeneratedPerYear = advantageKgPerYear * card.salePrice;
+        var r = compute(card);
+        var netPerYear = valueGeneratedPerYear - r.contributionPerHead;
+        return {
+          status: netPerYear >= 0 ? 'on-target' : 'below-target',
+          advantageGPerDay: advantageGPerDay,
+          valueGeneratedPerYear: valueGeneratedPerYear,
+          contributionPerHead: r.contributionPerHead,
+          netPerYear: netPerYear,
+          minDays: Math.min(sf.days_of_data, ct.days_of_data)
+        };
+      }
+
+      function liveCheckHtml(card) {
+        var lc = computeLiveCheck(card);
+        if (lc.status === 'loading') {
+          return '<div class="roi-live-check"><div class="roi-live-head"><span class="roi-live-title">Live check</span><span class="roi-live-badge muted">Loading&hellip;</span></div></div>';
+        }
+        if (lc.status === 'no-match') {
+          return '<div class="roi-live-check"><div class="roi-live-head"><span class="roi-live-title">Live check</span><span class="roi-live-badge muted">No live data</span></div>' +
+            '<p class="roi-live-note">No trial data found under the farm name &ldquo;' + escapeAttr(card.name) + '&rdquo;. Rename this card to match a live trial farm to compare against real weight data.</p></div>';
+        }
+        if (lc.status === 'no-data') {
+          return '<div class="roi-live-check"><div class="roi-live-head"><span class="roi-live-title">Live check</span><span class="roi-live-badge muted">Not enough live data yet</span></div>' +
+            '<p class="roi-live-note">Needs at least 14 days of paired SeaFeed/Control weight readings since the fair-comparison start before a real comparison shows here.</p></div>';
+        }
+        var badgeClass = lc.status === 'on-target' ? 'mint' : 'red';
+        var badgeText = lc.status === 'on-target' ? 'On target' : 'Below target';
+        return '<div class="roi-live-check roi-live-' + badgeClass + '">' +
+          '<div class="roi-live-head"><span class="roi-live-title">Live check &middot; trial to date</span><span class="roi-live-badge ' + badgeClass + '">' + badgeText + '</span></div>' +
+          '<div class="roi-live-row"><span class="roi-live-label">Observed SeaFeed advantage</span><span class="roi-live-value tabular">' + (lc.advantageGPerDay >= 0 ? '+' : '') + fmt(lc.advantageGPerDay, 0) + 'g/day</span></div>' +
+          '<div class="roi-live-row"><span class="roi-live-label">Value at ' + cur(card.salePrice) + '/kg (annualised)</span><span class="roi-live-value tabular">' + cur(lc.valueGeneratedPerYear, 0) + '/head/yr</span></div>' +
+          '<div class="roi-live-row"><span class="roi-live-label">Contribution required</span><span class="roi-live-value tabular">' + cur(lc.contributionPerHead, 0) + '/head/yr</span></div>' +
+          '<div class="roi-live-row roi-live-headline"><span class="roi-live-label">Net position</span><span class="roi-live-value tabular ' + (lc.netPerYear >= 0 ? 'mint' : 'red') + '">' + (lc.netPerYear >= 0 ? '+' : '−') + cur(Math.abs(lc.netPerYear), 0) + '/head/yr</span></div>' +
+          '<p class="roi-live-caveat">Based on the observed SeaFeed vs Control gain to date (' + lc.minDays + ' days) &mdash; current trial evidence, not a guarantee. Moves as more data comes in, treat it as a conversation starter, not the final word.</p>' +
+          '</div>';
+      }
+
       function updateSummary() {
         var totalHead = 0, totalCost = 0, totalContribution = 0;
         cards.forEach(function (c) {
@@ -334,6 +547,50 @@
           '<div class="roi-summary-item"><div class="rs-label">Total head</div><div class="rs-value tabular">' + int(totalHead) + '</div><div class="rs-note">across all cards below</div></div>' +
           '<div class="roi-summary-item"><div class="rs-label">Combined SeaFeed cost</div><div class="rs-value tabular">' + cur(totalCost, 0) + '</div><div class="rs-note">per year, at each card’s own settings</div></div>' +
           '<div class="roi-summary-item"><div class="rs-label">Combined contribution needed</div><div class="rs-value tabular" style="color:var(--tf-seafeed)">' + cur(totalContribution, 0) + '</div><div class="rs-note">at each card’s own rate</div></div>';
+      }
+
+      // Roll-up of the SAME per-card live-check figures, across only the
+      // cards that actually matched a live farm with enough data — a card
+      // with no match/not-enough-data is excluded from the totals rather
+      // than silently counted as zero, so the roll-up never understates
+      // the position by diluting it with farms that just don't have a
+      // verdict yet.
+      function updateLiveSummary() {
+        var el = document.getElementById('roi-live-summary');
+        var noteEl = document.getElementById('roi-live-summary-note');
+
+        if (!econReady) {
+          el.innerHTML = '';
+          noteEl.textContent = 'Loading live trial data…';
+          return;
+        }
+
+        var matched = 0, totalValue = 0, totalRequired = 0, onTarget = 0, belowTarget = 0;
+        cards.forEach(function (c) {
+          var lc = computeLiveCheck(c);
+          if (lc.status !== 'on-target' && lc.status !== 'below-target') return;
+          matched++;
+          totalValue += lc.valueGeneratedPerYear;
+          totalRequired += lc.contributionPerHead;
+          if (lc.status === 'on-target') onTarget++; else belowTarget++;
+        });
+
+        if (!matched) {
+          el.innerHTML = '';
+          noteEl.textContent = 'No cards have matched a live trial farm with enough data yet (needs 14+ days of paired SeaFeed/Control readings).';
+          return;
+        }
+
+        var net = totalValue - totalRequired;
+        noteEl.textContent = mlaFetchFailed
+          ? 'Live MLA sale price unavailable this load — figures below use the $4.00/kg fallback (or whatever you’ve typed per card).'
+          : 'Sale price auto-filled from the ' + MLA_INDICATOR_LABEL + (mlaPriceDate ? ', ' + new Date(mlaPriceDate + 'T00:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) : '') + '.';
+
+        el.innerHTML =
+          '<div class="roi-summary-item"><div class="rs-label">Farms with a live verdict</div><div class="rs-value tabular">' + matched + '</div><div class="rs-note">' + onTarget + ' on target &middot; ' + belowTarget + ' below</div></div>' +
+          '<div class="roi-summary-item"><div class="rs-label">Combined value generated</div><div class="rs-value tabular">' + cur(totalValue, 0) + '</div><div class="rs-note">observed gain, annualised</div></div>' +
+          '<div class="roi-summary-item"><div class="rs-label">Combined contribution required</div><div class="rs-value tabular">' + cur(totalRequired, 0) + '</div><div class="rs-note">at each card’s own rate</div></div>' +
+          '<div class="roi-summary-item"><div class="rs-label">Net position</div><div class="rs-value tabular" style="color:' + (net >= 0 ? 'var(--tf-seafeed)' : 'var(--tf-red)') + '">' + (net >= 0 ? '+' : '−') + cur(Math.abs(net), 0) + '</div><div class="rs-note">across matched farms</div></div>';
       }
 
       function cardHtml(c, idx) {
@@ -357,11 +614,12 @@
               '<div class="roi-result-row roi-headline"><span class="roi-result-label">Total for this farm</span><span class="roi-result-value tabular">' + cur(r.totalContribution, 0) + '</span></div>' +
             '</div>' +
             '<div class="roi-benefit-note">What needs to come back per head to justify it: <b>' + fmt(r.daysEarlier, 0) + ' days</b> earlier to turnoff (at ' + cur(c.carryingCost) + '/day carrying cost), or <b>' + fmt(r.extraLiveweightKg, 1) + 'kg</b> extra liveweight (at ' + cur(c.salePrice) + '/kg), or a <b>' + cur(r.premiumPerKg, 3) + '/kg</b> price premium.</div>' +
+            liveCheckHtml(c) +
             '<button type="button" class="roi-toggle-btn" data-action="toggle">' + (isOpen ? 'Hide assumptions' : 'Adjust assumptions') + '</button>' +
             '<div class="roi-inline-form' + (isOpen ? ' open' : '') + '">' +
               '<div class="roi-field-group-label">SeaFeed dosing &amp; cost</div>' +
               '<div class="roi-field-grid">' +
-                field('Dose (g/head/day)', 'dose', c.dose, 1) +
+                doseFieldHtml(c) +
                 field('SeaFeed price ($/kg)', 'price', c.price, 0.01) +
                 field('Visitation rate (%)', 'visitation', c.visitation, 1) +
                 field('Contribution rate (%)', 'contributionRate', c.contributionRate, 0.01) +
@@ -386,6 +644,31 @@
         );
       }
 
+      // Dose field gets its own renderer (rather than the generic field()
+      // above) so it can show where the number came from — live from the
+      // Lick Block Tracker, a manual override, or no live data yet for
+      // this farm name. See fetchLatestDoseRates() for the source.
+      function doseFieldHtml(c) {
+        var live = doseByFarm[c.name];
+        var note;
+        if (!doseReady) {
+          note = 'Loading live rate…';
+        } else if (live != null) {
+          note = c.doseAuto !== false
+            ? 'Live from Lick Block Tracker (' + fmt(live, 0) + 'g/hd/day)'
+            : 'Your figure — Lick Block Tracker shows ' + fmt(live, 0) + 'g/hd/day';
+        } else {
+          note = c.doseAuto !== false ? 'No live consumption data for this farm name yet' : '';
+        }
+        return (
+          '<div class="roi-field">' +
+            '<label class="roi-field-label">Dose (g/head/day)</label>' +
+            '<input class="roi-field-input tabular" type="number" step="1" value="' + c.dose + '" data-field="dose">' +
+            (note ? '<p class="roi-field-note">' + note + '</p>' : '') +
+          '</div>'
+        );
+      }
+
       function escapeAttr(s) {
         return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
       }
@@ -404,6 +687,7 @@
         var grid = document.getElementById('roi-grid');
         grid.innerHTML = cards.map(cardHtml).join('') + addFarmCardHtml();
         updateSummary();
+        updateLiveSummary();
         document.getElementById('live-rate-label').textContent = fmt(GLOBAL_DEFAULTS.contributionRate, 2) + '%';
       }
 
@@ -420,6 +704,14 @@
           card.name = target.value;
         } else {
           card[field] = num(target.value, card[field]);
+          // The user just typed a sale price themselves — stop the live
+          // MLA fetch from silently overwriting it on a future load, same
+          // "auto-filled, override above" convention as the sibling
+          // calculator this fetch pattern was copied from.
+          if (field === 'salePrice') card.salePriceAuto = false;
+          // Same idea for a manually-typed dose — stop the Lick Block
+          // Tracker fetch from overwriting it on a future load.
+          if (field === 'dose') card.doseAuto = false;
         }
         saveCards();
         // re-render just the results without losing focus: full re-render is fine except for the field being typed in,
@@ -470,6 +762,23 @@
           '<div class="roi-result-row roi-headline"><span class="roi-result-label">Total for this farm</span><span class="roi-result-value tabular">' + cur(r.totalContribution, 0) + '</span></div>';
         var benefitEl = cardEl.querySelector('.roi-benefit-note');
         benefitEl.innerHTML = 'What needs to come back per head to justify it: <b>' + fmt(r.daysEarlier, 0) + ' days</b> earlier to turnoff (at ' + cur(card.carryingCost) + '/day carrying cost), or <b>' + fmt(r.extraLiveweightKg, 1) + 'kg</b> extra liveweight (at ' + cur(card.salePrice) + '/kg), or a <b>' + cur(r.premiumPerKg, 3) + '/kg</b> price premium.';
+        var liveEl = cardEl.querySelector('.roi-live-check');
+        if (liveEl) liveEl.outerHTML = liveCheckHtml(card);
+        updateLiveSummary();
+
+        // Dose note is a sibling of the dose <input>, never the input
+        // itself, so this can safely refresh even while that input (or a
+        // different field in the same card) has focus — same "refresh
+        // siblings, not the active input" rule the comment above follows.
+        var doseNoteEl = cardEl.querySelector('.roi-field-note');
+        if (doseNoteEl) {
+          var live = doseByFarm[card.name];
+          var doseNote = !doseReady ? 'Loading live rate…'
+            : live != null ? (card.doseAuto !== false ? 'Live from Lick Block Tracker (' + fmt(live, 0) + 'g/hd/day)' : 'Your figure — Lick Block Tracker shows ' + fmt(live, 0) + 'g/hd/day')
+            : (card.doseAuto !== false ? 'No live consumption data for this farm name yet' : '');
+          doseNoteEl.textContent = doseNote;
+          doseNoteEl.style.display = doseNote ? '' : 'none';
+        }
       }
 
       document.getElementById('reset-btn').addEventListener('click', function () {
@@ -480,7 +789,44 @@
         render();
       });
 
+      // Render immediately from cached/seeded cards (the page's original,
+      // fully offline-capable behaviour is unchanged), then layer the live
+      // econ + MLA data on top once both resolve — cards with
+      // salePriceAuto still true pick up the fresh price, every card's
+      // live-check panel updates from "Loading…" to a real verdict, and
+      // the whole thing re-renders once rather than flickering per-fetch.
       render();
+
+      Promise.all([fetchEconLatest(), fetchIndicativeSalePrice(), fetchLatestDoseRates()]).then(function (results) {
+        econByFarm = results[0];
+        econReady = true;
+
+        var price = results[1];
+        if (price) {
+          mlaPriceDate = price.date;
+          GLOBAL_DEFAULTS.salePrice = price.dollarsPerKg;
+          cards.forEach(function (c) {
+            if (c.salePriceAuto !== false) c.salePrice = price.dollarsPerKg;
+          });
+        } else {
+          mlaFetchFailed = true;
+        }
+
+        // Dose is per-farm, not a single global figure like sale price, so
+        // there's no GLOBAL_DEFAULTS update here — only cards that match a
+        // real farm name AND are still on doseAuto pick up the live rate;
+        // everything else (a new "Add Farm" card, a renamed/hypothetical
+        // one, or a card the user has already typed a dose into) is left
+        // exactly as is.
+        doseByFarm = results[2];
+        doseReady = true;
+        cards.forEach(function (c) {
+          if (c.doseAuto !== false && doseByFarm[c.name] != null) c.dose = doseByFarm[c.name];
+        });
+
+        saveCards();
+        render();
+      });
     })();
     </script>
   </body>
