@@ -246,7 +246,13 @@
   .wd-detail-panel { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border-subtle); }
   .wd-detail-block { margin-bottom: 18px; }
   .wd-detail-block:last-of-type { margin-bottom: 8px; }
-  .wd-lag-chart-box, .wd-scatter-chart-box { position: relative; height: 130px; margin-top: 4px; }
+  /* Enlarged 130px -> 210px, 2026-09-17, per Jono's report that these
+     were unreadable — 130px was cramped for a box carrying an axis title
+     PLUS tick labels on both axes (more chrome than any other chart on
+     this page gets), so Chart.js had almost no room left to actually
+     plot in. Matches the main weight-trend chart's own 210px now, rather
+     than reading as a smaller/secondary chart type. */
+  .wd-lag-chart-box, .wd-scatter-chart-box { position: relative; height: 210px; margin-top: 4px; }
 
   .wd-fallback-note { font-size: 12px; color: var(--text-muted); margin: 10px 0 0; font-style: italic; }
 
@@ -704,7 +710,19 @@
   function weightDeltasByDate(rows, treatment){
     var byDate = {};
     rows.forEach(function(r){
-      if (r.treatment_group === treatment) byDate[dayKey(r.snapshot_date)] = r.rolling_weight_14d;
+      // 2026-09-17 fix, per Jono's report of ~235kg "deltas" on the scatter
+      // charts. Root cause: OptiWeigh_Cattle_Weights has occasional rows
+      // with rolling_weight_14d == null (a sync gap, before the value has
+      // been backfilled) sitting alongside real-valued rows for other
+      // dates. Assigning a null straight into byDate[date] let a later
+      // subtraction do JS's "null - 240.47" == -240.47 (null coerces to 0
+      // in arithmetic) — a missing reading was silently read as the animal
+      // dropping to 0kg, producing a fake ~240kg day-over-day swing that
+      // fed directly into the lag/scatter correlation charts. Skipping
+      // null rows here means a day with no real reading simply has no
+      // entry in byDate, so it's correctly excluded from the "consecutive
+      // calendar days only" check below rather than masquerading as one.
+      if (r.treatment_group === treatment && r.rolling_weight_14d != null) byDate[dayKey(r.snapshot_date)] = r.rolling_weight_14d;
     });
     var days = Object.keys(byDate).sort();
     var deltas = {};
@@ -1133,8 +1151,8 @@
           } } }
         },
         scales: {
-          x: { title: { display: true, text: 'days after', font: { size: 9 }, color: '#73818c' }, ticks: { font: { size: 9 }, color: '#73818c' }, grid: { display: false }, border: { display: false } },
-          y: { min: -1, max: 1, ticks: { font: { size: 9 }, color: '#73818c', stepSize: 0.5 }, grid: { color: '#eef2f4' }, border: { display: false } }
+          x: { title: { display: true, text: 'days after', font: { size: 10.5 }, color: '#73818c' }, ticks: { font: { size: 10.5 }, color: '#73818c' }, grid: { display: false }, border: { display: false } },
+          y: { min: -1, max: 1, ticks: { font: { size: 10.5 }, color: '#73818c', stepSize: 0.5 }, grid: { color: '#eef2f4' }, border: { display: false } }
         }
       }
     });
@@ -1182,8 +1200,14 @@
           } } }
         },
         scales: {
-          x: { title: { display: true, text: xUnit, font: { size: 9 }, color: '#73818c' }, ticks: { font: { size: 9 }, color: '#73818c' }, grid: { color: '#eef2f4' }, border: { display: false } },
-          y: { title: { display: true, text: 'weight-gain change (kg/day)', font: { size: 9 }, color: '#73818c' }, ticks: { font: { size: 9 }, color: '#73818c' }, grid: { color: '#eef2f4' }, border: { display: false } }
+          // y-axis title dropped 2026-09-17 (per Jono's readability report)
+          // — "weight-gain change (kg/day)" is the same on every scatter on
+          // this page and the panel heading above each one already says
+          // what's being compared, so the title was chrome, not
+          // information; removing it gives the plot area back the vertical
+          // room a rotated title was eating into at this box height.
+          x: { title: { display: true, text: xUnit, font: { size: 10.5 }, color: '#73818c' }, ticks: { font: { size: 10.5 }, color: '#73818c', maxTicksLimit: 6 }, grid: { color: '#eef2f4' }, border: { display: false } },
+          y: { ticks: { font: { size: 10.5 }, color: '#73818c' }, grid: { color: '#eef2f4' }, border: { display: false } }
         }
       }
     });
