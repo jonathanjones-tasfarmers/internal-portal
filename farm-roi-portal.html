@@ -111,7 +111,13 @@
       }
       .roi-reset-btn:hover { color: var(--text-heading); border-color: var(--tf-seafeed); }
 
-      .roi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; align-items: start; }
+      /* One farm per full-width row (changed 2026-09-18, per Jono's call:
+         each card now carries two real charts plus everything else below
+         them, which was cramped at a 320px column width; a full-width row
+         also means the two charts can sit side by side using the extra
+         landscape space, better suited to pointing at one or the other
+         while walking a farmer through it). */
+      .roi-grid { display: flex; flex-direction: column; gap: 20px; }
 
       /* ---------- Farm card ---------- */
       .roi-card {
@@ -119,14 +125,14 @@
         border: 1px solid var(--border-subtle);
         border-top: 4px solid var(--tf-seafeed);
         border-radius: var(--radius-lg);
-        padding: 20px 22px 18px;
+        padding: 24px 28px 22px;
         box-shadow: var(--shadow-sm);
       }
       .roi-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
       .roi-name-input {
-        font-family: var(--font-display); font-size: 16px; font-weight: 700; color: var(--text-heading);
+        font-family: var(--font-display); font-size: 19px; font-weight: 700; color: var(--text-heading);
         border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent;
-        padding: 3px 6px; margin: -3px 0 0 -6px; width: 100%; max-width: 210px;
+        padding: 3px 6px; margin: -3px 0 0 -6px; width: 100%; max-width: 320px;
       }
       .roi-name-input:hover, .roi-name-input:focus { border-color: var(--border-default); background: var(--tf-white); outline: none; }
       .roi-remove-btn {
@@ -167,7 +173,7 @@
 
       .roi-inline-form { background: var(--surface-sunken); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px; margin-top: 10px; display: none; }
       .roi-inline-form.open { display: block; }
-      .roi-field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+      .roi-field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px 14px; }
       .roi-field { margin-bottom: 2px; }
       .roi-field-label { display: block; font-family: var(--font-display); font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
       .roi-field-input {
@@ -179,21 +185,27 @@
       .roi-field-group-label:first-child { margin-top: 0; }
       .roi-field-note { font-size: 10.5px; color: var(--text-muted); margin: 4px 0 0; line-height: 1.3; }
 
-      /* ---------- Add farm card ---------- */
+      /* ---------- Add farm bar ---------- (slim full-width strip, not a
+         tall box; changed 2026-09-18 alongside the one-row-per-farm
+         layout, so this doesn't loom as large as an actual farm card) */
       .roi-card-empty {
         border-top-color: var(--border-subtle); border-style: dashed; background: var(--surface-sunken);
-        display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
-        min-height: 200px; gap: 10px;
+        display: flex; flex-direction: row; align-items: center; justify-content: center;
+        gap: 14px; padding: 16px 22px;
       }
-      .roi-add-icon { width: 34px; height: 34px; border-radius: 50%; background: var(--tf-white); border: 1px solid var(--border-default); display: flex; align-items: center; justify-content: center; }
-      .roi-add-icon svg { width: 16px; height: 16px; stroke: var(--tf-seafeed); fill: none; stroke-width: 2.2; }
+      .roi-add-icon { width: 30px; height: 30px; border-radius: 50%; background: var(--tf-white); border: 1px solid var(--border-default); display: flex; align-items: center; justify-content: center; flex: none; }
+      .roi-add-icon svg { width: 14px; height: 14px; stroke: var(--tf-seafeed); fill: none; stroke-width: 2.2; }
       .roi-add-btn {
         font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--text-heading);
         background: var(--tf-white); border: 1px solid var(--border-default); border-radius: var(--radius-sm);
-        padding: 8px 14px; cursor: pointer;
+        padding: 8px 14px; cursor: pointer; flex: none;
       }
       .roi-add-btn:hover { border-color: var(--tf-seafeed); }
-      .roi-add-note { font-size: 12px; color: var(--text-muted); max-width: 220px; }
+      .roi-add-note { font-size: 12px; color: var(--text-muted); text-align: left; }
+      @media (max-width: 640px) {
+        .roi-card-empty { flex-direction: column; text-align: center; }
+        .roi-add-note { text-align: center; }
+      }
 
       /* ---------- Summary strip ---------- */
       .roi-summary { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 1px; background: var(--border-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 32px; }
@@ -206,37 +218,61 @@
       .roi-footer-note { font-family: var(--font-display); font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 40px; line-height: 1.7; }
       .roi-footer-note a { color: var(--tf-seafeed); }
 
-      /* ---------- Live check (added 2026-09-16, per Jono's call) ----------
-         Per-card panel comparing the REAL observed SeaFeed-vs-Control gain
-         (LEL_Economics_Data, same fair-comparison-window figures the Weight
-         Data page reads) against the $ contribution figure this page already
-         computes above it — the "is this farm actually on target" answer,
-         as opposed to the hypothetical roi-benefit-note's "what WOULD be
-         needed". Colour follows the site's standard mint=good/red=behind
-         convention; a farm with no live match or not enough data yet gets a
-         neutral/muted state rather than a false verdict. */
-      .roi-live-check { margin: 12px 0; padding: 14px 16px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); background: var(--surface-sunken); }
-      .roi-live-check.roi-live-mint { border-color: rgba(58,169,137,0.35); background: rgba(58,169,137,0.06); }
-      .roi-live-check.roi-live-red { border-color: rgba(192,57,43,0.28); background: rgba(192,57,43,0.05); }
-      .roi-live-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-      .roi-live-title { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
-      .roi-live-badge { font-family: var(--font-display); font-size: 10.5px; font-weight: 700; border-radius: 999px; padding: 3px 10px; flex: none; }
-      .roi-live-badge.mint { background: rgba(58,169,137,0.16); color: #1f6e56; }
-      .roi-live-badge.red { background: rgba(192,57,43,0.13); color: var(--tf-red); }
-      .roi-live-badge.muted { background: var(--border-subtle); color: var(--text-muted); }
-      .roi-live-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 4px 0; }
-      .roi-live-row + .roi-live-row { border-top: 1px solid var(--border-subtle); }
-      .roi-live-label { font-size: 12px; color: var(--text-muted); }
-      .roi-live-value { font-family: var(--font-display); font-size: 13.5px; font-weight: 700; color: var(--text-heading); white-space: nowrap; }
-      .roi-live-value.mint { color: var(--tf-seafeed); }
-      .roi-live-value.red { color: var(--tf-red); }
-      .roi-live-row.roi-live-headline .roi-live-label { font-size: 12.5px; color: var(--text-body); }
-      .roi-live-row.roi-live-headline .roi-live-value { font-size: 16px; }
-      .roi-live-note { font-size: 12px; color: var(--text-muted); line-height: 1.5; margin: 0; }
-      .roi-live-caveat { font-size: 10.5px; color: var(--text-muted); font-style: italic; line-height: 1.4; margin: 8px 0 0; }
+      /* ---------- Real-data charts (added 2026-09-18) ----------
+         Per Jono's call to replace the "everything is per-year" framing
+         with real month-by-month cost accrual and a farm-specific
+         ahead/behind-on-ROI line, see LEL_Economics_Data's own
+         cumulative_cost_aud / weight_gain_kg_per_head history. This block
+         is now the headline of each card; the old always-on annual
+         projection (.roi-annual-wrap below) is demoted underneath it. */
+      .roi-real-data { margin-bottom: 4px; }
+      .roi-real-data-stat { font-size: 14px; color: var(--text-body); line-height: 1.5; margin: 0 0 16px; }
+      .roi-real-data-stat b.mint { color: var(--tf-seafeed); }
+      .roi-real-data-stat b.red { color: var(--tf-red); }
+      .roi-real-data-title { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 6px; }
+      .roi-real-data-loading, .roi-real-data-empty { font-size: 12.5px; color: var(--text-muted); line-height: 1.5; background: var(--surface-sunken); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px 14px; margin: 0 0 12px; }
+      .roi-chart-box { position: relative; height: 210px; margin-bottom: 6px; }
+      .roi-chart-caption { font-size: 12px; color: var(--text-muted); line-height: 1.5; margin: 0; }
+      .roi-chart-caption b.mint { color: var(--tf-seafeed); }
+      .roi-chart-caption b.red { color: var(--tf-red); }
 
-      .roi-live-summary-wrap { margin-bottom: 28px; }
-      .roi-live-summary-note { font-size: 12px; color: var(--text-muted); margin: -6px 0 14px 2px; }
+      /* Two charts side by side once there's a full-width row to put them
+         in (see .roi-grid above); collapses to stacked under 900px so it
+         still works on a phone-sized screen in the paddock. */
+      .roi-real-data-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+      @media (max-width: 900px) {
+        .roi-real-data-charts { grid-template-columns: 1fr; gap: 20px; }
+      }
+
+      /* ---------- Demoted annual estimate (was the card's headline;
+         kept, still useful for a paddock conversation, but no longer the
+         first thing on the card) ---------- */
+      .roi-annual-wrap { margin: 4px 0 12px; }
+      .roi-annual-label { font-family: var(--font-display); font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 6px; }
+      .roi-annual-wrap .roi-results { margin-bottom: 8px; padding: 10px 12px; }
+      .roi-annual-wrap .roi-result-value { font-size: 13px; }
+      .roi-annual-wrap .roi-result-row.roi-headline .roi-result-value { font-size: 15px; }
+      .roi-annual-wrap .roi-benefit-note { font-size: 11.5px; padding: 8px 10px; margin-bottom: 0; }
+
+      /* ---------- Quick-glance monthly net-position strip ---------- */
+      .roi-monthly-wrap { margin-bottom: 32px; }
+      .roi-monthly-note { font-size: 12px; color: var(--text-muted); margin: -6px 0 14px 2px; }
+      .roi-monthly-table { width: 100%; border-collapse: collapse; background: var(--tf-white); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); overflow: hidden; }
+      .roi-monthly-table th { font-family: var(--font-display); font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; text-align: left; padding: 10px 14px; background: var(--surface-sunken); border-bottom: 1px solid var(--border-subtle); }
+      .roi-monthly-table th.num, .roi-monthly-table td.num { text-align: right; }
+      .roi-monthly-table td { font-size: 13px; padding: 10px 14px; border-bottom: 1px solid var(--border-subtle); white-space: nowrap; }
+      .roi-monthly-table tr:last-child td { border-bottom: none; }
+      .roi-monthly-table td.farm-name { font-family: var(--font-display); font-weight: 700; color: var(--text-heading); }
+      .roi-monthly-table td.mint { color: var(--tf-seafeed); font-weight: 700; }
+      .roi-monthly-table td.red { color: var(--tf-red); font-weight: 700; }
+      .roi-monthly-table td.muted { color: var(--text-muted); }
+      .roi-monthly-badge { font-family: var(--font-display); font-size: 10.5px; font-weight: 700; border-radius: 999px; padding: 3px 10px; }
+      .roi-monthly-badge.mint { background: rgba(58,169,137,0.16); color: #1f6e56; }
+      .roi-monthly-badge.red { background: rgba(192,57,43,0.13); color: var(--tf-red); }
+      .roi-monthly-badge.muted { background: var(--border-subtle); color: var(--text-muted); }
+      @media (max-width: 720px) {
+        .roi-monthly-table { display: block; overflow-x: auto; }
+      }
     </style>
   </head>
   <body>
@@ -246,23 +282,23 @@
       </div>
       <p class="roi-eyebrow">TasFarmers &middot; Low Emissions Livestock Project</p>
       <h1>Farm ROI</h1>
-      <p class="roi-hero-sub">What each cattle trial farm's SeaFeed co-contribution comes to at its current head count, and what needs to come back to the farmer to justify it. Built for conversations in the paddock &mdash; one card per farm, edit head count and assumptions on the spot.</p>
+      <p class="roi-hero-sub">Real SeaFeed cost accruing month by month at each trial farm, and whether the observed SeaFeed-vs-Control gain is currently ahead or behind that cost. Built for conversations in the paddock: one card per farm, edit head count and assumptions on the spot.</p>
     </div>
 
     <div class="roi-page">
       <div class="roi-alert-banner">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L14.71 3.86a2 2 0 0 0-3.42 0Z"></path></svg>
         <div class="roi-alert-banner-text">
-          <b>The producer contribution rate is not a fixed charge.</b> It's tied to the Producer Co-Contribution Principle: producers are only asked to contribute if the project can show a productivity, performance or price benefit of at least equivalent value. The <span class="roi-live-rate" id="live-rate-label">60.23%</span> figure below is the current project-wide rate (Project Budget!D86) &mdash; use it as the working number for a conversation, not a guarantee the farmer owes it.
+          <b>The producer contribution rate is not a fixed charge.</b> It's tied to the Producer Co-Contribution Principle: producers are only asked to contribute if the project can show a productivity, performance or price benefit of at least equivalent value. The <span class="roi-live-rate" id="live-rate-label">60.23%</span> figure below is the current project-wide rate (Project Budget!D86): use it as the working number for a conversation, not a guarantee the farmer owes it.
         </div>
       </div>
 
       <div class="roi-summary" id="roi-summary"></div>
 
-      <div class="roi-live-summary-wrap">
-        <p class="roi-section-label">Live check &middot; trial to date</p>
-        <p class="roi-live-summary-note" id="roi-live-summary-note">Loading live trial data&hellip;</p>
-        <div class="roi-summary" id="roi-live-summary"></div>
+      <div class="roi-monthly-wrap">
+        <p class="roi-section-label">Net position &middot; this month, at a glance</p>
+        <p class="roi-monthly-note" id="roi-monthly-note">Loading real cost &amp; benefit history&hellip;</p>
+        <div id="roi-monthly-strip"></div>
       </div>
 
       <div class="roi-section-row">
@@ -272,10 +308,11 @@
       <div class="roi-grid" id="roi-grid"></div>
 
       <p class="roi-footer-note">
-        SeaFeed cost, contribution rate and benefit-pathway defaults reproduce the live TLEL Project Budget model (Supplement Costs, Farmer Break-Even, Project Budget sheets, as at 8 Sep 2026). Head counts default to each farm's 2026 deployment from the Beef Farm Head/Mob table &mdash; edit them to match what's actually on the ground when you're talking to a farmer. Dose auto-fills per farm from the Lick Block Tracker's own measured consumption rate (LEL_Lick_Block_Usage_History), not a flat trial-wide assumption &mdash; edit it once and this page stops touching it. Sale price auto-fills from the MLA National Heavy Steer Indicator (a national figure, override it with local knowledge) &mdash; edit it once and this page stops touching it. The Live check panels compare that against the real SeaFeed-vs-Control gain from LEL_Economics_Data &mdash; trial evidence to date, not a guarantee, see the caveat on each card. Cards and any farms you add are saved in this browser only.
+        The "SeaFeed gaining Xg/day" stat, the cost-accrual chart, the ahead/behind line and the monthly snapshot strip all read real history from LEL_Economics_Data (cumulative_cost_aud and weight_gain_kg_per_head, one row per farm/treatment per day since that farm's trial start): genuine SeaFeed cost accrued from real lick blocks fed out and real observed weight gain, not a projection, and this is the page's only "ahead or behind" verdict. The farmer/grant split on the cost chart, and every "net" figure, apply each card's own Contribution rate (%) assumption to that real cost: edit it in Adjust assumptions if the project-wide rate changes, and every real-data figure on the card updates together. Sale price (used to value the ADG advantage) auto-fills from the MLA National Heavy Steer Indicator: edit it once and this page stops touching it. The separate "Modelled annual estimate" block on each card is a projection from the assumptions in Adjust assumptions (dose &times; price &times; visitation &times; 365), useful for "what would justify this" conversations, but it won't match the real cumulative figure above it unless every assumption happens to hold exactly, and it carries no verdict of its own. SeaFeed cost, contribution rate and benefit-pathway defaults in that modelled estimate reproduce the live TLEL Project Budget model (Supplement Costs, Farmer Break-Even, Project Budget sheets, as at 8 Sep 2026). Head counts default to each farm's 2026 deployment from the Beef Farm Head/Mob table: edit them to match what's actually on the ground when you're talking to a farmer. Dose auto-fills per farm from the Lick Block Tracker's own measured consumption rate (LEL_Lick_Block_Usage_History): edit it once and this page stops touching it. Cards and any farms you add are saved in this browser only.
       </p>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <script>
     (function () {
       var STORAGE_KEY = 'lel-farm-roi-cards-v1';
@@ -287,7 +324,7 @@
         contributionRate: 60.23, // % (live rate, Project Budget!D86)
         carryingCost: 1.00,   // $/head/day
         saleWeight: 500,      // kg/head
-        salePrice: 4.00,      // $/kg liveweight — fallback until the MLA fetch below resolves
+        salePrice: 4.00,      // $/kg liveweight; fallback until the MLA fetch below resolves
         salePriceAuto: true,  // true = this card's salePrice tracks the live MLA fetch; flips to false the moment a user types their own number in, see the input handler below
         doseAuto: true        // true = this card's dose tracks the live Lick Block Tracker rate for its farm name; flips to false on manual edit, same pattern as salePriceAuto
       };
@@ -305,7 +342,7 @@
         });
       }
 
-      // Cards saved before 2026-09-16 won't have salePriceAuto in storage —
+      // Cards saved before 2026-09-16 won't have salePriceAuto in storage;
       // normalize() backfills it as true (still auto-following) on load, so
       // an old browser's saved cards still pick up the live MLA price
       // instead of being silently stuck on whatever the default happened to
@@ -338,41 +375,25 @@
       var openForms = {};
 
       // ============================================================
-      // LIVE DATA — added 2026-09-16, per Jono's call to check real
+      // LIVE DATA: added 2026-09-16, per Jono's call to check real
       // productivity gains against the contribution rate rather than just
-      // the hypothetical "what would be needed" benefit-note below. Two
-      // independent fetches, each failing gracefully to its own fallback
-      // (an empty econByFarm just means every card shows "not enough live
+      // the hypothetical "what would be needed" benefit-note below.
+      // Independent fetches, each failing gracefully to its own fallback
+      // (an empty econHistoryByFarm just means every card shows "no live
       // data yet"; a failed MLA fetch just leaves salePrice on its $4.00
-      // default) — neither blocks the page's existing offline/localStorage
+      // default); neither blocks the page's existing offline/localStorage
       // behaviour, which renders immediately from cached cards regardless.
       // ============================================================
       var ECON_URL = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Economics_Data/FeatureServer/0/query";
       var AGGREGATE_LABEL = "All Farms (Trial Aggregate)";
-      var econByFarm = {};
-      var econReady = false;
       var mlaPriceDate = null;
       var mlaFetchFailed = false;
-
-      function fetchEconLatest() {
-        return fetch(ECON_URL + "?" + new URLSearchParams({
-          where: "farm_name<>'" + AGGREGATE_LABEL + "' AND treatment IN ('seafeed','control')",
-          outFields: "farm_name,treatment,weight_gain_kg_per_head,days_of_data,calculation_date",
-          orderByFields: "calculation_date DESC", resultRecordCount: "2000", f: "json"
-        })).then(function (res) { return res.json(); }).then(function (data) {
-          var latest = {};
-          (data.features || []).forEach(function (f) {
-            var a = f.attributes, farm = a.farm_name, t = a.treatment;
-            if (!farm || !t) return;
-            if (!latest[farm]) latest[farm] = {};
-            if (!latest[farm][t]) latest[farm][t] = a; // first row per (farm,treatment) since ordered DESC = most recent
-          });
-          return latest;
-        }).catch(function (err) { console.error('Economics fetch failed:', err); return {}; });
-      }
+      var econHistoryByFarm = {}; // { farm: { seafeed: [...], control: [...] } }; see fetchEconHistory() below
+      var econHistoryReady = false;
+      var monthlyCharts = {}; // { canvasId: Chart instance }; tracked so a re-render can destroy the old chart before drawing a new one, same reason Chart.js needs this anywhere a canvas gets redrawn
 
       // Same MLA Statistics API this page's sibling calculator
-      // (seafeed-cost-of-production-calculator.html) already uses — free,
+      // (seafeed-cost-of-production-calculator.html) already uses: free,
       // no key, indicatorID 4 = National Heavy Steer Indicator, c/kg
       // liveweight. National, not Tasmania-specific (see that file's own
       // comment for why); always shown as an editable starting point.
@@ -392,11 +413,11 @@
         }).catch(function (err) { console.error('MLA price fetch failed:', err); return null; });
       }
 
-      // Real per-farm SeaFeed dose rate, added 2026-09-17 per Jono's call —
+      // Real per-farm SeaFeed dose rate, added 2026-09-17 per Jono's call:
       // instead of every card assuming the same 150g/head/day, pull what
       // each farm's own lick blocks are actually delivering. Same table
       // (LEL_Lick_Block_Usage_History) and field the Lick Block Tracker
-      // page headlines, one row per (farm, treatment) per day —
+      // page headlines, one row per (farm, treatment) per day;
       // avg_consumption_g_per_hd_day there is already the pipeline's
       // "most recent closed interval, not an all-time average" figure (see
       // 06. Lick_Block_Portal_Feed.py's own comment on that field), so the
@@ -422,6 +443,242 @@
           });
           return latest;
         }).catch(function (err) { console.error('Lick Block dose-rate fetch failed:', err); return {}; });
+      }
+
+      // ------------------------------------------------------------
+      // ECONOMICS HISTORY: added 2026-09-18, per Jono's call to replace
+      // the "everything is per-year" framing with real month-by-month
+      // accrual and a farm-specific ahead/behind-on-ROI line over time.
+      // This became the page's single source for "is this farm on target":
+      // an earlier "Live check" panel compared real ADG gain against the
+      // MODELLED annual cost and was removed 2026-09-18 (see the audit
+      // note near computeCurrentAdvantage below) once this full history,
+      // built on REAL cost, could answer the same question more accurately
+      // without a second, occasionally-disagreeing verdict on the page.
+      //
+      // Turns out no new AGOL table was needed for this: cumulative_cost_aud
+      // and weight_gain_kg_per_head are ALREADY a genuine daily-accruing
+      // series per farm, going back to that farm's trial start (04.
+      // Economics_Pipeline.py writes one row per farm/treatment per day,
+      // built from real lick blocks fed out; confirmed live, e.g. Bowood
+      // runs $62 -> $3,671 across 137 real rows since April). This fetch
+      // just asks for the whole history instead of only the latest point.
+      // ------------------------------------------------------------
+      function fetchEconHistory() {
+        return fetch(ECON_URL + "?" + new URLSearchParams({
+          where: "farm_name<>'" + AGGREGATE_LABEL + "' AND treatment IN ('seafeed','control')",
+          outFields: "farm_name,treatment,calculation_date,cumulative_cost_aud,representative_head_count,weight_gain_kg_per_head,days_of_data",
+          orderByFields: "farm_name ASC, treatment ASC, calculation_date ASC",
+          resultRecordCount: "4000", f: "json"
+        })).then(function (res) { return res.json(); }).then(function (data) {
+          var byFarm = {}; // { farm: { seafeed: [rows asc by date], control: [rows asc by date] } }
+          (data.features || []).forEach(function (f) {
+            var a = f.attributes, farm = a.farm_name, t = a.treatment;
+            if (!farm || !t) return;
+            if (!byFarm[farm]) byFarm[farm] = { seafeed: [], control: [] };
+            if (byFarm[farm][t]) byFarm[farm][t].push(a);
+          });
+          return byFarm;
+        }).catch(function (err) { console.error('Economics history fetch failed:', err); return {}; });
+      }
+
+      // ------------------------------------------------------------
+      // DATE / MONTH HELPERS: local (browser) time throughout, same as
+      // every date this page already formats; month-level bucketing
+      // doesn't need UTC day-boundary precision the way weight-data-portal's
+      // lag correlation does.
+      // ------------------------------------------------------------
+      function dayKey(ms) { var d = new Date(ms); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+      function monthKey(ms) { var d = new Date(ms); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+      function monthLabel(key) {
+        var parts = key.split('-');
+        return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, 1).toLocaleDateString('en-AU', { month: 'short' });
+      }
+      function monthEndMs(key) {
+        var parts = key.split('-');
+        return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10), 1).getTime() - 1; // last ms of that month
+      }
+      function addMonths(key, n) {
+        var parts = key.split('-');
+        var d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1 + n, 1);
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      }
+      var MAX_CHART_MONTHS = 12; // "a stacked column graph over 12 months", per Jono's call
+
+      // Generic month-bucketer for any cumulative (or net, which can move
+      // either way) running series; used for cost, benefit and net alike,
+      // so all three read off the exact same bucketing logic and can never
+      // quietly disagree about which days belong to which month.
+      // points: [{ms, value}], sorted ascending, value = the running total
+      // as of ms (0 is assumed before the series' own first point, correct
+      // for cost/benefit/net alike since all three are genuinely zero
+      // before a farm's trial start).
+      function monthlyDeltas(points) {
+        if (!points.length) return [];
+        var firstKey = monthKey(points[0].ms), lastKey = monthKey(points[points.length - 1].ms);
+        var months = [];
+        var k = firstKey;
+        while (true) { months.push(k); if (k === lastKey) break; k = addMonths(k, 1); }
+
+        var out = [], prevVal = 0, idx = 0;
+        months.forEach(function (mKey) {
+          var endMs = monthEndMs(mKey);
+          var valAtEnd = prevVal;
+          while (idx < points.length && points[idx].ms <= endMs) { valAtEnd = points[idx].value; idx++; }
+          out.push({ monthKey: mKey, label: monthLabel(mKey), delta: valAtEnd - prevVal, cumAtEnd: valAtEnd });
+          prevVal = valAtEnd;
+        });
+        return out;
+      }
+
+      // Real per-farm SeaFeed cost, bucketed to calendar months and capped
+      // to the most recent MAX_CHART_MONTHS; trimmed AFTER computing
+      // deltas across the farm's FULL history (not before), so an
+      // established farm's 13th month onward doesn't inherit an inflated
+      // first-shown-month delta that secretly includes everything that
+      // accrued earlier. delta is clamped >= 0 for display only: a real
+      // data correction could in principle nudge a cumulative figure down,
+      // and a negative "cost this month" bar would be nonsensical.
+      function monthlyCostAccrual(sfRows) {
+        var points = sfRows.filter(function (r) { return r.cumulative_cost_aud != null; })
+          .map(function (r) { return { ms: r.calculation_date, value: r.cumulative_cost_aud }; });
+        var monthly = monthlyDeltas(points);
+        monthly.forEach(function (m) { m.delta = Math.max(0, m.delta); });
+        return monthly.length > MAX_CHART_MONTHS ? monthly.slice(monthly.length - MAX_CHART_MONTHS) : monthly;
+      }
+
+      // Day-matched SeaFeed vs Control running series -> cumulative $
+      // benefit (extra kg gained so far, valued at the card's sale price)
+      // and the farmer's own cumulative cost (gross cost x contribution
+      // rate; the farmer's real share, not the full gross figure).
+      // net = benefit - farmerCost is what answers "ahead or behind on
+      // ROI, right now": this is the single calc the line graph, the
+      // per-card caption and the monthly snapshot strip all read from, so
+      // none of them can quietly disagree with each other.
+      function buildNetPositionSeries(sfRows, ctRows, salePrice, contributionRate) {
+        var ctByDay = {};
+        ctRows.forEach(function (r) { if (r.weight_gain_kg_per_head != null) ctByDay[dayKey(r.calculation_date)] = r; });
+
+        var rateFrac = contributionRate / 100;
+        var byDay = {}; // last row wins for a given day (sfRows is sorted asc, so "last" = most recent/complete for that day)
+        sfRows.forEach(function (sf) {
+          if (sf.weight_gain_kg_per_head == null || sf.cumulative_cost_aud == null) return;
+          var day = dayKey(sf.calculation_date);
+          var ct = ctByDay[day];
+          if (!ct) return;
+          var extraKgCumulative = sf.weight_gain_kg_per_head - ct.weight_gain_kg_per_head;
+          var headCount = sf.representative_head_count || 0;
+          var benefit = extraKgCumulative * headCount * salePrice;
+          var grossCost = sf.cumulative_cost_aud;
+          var farmerCost = grossCost * rateFrac;
+          byDay[day] = { day: day, ms: sf.calculation_date, benefit: benefit, grossCost: grossCost, farmerCost: farmerCost, net: benefit - farmerCost };
+        });
+        return Object.keys(byDay).sort().map(function (d) { return byDay[d]; });
+      }
+
+      // "This month, so far" figures for the quick-glance strip; reuses
+      // monthlyDeltas() on the SAME benefit/farmerCost/net series the line
+      // graph plots, so the strip and the per-farm chart can never disagree.
+      function computeMonthlySnapshot(netSeries) {
+        if (!netSeries.length) return null;
+        var benefitMonthly = monthlyDeltas(netSeries.map(function (p) { return { ms: p.ms, value: p.benefit }; }));
+        var costMonthly = monthlyDeltas(netSeries.map(function (p) { return { ms: p.ms, value: p.farmerCost }; }));
+        var netMonthly = monthlyDeltas(netSeries.map(function (p) { return { ms: p.ms, value: p.net }; }));
+        var last = netMonthly.length - 1;
+        return {
+          label: netMonthly[last].label,
+          valueGenerated: benefitMonthly[last].delta,
+          netCost: costMonthly[last].delta,
+          net: netMonthly[last].delta
+        };
+      }
+
+      // Same palette tokens as the page's own CSS custom properties, mirrored
+      // here since Chart.js reads plain JS strings, not CSS vars.
+      var MINT = '#3aa989', SLATE = '#a9b8c4', RED = '#c0392b', SLATE_600 = '#5c6e7d';
+
+      // ------------------------------------------------------------
+      // CHARTS: monthly cost accrual (stacked column) and the cumulative
+      // net-position line ("ahead or behind on ROI, right now"). Both
+      // destroy any previous Chart.js instance on their canvas first, same
+      // as every other chart-refresh pattern on this site, so re-rendering
+      // a card after an assumption change doesn't leak or stack instances.
+      // ------------------------------------------------------------
+      function destroyChart(canvasId) {
+        if (monthlyCharts[canvasId]) { monthlyCharts[canvasId].destroy(); delete monthlyCharts[canvasId]; }
+      }
+
+      function renderCostAccrualChart(canvasId, monthlyRows, contributionRate) {
+        destroyChart(canvasId);
+        var canvas = document.getElementById(canvasId);
+        if (!canvas || !monthlyRows.length) return;
+        var rateFrac = contributionRate / 100;
+        var labels = monthlyRows.map(function (m) { return m.label; });
+        var farmerShare = monthlyRows.map(function (m) { return Math.round(m.delta * rateFrac * 100) / 100; });
+        var grantShare = monthlyRows.map(function (m) { return Math.round(m.delta * (1 - rateFrac) * 100) / 100; });
+
+        monthlyCharts[canvasId] = new Chart(canvas.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [
+              { label: 'Farmer contribution', data: farmerShare, backgroundColor: SLATE_600, borderRadius: 2, maxBarThickness: 34, stack: 's' },
+              { label: 'Grant-covered', data: grantShare, backgroundColor: MINT, borderRadius: 2, maxBarThickness: 34, stack: 's' }
+            ]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: { display: true, position: 'top', align: 'end', labels: { boxWidth: 6, usePointStyle: true, pointStyle: 'circle', font: { size: 10.5 }, color: '#73818c' } },
+              tooltip: { callbacks: { label: function (ctx) { return ctx.dataset.label + ': $' + ctx.parsed.y.toLocaleString('en-AU', { maximumFractionDigits: 0 }); } } }
+            },
+            scales: {
+              x: { stacked: true, ticks: { font: { size: 10.5 }, color: '#73818c' }, grid: { display: false }, border: { display: false } },
+              y: { stacked: true, ticks: { font: { size: 10.5 }, color: '#73818c', callback: function (v) { return '$' + v.toLocaleString('en-AU'); } }, grid: { color: '#eef2f4' }, border: { display: false } }
+            }
+          }
+        });
+      }
+
+      // Zero-baseline line, coloured per-segment by sign (mint = ahead,
+      // coral = behind): the same "single delta line, segment-coloured
+      // shading" pattern the dashboard-design guidance calls for over two
+      // raw overlapping lines, since a reader would otherwise have to do
+      // the SeaFeed-minus-cost subtraction in their head.
+      function renderNetPositionChart(canvasId, netSeries) {
+        destroyChart(canvasId);
+        var canvas = document.getElementById(canvasId);
+        if (!canvas || netSeries.length < 2) return;
+        var labels = netSeries.map(function (p) { return new Date(p.ms).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }); });
+        var data = netSeries.map(function (p) { return Math.round(p.net); });
+
+        function segColor(ctx) {
+          var y0 = ctx.p0.parsed.y, y1 = ctx.p1.parsed.y;
+          if (y0 >= 0 && y1 >= 0) return MINT;
+          if (y0 < 0 && y1 < 0) return RED;
+          return SLATE; // crossing zero between these two points; neutral rather than picking a side
+        }
+
+        monthlyCharts[canvasId] = new Chart(canvas.getContext('2d'), {
+          type: 'line',
+          data: { labels: labels, datasets: [{ data: data, borderWidth: 2, pointRadius: 0, tension: 0, segment: { borderColor: segColor }, borderColor: MINT }] },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: { callbacks: { label: function (ctx) { return (ctx.parsed.y >= 0 ? '+' : '−') + '$' + Math.abs(ctx.parsed.y).toLocaleString('en-AU'); } } }
+            },
+            scales: {
+              x: { ticks: { font: { size: 10.5 }, color: '#73818c', maxTicksLimit: 6 }, grid: { display: false }, border: { display: false } },
+              y: {
+                ticks: { font: { size: 10.5 }, color: '#73818c', callback: function (v) { return (v >= 0 ? '+' : '−') + '$' + Math.abs(v).toLocaleString('en-AU'); } },
+                grid: { color: function (ctx) { return ctx.tick.value === 0 ? '#a9b8c4' : '#eef2f4'; } },
+                border: { display: false }
+              }
+            }
+          }
+        });
       }
 
       function fmt(v, d) {
@@ -462,75 +719,37 @@
       }
 
       // ------------------------------------------------------------
-      // LIVE CHECK — the real-data counterpart to the hypothetical
-      // roi-benefit-note above: instead of "what WOULD need to come back",
-      // this is "what HAS come back so far, on the actual trial data".
-      //
-      // Matched to a live farm purely by the card's current name string
-      // (same farm_name values as every other Staff Portal page) — a
-      // renamed or hypothetical "Add farm" card just shows "no live data
-      // for this name" rather than erroring.
-      //
-      // Advantage math reuses computeAdgPct()'s exact methodology from
-      // weight-data-portal.html: each treatment's own weight_gain_kg_per_head
-      // divided by its OWN days_of_data (never a shared min()), because
-      // SeaFeed and Control units at a farm can have slightly different
-      // amounts of reading history even within the Economics pipeline's
-      // shared fair-comparison-start window (data gaps affect each
-      // independently). The g/day advantage is then annualised (x365) and
-      // valued at this card's own sale price, so it lands in the exact same
-      // "$/head/year" unit the contribution-required figure above is
-      // already expressed in — makes the two directly comparable without
-      // introducing a second convention.
+      // AUDIT NOTE, 2026-09-18: this page used to carry a separate "Live
+      // Check" panel (per card) plus a "Live check · trial to date" strip
+      // at the top, comparing the real observed SeaFeed-vs-Control gain
+      // against the MODELLED annual cost (compute().contributionPerHead:
+      // dose x price x visitation x 365, not a real dollar figure). That
+      // made sense as a stop-gap on 2026-09-16, before real cost history
+      // existed to compare against. Two days later this file grew a
+      // genuinely real cost-benefit chart (below) built on ACTUAL accrued
+      // cost, and the two verdicts could disagree (different cost basis,
+      // different time framing: one a $/head/yr rate, the other a real
+      // cumulative $ total), which is exactly the kind of contradiction
+      // that would undermine a conversation with a farmer over real money.
+      // Removed for that reason. The one genuinely useful, non-duplicated
+      // thing Live Check surfaced (the observed SeaFeed advantage in
+      // g/day, an easy stat to say out loud) is kept below, computed
+      // straight from the same history the real charts already use, with
+      // no second dollar verdict attached to it.
       // ------------------------------------------------------------
-      function computeLiveCheck(card) {
-        if (!econReady) return { status: 'loading' };
-        var econ = econByFarm[card.name];
-        if (!econ) return { status: 'no-match' };
-        var sf = econ.seafeed, ct = econ.control;
-        if (!sf || !ct || sf.weight_gain_kg_per_head == null || ct.weight_gain_kg_per_head == null || !sf.days_of_data || !ct.days_of_data) {
-          return { status: 'no-data' };
+      function currentAdvantageGPerDay(hist) {
+        var ctByDay = {};
+        hist.control.forEach(function (r) { if (r.weight_gain_kg_per_head != null && r.days_of_data) ctByDay[dayKey(r.calculation_date)] = r; });
+        for (var i = hist.seafeed.length - 1; i >= 0; i--) {
+          var sf = hist.seafeed[i];
+          if (sf.weight_gain_kg_per_head == null || !sf.days_of_data) continue;
+          var ct = ctByDay[dayKey(sf.calculation_date)];
+          if (!ct) continue;
+          var sfRate = (sf.weight_gain_kg_per_head / sf.days_of_data) * 1000;
+          var ctRate = (ct.weight_gain_kg_per_head / ct.days_of_data) * 1000;
+          return { advantageGPerDay: sfRate - ctRate, days: Math.min(sf.days_of_data, ct.days_of_data) };
         }
-        var sfRateGPerDay = (sf.weight_gain_kg_per_head / sf.days_of_data) * 1000;
-        var ctRateGPerDay = (ct.weight_gain_kg_per_head / ct.days_of_data) * 1000;
-        var advantageGPerDay = sfRateGPerDay - ctRateGPerDay;
-        var advantageKgPerYear = (advantageGPerDay / 1000) * 365;
-        var valueGeneratedPerYear = advantageKgPerYear * card.salePrice;
-        var r = compute(card);
-        var netPerYear = valueGeneratedPerYear - r.contributionPerHead;
-        return {
-          status: netPerYear >= 0 ? 'on-target' : 'below-target',
-          advantageGPerDay: advantageGPerDay,
-          valueGeneratedPerYear: valueGeneratedPerYear,
-          contributionPerHead: r.contributionPerHead,
-          netPerYear: netPerYear,
-          minDays: Math.min(sf.days_of_data, ct.days_of_data)
-        };
-      }
-
-      function liveCheckHtml(card) {
-        var lc = computeLiveCheck(card);
-        if (lc.status === 'loading') {
-          return '<div class="roi-live-check"><div class="roi-live-head"><span class="roi-live-title">Live check</span><span class="roi-live-badge muted">Loading&hellip;</span></div></div>';
-        }
-        if (lc.status === 'no-match') {
-          return '<div class="roi-live-check"><div class="roi-live-head"><span class="roi-live-title">Live check</span><span class="roi-live-badge muted">No live data</span></div>' +
-            '<p class="roi-live-note">No trial data found under the farm name &ldquo;' + escapeAttr(card.name) + '&rdquo;. Rename this card to match a live trial farm to compare against real weight data.</p></div>';
-        }
-        if (lc.status === 'no-data') {
-          return '<div class="roi-live-check"><div class="roi-live-head"><span class="roi-live-title">Live check</span><span class="roi-live-badge muted">Not enough live data yet</span></div>' +
-            '<p class="roi-live-note">Needs at least 14 days of paired SeaFeed/Control weight readings since the fair-comparison start before a real comparison shows here.</p></div>';
-        }
-        var badgeClass = lc.status === 'on-target' ? 'mint' : 'red';
-        var badgeText = lc.status === 'on-target' ? 'On target' : 'Below target';
-        return '<div class="roi-live-check roi-live-' + badgeClass + '">' +
-          '<div class="roi-live-head"><span class="roi-live-title">Live check &middot; trial to date</span><span class="roi-live-badge ' + badgeClass + '">' + badgeText + '</span></div>' +
-          '<div class="roi-live-row"><span class="roi-live-label">Observed SeaFeed advantage</span><span class="roi-live-value tabular">' + (lc.advantageGPerDay >= 0 ? '+' : '') + fmt(lc.advantageGPerDay, 0) + 'g/day</span></div>' +
-          '<div class="roi-live-row"><span class="roi-live-label">Value at ' + cur(card.salePrice) + '/kg (annualised)</span><span class="roi-live-value tabular">' + cur(lc.valueGeneratedPerYear, 0) + '/head/yr</span></div>' +
-          '<div class="roi-live-row"><span class="roi-live-label">Contribution required</span><span class="roi-live-value tabular">' + cur(lc.contributionPerHead, 0) + '/head/yr</span></div>' +
-          '<div class="roi-live-row roi-live-headline"><span class="roi-live-label">Net position</span><span class="roi-live-value tabular ' + (lc.netPerYear >= 0 ? 'mint' : 'red') + '">' + (lc.netPerYear >= 0 ? '+' : '−') + cur(Math.abs(lc.netPerYear), 0) + '/head/yr</span></div>' +
-          '<p class="roi-live-caveat">Based on the observed SeaFeed vs Control gain to date (' + lc.minDays + ' days) &mdash; current trial evidence, not a guarantee. Moves as more data comes in, treat it as a conversation starter, not the final word.</p>' +
-          '</div>';
+        return null; // no matched SeaFeed/Control day with both past the pipeline's own warm-up gate yet
       }
 
       function updateSummary() {
@@ -549,48 +768,144 @@
           '<div class="roi-summary-item"><div class="rs-label">Combined contribution needed</div><div class="rs-value tabular" style="color:var(--tf-seafeed)">' + cur(totalContribution, 0) + '</div><div class="rs-note">at each card’s own rate</div></div>';
       }
 
-      // Roll-up of the SAME per-card live-check figures, across only the
-      // cards that actually matched a live farm with enough data — a card
-      // with no match/not-enough-data is excluded from the totals rather
-      // than silently counted as zero, so the roll-up never understates
-      // the position by diluting it with farms that just don't have a
-      // verdict yet.
-      function updateLiveSummary() {
-        var el = document.getElementById('roi-live-summary');
-        var noteEl = document.getElementById('roi-live-summary-note');
+      // ------------------------------------------------------------
+      // QUICK-GLANCE MONTHLY STRIP: added 2026-09-18, per Jono's call for
+      // "a quick glance monthly snapshot of the net position of EACH
+      // farm": one row per farm, all visible together, rather than
+      // something buried inside each card. Reads computeMonthlySnapshot()
+      // on the exact same netSeries the per-card line graph plots, so this
+      // strip and a card's own chart can never quietly disagree.
+      // ------------------------------------------------------------
+      function updateMonthlySnapshotStrip() {
+        var wrap = document.getElementById('roi-monthly-strip');
+        var noteEl = document.getElementById('roi-monthly-note');
 
-        if (!econReady) {
-          el.innerHTML = '';
-          noteEl.textContent = 'Loading live trial data…';
+        if (!econHistoryReady) {
+          wrap.innerHTML = '';
+          noteEl.textContent = 'Loading real cost & benefit history…';
           return;
         }
 
-        var matched = 0, totalValue = 0, totalRequired = 0, onTarget = 0, belowTarget = 0;
+        var rows = [];
         cards.forEach(function (c) {
-          var lc = computeLiveCheck(c);
-          if (lc.status !== 'on-target' && lc.status !== 'below-target') return;
-          matched++;
-          totalValue += lc.valueGeneratedPerYear;
-          totalRequired += lc.contributionPerHead;
-          if (lc.status === 'on-target') onTarget++; else belowTarget++;
+          var hist = econHistoryByFarm[c.name];
+          if (!hist || !hist.seafeed.length) return;
+          var netSeries = buildNetPositionSeries(hist.seafeed, hist.control, c.salePrice, c.contributionRate);
+          var snap = computeMonthlySnapshot(netSeries);
+          if (!snap) return;
+          rows.push({ name: c.name, snap: snap });
         });
 
-        if (!matched) {
-          el.innerHTML = '';
-          noteEl.textContent = 'No cards have matched a live trial farm with enough data yet (needs 14+ days of paired SeaFeed/Control readings).';
+        if (!rows.length) {
+          wrap.innerHTML = '';
+          noteEl.textContent = 'No cards have matched a live trial farm with enough real cost & weight-gain history yet.';
           return;
         }
 
-        var net = totalValue - totalRequired;
-        noteEl.textContent = mlaFetchFailed
-          ? 'Live MLA sale price unavailable this load — figures below use the $4.00/kg fallback (or whatever you’ve typed per card).'
-          : 'Sale price auto-filled from the ' + MLA_INDICATOR_LABEL + (mlaPriceDate ? ', ' + new Date(mlaPriceDate + 'T00:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) : '') + '.';
+        noteEl.textContent = 'Value generated and net cost are both "this month so far": figures grow through the month as more data lands, same as the charts below.';
 
-        el.innerHTML =
-          '<div class="roi-summary-item"><div class="rs-label">Farms with a live verdict</div><div class="rs-value tabular">' + matched + '</div><div class="rs-note">' + onTarget + ' on target &middot; ' + belowTarget + ' below</div></div>' +
-          '<div class="roi-summary-item"><div class="rs-label">Combined value generated</div><div class="rs-value tabular">' + cur(totalValue, 0) + '</div><div class="rs-note">observed gain, annualised</div></div>' +
-          '<div class="roi-summary-item"><div class="rs-label">Combined contribution required</div><div class="rs-value tabular">' + cur(totalRequired, 0) + '</div><div class="rs-note">at each card’s own rate</div></div>' +
-          '<div class="roi-summary-item"><div class="rs-label">Net position</div><div class="rs-value tabular" style="color:' + (net >= 0 ? 'var(--tf-seafeed)' : 'var(--tf-red)') + '">' + (net >= 0 ? '+' : '−') + cur(Math.abs(net), 0) + '</div><div class="rs-note">across matched farms</div></div>';
+        wrap.innerHTML =
+          '<table class="roi-monthly-table">' +
+            '<thead><tr><th>Farm</th><th>Month</th><th class="num">Value generated</th><th class="num">Net cost (after contribution rate)</th><th class="num">Net position</th><th></th></tr></thead>' +
+            '<tbody>' +
+              rows.map(function (row) {
+                var s = row.snap;
+                var ahead = s.net >= 0;
+                return '<tr>' +
+                  '<td class="farm-name">' + escapeAttr(row.name) + '</td>' +
+                  '<td class="muted">' + s.label + '</td>' +
+                  '<td class="num tabular">' + cur(s.valueGenerated, 0) + '</td>' +
+                  '<td class="num tabular">' + cur(s.netCost, 0) + '</td>' +
+                  '<td class="num tabular ' + (ahead ? 'mint' : 'red') + '">' + (ahead ? '+' : '−') + cur(Math.abs(s.net), 0) + '</td>' +
+                  '<td><span class="roi-monthly-badge ' + (ahead ? 'mint' : 'red') + '">' + (ahead ? 'Ahead' : 'Behind') + '</span></td>' +
+                '</tr>';
+              }).join('') +
+            '</tbody>' +
+          '</table>';
+      }
+
+      // Draws (or redraws) the cost-accrual + net-position charts for
+      // EVERY card, once real canvases exist in the DOM. No-op until
+      // econHistoryReady; called again once it flips true, same
+      // "render immediately, layer live data on once it resolves" pattern
+      // the rest of this page already follows for doseByFarm.
+      function renderAllRealDataCharts() {
+        if (!econHistoryReady) return;
+        cards.forEach(function (c, idx) {
+          var hist = econHistoryByFarm[c.name];
+          if (!hist || !hist.seafeed.length) return;
+          renderCostAccrualChart('roi-cost-chart-' + idx, monthlyCostAccrual(hist.seafeed), c.contributionRate);
+          var netSeries = buildNetPositionSeries(hist.seafeed, hist.control, c.salePrice, c.contributionRate);
+          if (netSeries.length >= 2) renderNetPositionChart('roi-net-chart-' + idx, netSeries);
+        });
+      }
+
+      // ------------------------------------------------------------
+      // REAL-DATA SECTION: the headline of each card, and the ONE place
+      // this page answers "is this farm ahead or behind". Same
+      // loading/no-match/not-enough-data ladder this page uses for
+      // anything backed by a live fetch, plus a genuinely-empty state for
+      // a farm whose history exists but is too short to plot an
+      // ahead/behind line yet.
+      // ------------------------------------------------------------
+      function realDataSectionHtml(c, idx) {
+        if (!econHistoryReady) {
+          return '<div class="roi-real-data"><p class="roi-real-data-loading">Loading real SeaFeed cost &amp; benefit history&hellip;</p></div>';
+        }
+        var hist = econHistoryByFarm[c.name];
+        if (!hist || !hist.seafeed.length) {
+          return '<div class="roi-real-data"><p class="roi-real-data-empty">No live SeaFeed cost history found under the farm name &ldquo;' + escapeAttr(c.name) + '&rdquo; yet. Rename this card to match a live trial farm, or check back once it has logged Lick Block data.</p></div>';
+        }
+
+        var advantage = currentAdvantageGPerDay(hist);
+        var advantageLine = advantage
+          ? '<p class="roi-real-data-stat">Right now: SeaFeed gaining <b class="' + (advantage.advantageGPerDay >= 0 ? 'mint' : 'red') + '">' + (advantage.advantageGPerDay >= 0 ? '+' : '−') + fmt(Math.abs(advantage.advantageGPerDay), 0) + 'g/day</b> ' + (advantage.advantageGPerDay >= 0 ? 'more' : 'less') + ' than Control (' + advantage.days + ' days of paired data)</p>'
+          : '<p class="roi-real-data-stat">Not enough paired SeaFeed/Control weight data yet to state a current advantage.</p>';
+
+        var monthlyRows = monthlyCostAccrual(hist.seafeed);
+        var totalCost = monthlyRows.length ? monthlyRows[monthlyRows.length - 1].cumAtEnd : 0;
+        var farmerTotal = totalCost * (c.contributionRate / 100);
+        var grantTotal = totalCost - farmerTotal;
+        var costCanvasId = 'roi-cost-chart-' + idx;
+        var costCol =
+          '<div class="roi-real-data-col">' +
+            '<p class="roi-real-data-title">SeaFeed cost accrued &middot; last ' + monthlyRows.length + (monthlyRows.length === 1 ? ' month' : ' months') + '</p>' +
+            '<div class="roi-chart-box"><canvas id="' + costCanvasId + '"></canvas></div>' +
+            '<p class="roi-chart-caption">Cumulative to date: <b>' + cur(totalCost, 0) + '</b> (farmer ' + cur(farmerTotal, 0) + ' &middot; grant-covered ' + cur(grantTotal, 0) + ', at the current ' + fmt(c.contributionRate, 0) + '% contribution rate)</p>' +
+          '</div>';
+
+        var netSeries = buildNetPositionSeries(hist.seafeed, hist.control, c.salePrice, c.contributionRate);
+        var netCol;
+        if (netSeries.length < 2) {
+          netCol =
+            '<div class="roi-real-data-col">' +
+              '<p class="roi-real-data-title">Ahead or behind on ROI, over time</p>' +
+              '<p class="roi-real-data-empty">Needs paired SeaFeed/Control weight readings before an ahead/behind line can be drawn. Check back as more data comes in.</p>' +
+            '</div>';
+        } else {
+          var netCanvasId = 'roi-net-chart-' + idx;
+          var latestNet = netSeries[netSeries.length - 1].net;
+          // "Starts underwater" caveat: the line's first plotted point is
+          // real cost already accrued (weeks of SeaFeed fed out) BEFORE the
+          // Economics pipeline had enough paired weight data to compute a
+          // gain at all, so it opens at a large negative number rather than
+          // ramping up from zero. That's a genuine early-trial pattern
+          // (real spend before a measurable result), not a data error;
+          // said explicitly here so it doesn't read as one mid-conversation.
+          netCol =
+            '<div class="roi-real-data-col">' +
+              '<p class="roi-real-data-title">Ahead or behind on ROI, over time</p>' +
+              '<div class="roi-chart-box"><canvas id="' + netCanvasId + '"></canvas></div>' +
+              '<p class="roi-chart-caption">Currently <b class="' + (latestNet >= 0 ? 'mint' : 'red') + '">' + (latestNet >= 0 ? 'ahead' : 'behind') + ' by ' + cur(Math.abs(latestNet), 0) + '</b>: observed SeaFeed-vs-Control gain valued at ' + cur(c.salePrice) + '/kg, against the farmer&rsquo;s own ' + fmt(c.contributionRate, 0) + '% share of real SeaFeed cost. The line starts already carrying whatever cost had accrued before enough paired weight data existed to measure a gain: real upfront spend, not a data error.</p>' +
+            '</div>';
+        }
+
+        return (
+          '<div class="roi-real-data">' +
+            advantageLine +
+            '<div class="roi-real-data-charts">' + costCol + netCol + '</div>' +
+          '</div>'
+        );
       }
 
       function cardHtml(c, idx) {
@@ -606,15 +921,18 @@
               '<input class="roi-headcount-input tabular" type="number" min="0" step="10" value="' + c.headCount + '" data-field="headCount">' +
               '<span class="roi-headcount-label">head on farm now</span>' +
             '</div>' +
-            '<div class="roi-results">' +
-              '<div class="roi-result-row"><span class="roi-result-label">SeaFeed cost / head / year</span><span class="roi-result-value tabular">' + cur(r.costPerHeadYear) + '</span></div>' +
-              '<div class="roi-result-row"><span class="roi-result-label">Farm SeaFeed cost / year</span><span class="roi-result-value tabular">' + cur(r.totalAnnualCost, 0) + '</span></div>' +
-              '<div class="roi-result-row"><span class="roi-result-label">Contribution rate</span><span class="roi-result-value tabular">' + fmt(c.contributionRate, 2) + '%</span></div>' +
-              '<div class="roi-result-row roi-headline"><span class="roi-result-label">Farmer needs to contribute / head</span><span class="roi-result-value tabular">' + cur(r.contributionPerHead) + '</span></div>' +
-              '<div class="roi-result-row roi-headline"><span class="roi-result-label">Total for this farm</span><span class="roi-result-value tabular">' + cur(r.totalContribution, 0) + '</span></div>' +
+            realDataSectionHtml(c, idx) +
+            '<div class="roi-annual-wrap">' +
+              '<p class="roi-annual-label">Modelled annual estimate: projected from assumptions below, not actual spend</p>' +
+              '<div class="roi-results">' +
+                '<div class="roi-result-row"><span class="roi-result-label">SeaFeed cost / head / year</span><span class="roi-result-value tabular">' + cur(r.costPerHeadYear) + '</span></div>' +
+                '<div class="roi-result-row"><span class="roi-result-label">Farm SeaFeed cost / year</span><span class="roi-result-value tabular">' + cur(r.totalAnnualCost, 0) + '</span></div>' +
+                '<div class="roi-result-row"><span class="roi-result-label">Contribution rate</span><span class="roi-result-value tabular">' + fmt(c.contributionRate, 2) + '%</span></div>' +
+                '<div class="roi-result-row roi-headline"><span class="roi-result-label">Farmer needs to contribute / head</span><span class="roi-result-value tabular">' + cur(r.contributionPerHead) + '</span></div>' +
+                '<div class="roi-result-row roi-headline"><span class="roi-result-label">Total for this farm</span><span class="roi-result-value tabular">' + cur(r.totalContribution, 0) + '</span></div>' +
+              '</div>' +
+              '<div class="roi-benefit-note">What needs to come back per head to justify it: <b>' + fmt(r.daysEarlier, 0) + ' days</b> earlier to turnoff (at ' + cur(c.carryingCost) + '/day carrying cost), or <b>' + fmt(r.extraLiveweightKg, 1) + 'kg</b> extra liveweight (at ' + cur(c.salePrice) + '/kg), or a <b>' + cur(r.premiumPerKg, 3) + '/kg</b> price premium.</div>' +
             '</div>' +
-            '<div class="roi-benefit-note">What needs to come back per head to justify it: <b>' + fmt(r.daysEarlier, 0) + ' days</b> earlier to turnoff (at ' + cur(c.carryingCost) + '/day carrying cost), or <b>' + fmt(r.extraLiveweightKg, 1) + 'kg</b> extra liveweight (at ' + cur(c.salePrice) + '/kg), or a <b>' + cur(r.premiumPerKg, 3) + '/kg</b> price premium.</div>' +
-            liveCheckHtml(c) +
             '<button type="button" class="roi-toggle-btn" data-action="toggle">' + (isOpen ? 'Hide assumptions' : 'Adjust assumptions') + '</button>' +
             '<div class="roi-inline-form' + (isOpen ? ' open' : '') + '">' +
               '<div class="roi-field-group-label">SeaFeed dosing &amp; cost</div>' +
@@ -628,7 +946,7 @@
               '<div class="roi-field-grid">' +
                 field('Daily carrying cost ($/day)', 'carryingCost', c.carryingCost, 0.05) +
                 field('Sale weight (kg/head)', 'saleWeight', c.saleWeight, 5) +
-                field('Sale price ($/kg lwt)', 'salePrice', c.salePrice, 0.05) +
+                salePriceFieldHtml(c) +
               '</div>' +
             '</div>' +
           '</div>'
@@ -645,7 +963,7 @@
       }
 
       // Dose field gets its own renderer (rather than the generic field()
-      // above) so it can show where the number came from — live from the
+      // above) so it can show where the number came from: live from the
       // Lick Block Tracker, a manual override, or no live data yet for
       // this farm name. See fetchLatestDoseRates() for the source.
       function doseFieldHtml(c) {
@@ -656,7 +974,7 @@
         } else if (live != null) {
           note = c.doseAuto !== false
             ? 'Live from Lick Block Tracker (' + fmt(live, 0) + 'g/hd/day)'
-            : 'Your figure — Lick Block Tracker shows ' + fmt(live, 0) + 'g/hd/day';
+            : 'Your figure: Lick Block Tracker shows ' + fmt(live, 0) + 'g/hd/day';
         } else {
           note = c.doseAuto !== false ? 'No live consumption data for this farm name yet' : '';
         }
@@ -664,7 +982,35 @@
           '<div class="roi-field">' +
             '<label class="roi-field-label">Dose (g/head/day)</label>' +
             '<input class="roi-field-input tabular" type="number" step="1" value="' + c.dose + '" data-field="dose">' +
-            (note ? '<p class="roi-field-note">' + note + '</p>' : '') +
+            (note ? '<p class="roi-field-note" data-note-for="dose">' + note + '</p>' : '') +
+          '</div>'
+        );
+      }
+
+      // Audit fix, 2026-09-18: sale price auto-fills from the live MLA feed
+      // exactly like dose auto-fills from the Lick Block Tracker, but only
+      // dose ever showed where its number came from: sale price silently
+      // fed the whole page (the annual estimate, the real ahead/behind
+      // chart's benefit valuation, everywhere) with no visible source, so
+      // "where does this come from" had no answer on the card itself, only
+      // in the footer paragraph. Same note pattern as doseFieldHtml() now.
+      function salePriceFieldHtml(c) {
+        var note;
+        if (mlaFetchFailed) {
+          note = 'MLA feed unavailable this load: $4.00/kg fallback (or your figure below)';
+        } else if (!mlaPriceDate) {
+          note = 'Loading live price…';
+        } else {
+          var dateLabel = new Date(mlaPriceDate + 'T00:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+          note = c.salePriceAuto !== false
+            ? 'Live from ' + MLA_INDICATOR_LABEL + ' (' + dateLabel + ')'
+            : 'Your figure: ' + MLA_INDICATOR_LABEL + ' shows ' + cur(GLOBAL_DEFAULTS.salePrice) + ' (' + dateLabel + ')';
+        }
+        return (
+          '<div class="roi-field">' +
+            '<label class="roi-field-label">Sale price ($/kg lwt)</label>' +
+            '<input class="roi-field-input tabular" type="number" step="0.05" value="' + c.salePrice + '" data-field="salePrice">' +
+            '<p class="roi-field-note" data-note-for="salePrice">' + note + '</p>' +
           '</div>'
         );
       }
@@ -678,7 +1024,7 @@
           '<div class="roi-card roi-card-empty">' +
             '<div class="roi-add-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></div>' +
             '<button type="button" class="roi-add-btn" id="add-farm-btn">Add farm</button>' +
-            '<p class="roi-add-note">Starts with the standard cattle assumptions &mdash; adjust head count and any of the numbers once it’s added.</p>' +
+            '<p class="roi-add-note">Starts with the standard cattle assumptions: adjust head count and any of the numbers once it’s added.</p>' +
           '</div>'
         );
       }
@@ -687,7 +1033,8 @@
         var grid = document.getElementById('roi-grid');
         grid.innerHTML = cards.map(cardHtml).join('') + addFarmCardHtml();
         updateSummary();
-        updateLiveSummary();
+        updateMonthlySnapshotStrip();
+        renderAllRealDataCharts();
         document.getElementById('live-rate-label').textContent = fmt(GLOBAL_DEFAULTS.contributionRate, 2) + '%';
       }
 
@@ -704,12 +1051,12 @@
           card.name = target.value;
         } else {
           card[field] = num(target.value, card[field]);
-          // The user just typed a sale price themselves — stop the live
+          // The user just typed a sale price themselves: stop the live
           // MLA fetch from silently overwriting it on a future load, same
           // "auto-filled, override above" convention as the sibling
           // calculator this fetch pattern was copied from.
           if (field === 'salePrice') card.salePriceAuto = false;
-          // Same idea for a manually-typed dose — stop the Lick Block
+          // Same idea for a manually-typed dose: stop the Lick Block
           // Tracker fetch from overwriting it on a future load.
           if (field === 'dose') card.doseAuto = false;
         }
@@ -762,22 +1109,57 @@
           '<div class="roi-result-row roi-headline"><span class="roi-result-label">Total for this farm</span><span class="roi-result-value tabular">' + cur(r.totalContribution, 0) + '</span></div>';
         var benefitEl = cardEl.querySelector('.roi-benefit-note');
         benefitEl.innerHTML = 'What needs to come back per head to justify it: <b>' + fmt(r.daysEarlier, 0) + ' days</b> earlier to turnoff (at ' + cur(card.carryingCost) + '/day carrying cost), or <b>' + fmt(r.extraLiveweightKg, 1) + 'kg</b> extra liveweight (at ' + cur(card.salePrice) + '/kg), or a <b>' + cur(r.premiumPerKg, 3) + '/kg</b> price premium.';
-        var liveEl = cardEl.querySelector('.roi-live-check');
-        if (liveEl) liveEl.outerHTML = liveCheckHtml(card);
-        updateLiveSummary();
 
-        // Dose note is a sibling of the dose <input>, never the input
+        // Real-data section depends on salePrice AND contributionRate (both
+        // editable in this same form), so any assumption edit needs it
+        // rebuilt: outerHTML replace destroys the old canvases along with
+        // the stale markup, so the chart draw right after this always
+        // attaches to fresh ones rather than a detached leftover.
+        var idx = cards.indexOf(card);
+        var realDataEl = cardEl.querySelector('.roi-real-data');
+        if (realDataEl && idx !== -1) {
+          realDataEl.outerHTML = realDataSectionHtml(card, idx);
+          if (econHistoryReady) {
+            var hist = econHistoryByFarm[card.name];
+            if (hist && hist.seafeed.length) {
+              renderCostAccrualChart('roi-cost-chart-' + idx, monthlyCostAccrual(hist.seafeed), card.contributionRate);
+              var netSeries = buildNetPositionSeries(hist.seafeed, hist.control, card.salePrice, card.contributionRate);
+              if (netSeries.length >= 2) renderNetPositionChart('roi-net-chart-' + idx, netSeries);
+            }
+          }
+        }
+        updateMonthlySnapshotStrip();
+
+        // Field notes are siblings of their <input>, never the input
         // itself, so this can safely refresh even while that input (or a
-        // different field in the same card) has focus — same "refresh
+        // different field in the same card) has focus: same "refresh
         // siblings, not the active input" rule the comment above follows.
-        var doseNoteEl = cardEl.querySelector('.roi-field-note');
+        // Targeted by data-note-for rather than a bare class selector:
+        // there are two of these per card now (dose, sale price), and
+        // querySelector only ever returns the first match.
+        var doseNoteEl = cardEl.querySelector('[data-note-for="dose"]');
         if (doseNoteEl) {
           var live = doseByFarm[card.name];
           var doseNote = !doseReady ? 'Loading live rate…'
-            : live != null ? (card.doseAuto !== false ? 'Live from Lick Block Tracker (' + fmt(live, 0) + 'g/hd/day)' : 'Your figure — Lick Block Tracker shows ' + fmt(live, 0) + 'g/hd/day')
+            : live != null ? (card.doseAuto !== false ? 'Live from Lick Block Tracker (' + fmt(live, 0) + 'g/hd/day)' : 'Your figure: Lick Block Tracker shows ' + fmt(live, 0) + 'g/hd/day')
             : (card.doseAuto !== false ? 'No live consumption data for this farm name yet' : '');
           doseNoteEl.textContent = doseNote;
           doseNoteEl.style.display = doseNote ? '' : 'none';
+        }
+        var salePriceNoteEl = cardEl.querySelector('[data-note-for="salePrice"]');
+        if (salePriceNoteEl) {
+          var salePriceNote;
+          if (mlaFetchFailed) {
+            salePriceNote = 'MLA feed unavailable this load: $4.00/kg fallback (or your figure below)';
+          } else if (!mlaPriceDate) {
+            salePriceNote = 'Loading live price…';
+          } else {
+            var dateLabel = new Date(mlaPriceDate + 'T00:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+            salePriceNote = card.salePriceAuto !== false
+              ? 'Live from ' + MLA_INDICATOR_LABEL + ' (' + dateLabel + ')'
+              : 'Your figure: ' + MLA_INDICATOR_LABEL + ' shows ' + cur(GLOBAL_DEFAULTS.salePrice) + ' (' + dateLabel + ')';
+          }
+          salePriceNoteEl.textContent = salePriceNote;
         }
       }
 
@@ -791,17 +1173,14 @@
 
       // Render immediately from cached/seeded cards (the page's original,
       // fully offline-capable behaviour is unchanged), then layer the live
-      // econ + MLA data on top once both resolve — cards with
+      // econ + MLA data on top once both resolve: cards with
       // salePriceAuto still true pick up the fresh price, every card's
       // live-check panel updates from "Loading…" to a real verdict, and
       // the whole thing re-renders once rather than flickering per-fetch.
       render();
 
-      Promise.all([fetchEconLatest(), fetchIndicativeSalePrice(), fetchLatestDoseRates()]).then(function (results) {
-        econByFarm = results[0];
-        econReady = true;
-
-        var price = results[1];
+      Promise.all([fetchIndicativeSalePrice(), fetchLatestDoseRates(), fetchEconHistory()]).then(function (results) {
+        var price = results[0];
         if (price) {
           mlaPriceDate = price.date;
           GLOBAL_DEFAULTS.salePrice = price.dollarsPerKg;
@@ -813,16 +1192,19 @@
         }
 
         // Dose is per-farm, not a single global figure like sale price, so
-        // there's no GLOBAL_DEFAULTS update here — only cards that match a
+        // there's no GLOBAL_DEFAULTS update here: only cards that match a
         // real farm name AND are still on doseAuto pick up the live rate;
         // everything else (a new "Add Farm" card, a renamed/hypothetical
         // one, or a card the user has already typed a dose into) is left
         // exactly as is.
-        doseByFarm = results[2];
+        doseByFarm = results[1];
         doseReady = true;
         cards.forEach(function (c) {
           if (c.doseAuto !== false && doseByFarm[c.name] != null) c.dose = doseByFarm[c.name];
         });
+
+        econHistoryByFarm = results[2];
+        econHistoryReady = true;
 
         saveCards();
         render();
