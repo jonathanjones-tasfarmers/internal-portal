@@ -4,45 +4,49 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!--
-  LEL Weight Data — internal, project team only.
+  LEL Weight Data: internal, project team only.
 
   Built 2026-09-07, per Jono's request for a third Staff Portal tool
   alongside the Lick Block Tracker and Farm Directory: a per-farm view of
   real OptiWeigh weight data (current weight, weight gain since start, ADG
-  advantage, a weight trend chart), one card per farm — same access
+  advantage, a weight trend chart), one card per farm: same access
   pattern as the other two tools (unlisted, unauthenticated plain fetch(),
   the link itself is the access control, don't publish it publicly).
 
-  Read-only. Unlike Farm Directory this page writes nothing anywhere — it
+  Read-only. Unlike Farm Directory this page writes nothing anywhere: it
   only displays figures already published by 01. Optiweigh_Liveweight_
   Sync_v2.py (Productivity/OptiWeigh_Cattle_Weights) and 04. Economics_
   Pipeline.py (LEL_Economics_Data), so there's no add/update-feature
   wiring to worry about, no anonymous-editing toggle to turn on.
 
   DATA SOURCES:
-    - OptiWeigh_Cattle_Weights (Productivity item) — rolling_weight_14d
+    - OptiWeigh_Cattle_Weights (Productivity item): rolling_weight_14d
       per (farm_name, treatment_group), for both "current weight" and the
       weight-trend chart. Same field/layer farmer-portal-template.html's
       per-farm view and the public Data page's methodology panel both
       already read from.
-    - LEL_Economics_Data — weight_gain_kg_per_head + days_of_data per
+    - LEL_Economics_Data: weight_gain_kg_per_head + days_of_data per
       (farm_name, treatment), for the "weight gain since start" and "ADG
       advantage" figures. These two fields are only populated once a
-      (farm, treatment) has cleared 04.'s own MIN_DISPLAY_DAYS=14 gate —
-      see that script — so a brand-new farm/unit legitimately shows "not
+      (farm, treatment) has cleared 04.'s own MIN_DISPLAY_DAYS=14 gate:
+      see that script, so a brand-new farm/unit legitimately shows "not
       enough data yet" here for its first two weeks, not a bug.
 
-  ADG ADVANTAGE FORMULA — matches page-5-data.html's loadAdg() and
+  ADG ADVANTAGE FORMULA: matches page-5-data.html's loadAdg() and
   farmer-portal-template.html's fetchAdgPairedHistory() exactly: each
   treatment's own weight_gain_kg_per_head / its own days_of_data (never a
   shared min() of the two), because SeaFeed and Control units at the same
-  farm often start on different dates (see lel_farms.py's SESSION_FARM_MAP
-  — Bowood's Control unit went live over a month after its SeaFeed unit).
+  farm often start on different dates (see lel_farms.py's SESSION_FARM_MAP: Bowood's Control unit went live over a month after its SeaFeed unit).
   Sharing one days_of_data denominator inflated whichever mob had been
-  running longer — this was a real bug, fixed 2026-09-02, don't
+  running longer: this was a real bug, fixed 2026-09-02, don't
   reintroduce it here.
+  UPDATE 2026-09-23: 04. Economics_Pipeline.py now measures SeaFeed and
+  Control over the SAME calendar window (see lel_comparison_window.py), so
+  the two days_of_data values are identical per farm. The per-mob formula
+  above still holds; the chart and the "over N days from <date>" labels now
+  start at that shared date too (comparisonStartMs() below).
 
-  STALENESS — flags any farm whose most recent weight reading (either
+  STALENESS: flags any farm whose most recent weight reading (either
   treatment) is more than STALE_AFTER_DAYS old, same threshold as every
   other page on this site. This is exactly the kind of thing that would
   have surfaced Bowood's WOW units being pulled from a waterlogged paddock
@@ -50,22 +54,22 @@
   instead of needing a one-off diagnostic script to find it.
 
   No per-farm fallback to the trial-wide aggregate (unlike farmer-portal-
-  template.html) — this page's whole point is farm-specific numbers, so a
+  template.html): this page's whole point is farm-specific numbers, so a
   farm with no Economics history yet just shows "not enough data", not a
   borrowed trial-wide figure mislabelled as its own.
 
-  RAINFALL & TEMPERATURE CHART — added 2026-09-16, per Jono's request to
+  RAINFALL & TEMPERATURE CHART: added 2026-09-16, per Jono's request to
   think through weather as a variable this project is exposed to. Backed
   by the new LEL_Weather_Data table (12. Weather_Data_Sync.py, daily,
   Open-Meteo), one row per (region, day). This page maps each farm to its
-  public_region (FARM_REGION_MAP below — same mapping as LEL_Farm_
+  public_region (FARM_REGION_MAP below: same mapping as LEL_Farm_
   Directory.public_region and page-2-farms.html's regional map; keep all
   three in sync if a farm's region ever changes) and plots that region's
   daily rainfall (bars) against mean temperature (line, secondary axis)
   directly beneath the existing weight-trend chart for the same farm and
   timeframe, so a dip or jump in weight is easy to eyeball against what
   the weather was doing at the time. This is deliberately a VISUAL
-  diagnostic only — no on-page correlation coefficient — see Pressure_vs_
+  diagnostic only (no on-page correlation coefficient); see Pressure_vs_
   ADG_Correlation_Test_v2.py (01. Python Scripts) for the actual
   screening-level statistics behind why this was worth building; that
   script found rainfall r~=0.32-0.35 and temperature r~=-0.21 to -0.32
@@ -73,23 +77,23 @@
   remotely enough to state as a finding, hence this stays a staff-only
   eyeballing tool rather than a public-site claim.
 
-  SECOND PASS — added 2026-09-16, per Jono's follow-up on what else to show. Three additions,
+  SECOND PASS: added 2026-09-16, per Jono's follow-up on what else to show. Three additions,
   all staying inside the "screening-level, staff-only" posture above rather than upgrading
   anything to a stated finding:
     1. The weight-trend chart (renderChart) now draws a small orange dot along the bottom of
        the chart on any day the region was in a heat-stress category (THI-based, from the
-       weather table) — a "rug plot" of hot days sitting right under the weight lines, so a dip
+       weather table): a "rug plot" of hot days sitting right under the weight lines, so a dip
        is easy to eyeball against a hot stretch without needing the correlation numbers at all.
     2. A collapsible "Show detail" panel per farm (collapsed by default, so the default card
-       view is unchanged) containing a lag-profile chart — r at every lag from 0-6 days, not
-       just the two fixed lags used in the always-visible panel above — so the WHEN of a
+       view is unchanged) containing a lag-profile chart: r at every lag from 0-6 days, not
+       just the two fixed lags used in the always-visible panel above, so the WHEN of a
        relationship is visible, not just whether one exists at the fixed lag. Deliberately shows
        every lag rather than auto-picking "the best one", for the same p-hacking reason the fixed
        lags exist in the first place.
     3. The same detail panel also has a scatter plot per weather variable (weight-gain change vs
-       rainfall/temperature, with a trend line) — the correct chart type for showing a
+       rainfall/temperature, with a trend line): the correct chart type for showing a
        correlation directly, rather than asking the reader to eyeball two stacked time series.
-  ADG was deliberately NOT overlaid directly onto the rainfall/temperature chart above — a third
+  ADG was deliberately NOT overlaid directly onto the rainfall/temperature chart above: a third
   axis/unit on an already dual-axis chart was judged to hurt readability more than it helps, and
   a scatter plot answers the "is there a relationship" question more directly than an overlay
   would anyway.
@@ -111,8 +115,8 @@
     --tf-red:#c0392b;
     --tf-white:#ffffff;
     --tf-warning:#c98a2e;
-    --surface-page:#ffffff; /* was #faf9f6 (cream) — switched to plain white 2026-09-08, per Jono's request */
-    --surface-sunken:#ffffff; /* was var(--tf-slate-100) (light slate tint) — switched to plain white 2026-09-08; elements that relied on this tint alone for definition picked up a companion border in the same pass, see each rule below */
+    --surface-page:#ffffff; /* was #faf9f6 (cream): switched to plain white 2026-09-08, per Jono's request */
+    --surface-sunken:#ffffff; /* was var(--tf-slate-100) (light slate tint): switched to plain white 2026-09-08; elements that relied on this tint alone for definition picked up a companion border in the same pass, see each rule below */
     --surface-card:var(--tf-white);
     --text-heading:var(--tf-navy-900);
     --text-body:oklch(from var(--tf-navy-900) calc(l + 0.06) calc(c - 0.005) h);
@@ -129,17 +133,17 @@
   .wd-page { max-width: 1320px; margin: 0 auto; padding: 0 32px 64px; box-sizing: border-box; }
   @media (max-width: 720px) { .wd-page { padding: 0 16px 48px; } }
 
-  /* Hero — same light eyebrow/h1/lede pattern as Farm Directory's .fd-hero
+  /* Hero: same light eyebrow/h1/lede pattern as Farm Directory's .fd-hero
      and the Home page's .sp-hero, kept at this page's own 1320px content
      width to line up with .wd-page below it. Bottom margin widened
      24px -> 40px (2026-09-08, visual review) to match Farm Directory's
-     own hero spacing — more room between the divider and "ADG leaderboard"
+     own hero spacing: more room between the divider and "ADG leaderboard"
      below it. */
   .wd-hero { max-width: 1320px; margin: 0 auto; padding: 40px 32px 28px; box-sizing: border-box; border-bottom: 1px solid var(--border-subtle); margin-bottom: 40px; }
   @media (max-width: 720px) { .wd-hero { padding: 28px 16px 20px; } }
-  /* Icon badge — same .sp-tool-icon / .fd-hero-icon pattern used on the
+  /* Icon badge: same .sp-tool-icon / .fd-hero-icon pattern used on the
      Home page and Farm Directory, reused here as a static "you are here"
-     cue (no JS — Hub strips <script> execution from pasted content
+     cue (no JS: Hub strips <script> execution from pasted content
      blocks, so this can't be computed client-side). */
   .wd-hero-icon { width: 40px; height: 40px; border-radius: var(--radius-md); background: var(--surface-sunken); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
   .wd-hero-icon svg { width: 20px; height: 20px; stroke: var(--tf-seafeed); fill: none; stroke-width: 1.8; }
@@ -192,23 +196,23 @@
   .wd-value { font-size: 14px; font-weight: 700; color: var(--text-body); }
   .wd-value.mint { color: var(--tf-seafeed); }
   .wd-value.red { color: var(--tf-red); }
-  /* Sub-label tightened against .wd-value (2026-09-08, visual review) —
+  /* Sub-label tightened against .wd-value (2026-09-08, visual review):
      was sitting as its own full line, adding a third distinct text size
      to an already-busy 3-column grid; pulling it directly under the value
-     with a smaller line-height reads as one unit ("14g/day — over 21
+     with a smaller line-height reads as one unit ("14g/day: over 21
      days") instead of two competing rows. */
   .wd-value-sub { display: block; font-size: 10.5px; font-weight: 400; color: var(--text-muted); line-height: 1.3; margin-top: 1px; }
 
-  /* Chart height raised 180px -> 210px (2026-09-08, visual review) — the
+  /* Chart height raised 180px -> 210px (2026-09-08, visual review): the
      trend line was reading cramped next to Lick Block Tracker's taller
      "Cumulative Blocks Used" chart on the equivalent card; this brings
      the two tools' chart proportions closer together. */
   .wd-chart-box { position: relative; height: 210px; margin-top: 4px; }
   .wd-chart-empty { font-size: 12.5px; color: var(--text-muted); text-align: center; padding: 40px 0; display: none; }
 
-  /* Rainfall & temperature — added 2026-09-16. Shorter than the weight
+  /* Rainfall & temperature: added 2026-09-16. Shorter than the weight
      chart above it (150px vs 210px) since it's a secondary/supporting
-     chart, not the card's headline figure — same "the number is the
+     chart, not the card's headline figure: same "the number is the
      hero" proportion logic as everywhere else on this site, just applied
      to chart height instead of font size. */
   .wd-weather-label { display: flex; align-items: center; justify-content: space-between; margin: 16px 0 2px; }
@@ -216,12 +220,12 @@
   .wd-weather-note { font-size: 10.5px; color: var(--text-muted); }
   .wd-weather-note.warn { color: var(--tf-warning); font-weight: 700; }
   /* Enlarged 150px -> 260px, 2026-09-16, per Jono's request to make this
-     chart easier to read — now taller than the weight chart above it
+     chart easier to read: now taller than the weight chart above it
      (210px) rather than shorter, since it carries the correlation panel
      below it as its reason to exist, not just a supporting glance. */
   .wd-chart-box.wd-weather-box { height: 260px; }
 
-  /* Weather-effect correlation panel — added 2026-09-16, per Jono's
+  /* Weather-effect correlation panel: added 2026-09-16, per Jono's
      request to see the correlation itself rather than just eyeballing
      two stacked charts. Same sunken-box treatment as .wd-weight-row
      above (plain-white --surface-sunken + border, per this page's
@@ -234,10 +238,10 @@
   .wd-corr-cells { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   .wd-corr-caveat { font-size: 10.5px; color: var(--text-muted); font-style: italic; line-height: 1.4; margin: 2px 0 0; }
 
-  /* Detail panel (lag profile + scatter) — added 2026-09-16, per Jono's
+  /* Detail panel (lag profile + scatter): added 2026-09-16, per Jono's
      follow-up on what else to show. Collapsed by default (display:none on
      the panel), so the card's default footprint is unchanged from before
-     this pass — this is a deliberate "look closer if you want to" layer,
+     this pass: this is a deliberate "look closer if you want to" layer,
      not something added to the always-visible view, see the file header
      comment for the reasoning. Dashed top border distinguishes it from the
      solid-bordered .wd-corr-panel above it as a secondary, optional tier. */
@@ -247,7 +251,7 @@
   .wd-detail-block { margin-bottom: 18px; }
   .wd-detail-block:last-of-type { margin-bottom: 8px; }
   /* Enlarged 130px -> 210px, 2026-09-17, per Jono's report that these
-     were unreadable — 130px was cramped for a box carrying an axis title
+     were unreadable: 130px was cramped for a box carrying an axis title
      PLUS tick labels on both axes (more chrome than any other chart on
      this page gets), so Chart.js had almost no room left to actually
      plot in. Matches the main weight-trend chart's own 210px now, rather
@@ -256,9 +260,9 @@
 
   .wd-fallback-note { font-size: 12px; color: var(--text-muted); margin: 10px 0 0; font-style: italic; }
 
-  /* Leaderboard — added 2026-09-07, per Jono's request. Ranks farms by
+  /* Leaderboard: added 2026-09-07, per Jono's request. Ranks farms by
      ADG advantage % (SeaFeed vs that farm's OWN Control), the same figure
-     already shown on each card below — deliberately not a separate
+     already shown on each card below: deliberately not a separate
      computation, see computeAdgPct() in the script. */
   .wd-leaderboard { margin-bottom: 28px; }
   .wd-leaderboard-list { background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; }
@@ -352,7 +356,7 @@
   var RAIN_BLUE = '#4a90c4', TEMP_ORANGE = '#c9782e';
 
   // Same mapping as LEL_Farm_Directory.public_region and page-2-farms.html's
-  // regional map — see this file's header comment for why these three must
+  // regional map: see this file's header comment for why these three must
   // stay in sync. A farm with no entry here (e.g. a brand-new one not yet
   // added) just doesn't get a weather chart, rather than the page erroring.
   var FARM_REGION_MAP = {
@@ -382,7 +386,7 @@
   }
 
   // ============================================================
-  // FETCH — three batched queries covering every farm at once
+  // FETCH: three batched queries covering every farm at once
   // (same "one query, not one per farm" pattern as Farm Directory's
   // fetchFarmTreatments()), then grouped client-side.
   // ============================================================
@@ -421,7 +425,7 @@
   }
 
   // 2026-09-02 fix (see page-5-data.html's loadAdg()): each treatment's own
-  // weight_gain_kg_per_head / its own days_of_data, never a shared min() —
+  // weight_gain_kg_per_head / its own days_of_data, never a shared min():
   // SeaFeed and Control units at the same farm can start weeks apart.
   function fetchEconLatest(){
     return q(ECON_URL, {
@@ -441,11 +445,11 @@
   }
 
   // ------------------------------------------------------------
-  // TRIAL SNAPSHOT — added 2026-09-08, per Jono's request for something
+  // TRIAL SNAPSHOT: added 2026-09-08, per Jono's request for something
   // like the Methane Data page's KPI band. Reads the pipeline's own
   // "All Farms (Trial Aggregate)" rows (same head-count-weighted rollup
   // the public site's figures come from) rather than re-deriving a
-  // trial-wide figure client-side from the per-farm rows above — this
+  // trial-wide figure client-side from the per-farm rows above: this
   // page doesn't fetch head_count or cost, so it couldn't rebuild a
   // correctly-weighted $/kg figure anyway, and re-deriving would risk
   // quietly disagreeing with the aggregate every other page already
@@ -470,11 +474,11 @@
   }
 
   // ------------------------------------------------------------
-  // WEATHER — added 2026-09-16. One query covering every region at once
+  // WEATHER: added 2026-09-16. One query covering every region at once
   // (same "one query, not one per region" pattern as the fetches above),
   // grouped client-side by region. Missing/not-yet-created table (or a
   // network error) resolves to {} rather than rejecting, same as every
-  // other fetch* here — a farm just doesn't get a weather chart rather
+  // other fetch* here: a farm just doesn't get a weather chart rather
   // than breaking the page.
   // ------------------------------------------------------------
   function fetchWeatherHistory(){
@@ -541,7 +545,7 @@
       var region = FARM_REGION_MAP[farm];
       var weatherRows = region ? (weatherByRegion[region] || []) : [];
       var weatherEffect = region ? computeWeatherEffect(historyByFarm[farm] || [], weatherRows) : null;
-      return cardHtml('wd-' + idx, farm, color, cur, econ, isStale, weatherEffect);
+      return cardHtml('wd-' + idx, farm, color, cur, econ, isStale, weatherEffect, comparisonStartMs(historyByFarm[farm] || []));
     }).join('');
 
     renderLeaderboard(allFarms, econByFarm);
@@ -552,7 +556,7 @@
       var region = FARM_REGION_MAP[farm];
       var weatherRows = region ? (weatherByRegion[region] || []) : [];
 
-      // Heat-stress rug-plot marks — added 2026-09-16, see file header
+      // Heat-stress rug-plot marks: added 2026-09-16, see file header
       // "SECOND PASS" note. A plain date-set keyed the same way dayKey()
       // keys everything else in this file.
       var heatStressDates = {};
@@ -560,8 +564,13 @@
         if (w.heat_stress_category && w.heat_stress_category !== 'none') heatStressDates[dayKey(w.obs_date)] = true;
       });
 
-      renderChart(prefix, rows, heatStressDates);
-      renderWeatherChart(prefix, weatherRows);
+      // Chart both lines from the shared comparison start (2026-09-23),
+      // and the weather chart below over the same dates.
+      var startMs = comparisonStartMs(rows);
+      var chartRows = startMs == null ? rows : rows.filter(function(r){ return r.snapshot_date >= startMs; });
+      var chartWeather = startMs == null ? weatherRows : weatherRows.filter(function(w){ return w.obs_date >= startMs; });
+      renderChart(prefix, chartRows, heatStressDates);
+      renderWeatherChart(prefix, chartWeather);
 
       if (region && rows.length && weatherRows.length) {
         wireDetailToggle(prefix, buildCorrelationContext(rows, weatherRows));
@@ -580,13 +589,13 @@
   }
 
   // ------------------------------------------------------------
-  // KPI BAND — trial-wide headline figures. ADG advantage reuses
+  // KPI BAND: trial-wide headline figures. ADG advantage reuses
   // computeAdgPct() against the aggregate's own seafeed/control pair, so
   // it can never disagree with how a per-farm card's own advantage is
   // worked out (see computeAdgPct() below). $/kg gain cards read
   // cost_per_kg_gain_aud straight off the same aggregate econ row, which
   // the pipeline documents as meaningful for both treatments (unlike
-  // cost-per-kg-abated, which is seafeed-only) — swapped in 2026-09-08
+  // cost-per-kg-abated, which is seafeed-only): swapped in 2026-09-08
   // in place of the original "current avg weight" cards, per Jono's
   // request.
   // ------------------------------------------------------------
@@ -626,16 +635,38 @@
       '</div>';
   }
 
-  function gainCellHtml(label, econRow, colorClass){
+  // ------------------------------------------------------------
+  // COMPARISON START (2026-09-23, per Jono's call). Mirrors
+  // lel_comparison_window.py in 01. Python Scripts: once a farm has both
+  // SeaFeed and Control readings, both are measured from the later unit's
+  // first reading plus a 7-day warm-up (Bowood: 22 Jun 2026), to the last
+  // date both units have a reading. The pipeline's weight-gain figures use
+  // that window, so the chart starts there too rather than showing
+  // SeaFeed's earlier solo history. Keep WEIGHT_GAIN_WARMUP_DAYS in step
+  // with the Python module if it ever changes.
+  // Returns null for a farm with only one treatment logging so far.
+  // ------------------------------------------------------------
+  var WEIGHT_GAIN_WARMUP_DAYS = 7;
+  function comparisonStartMs(rows){
+    var first = {};
+    rows.forEach(function(r){
+      if (r.rolling_weight_14d == null || !r.treatment_group) return;
+      if (first[r.treatment_group] == null || r.snapshot_date < first[r.treatment_group]) first[r.treatment_group] = r.snapshot_date;
+    });
+    if (first.seafeed == null || first.control == null) return null;
+    return Math.max(first.seafeed, first.control) + WEIGHT_GAIN_WARMUP_DAYS * 86400000;
+  }
+
+  function gainCellHtml(label, econRow, colorClass, startMs){
     if (!econRow || econRow.weight_gain_kg_per_head == null || !econRow.days_of_data) {
       return '<div><span class="wd-label">' + label + '</span><span class="wd-value">–</span><div class="wd-value-sub">Not enough data yet</div></div>';
     }
     return '<div><span class="wd-label">' + label + '</span><span class="wd-value' + (colorClass ? ' ' + colorClass : '') + '">' +
       (econRow.weight_gain_kg_per_head >= 0 ? '+' : '') + econRow.weight_gain_kg_per_head.toFixed(1) + ' kg</span>' +
-      '<div class="wd-value-sub">over ' + econRow.days_of_data + ' days</div></div>';
+      '<div class="wd-value-sub">over ' + econRow.days_of_data + ' days' + (startMs != null ? ' from ' + fmtDateShort(startMs) : '') + '</div></div>';
   }
 
-  // Single source of truth for the ADG advantage % — both the per-card
+  // Single source of truth for the ADG advantage %: both the per-card
   // figure and the leaderboard below call this, so the two can never
   // disagree. Returns null when there isn't enough paired data yet (same
   // conditions as the card's own "not enough data" state), so a farm
@@ -661,25 +692,25 @@
   }
 
   // ------------------------------------------------------------
-  // WEATHER EFFECT — added 2026-09-16, per Jono's request to see the
+  // WEATHER EFFECT: added 2026-09-16, per Jono's request to see the
   // correlation between weather and ADG directly rather than just
   // eyeballing two stacked charts. Reuses the exact methodology already
   // validated offline in Pressure_vs_ADG_Correlation_Test_v2.py (01.
   // Python Scripts): a day-over-day delta in rolling_weight_14d as an
   // ADG proxy (the SAME field the weight-trend chart above already
-  // plots — nothing new is fetched), Pearson r against rainfall at
+  // plots: nothing new is fetched), Pearson r against rainfall at
   // same-day (lag 0) and temperature at a 3-day lag. Those two lags are
-  // FIXED here, not re-searched live per farm per pageload — that
+  // FIXED here, not re-searched live per farm per pageload, that
   // script's own screening run found rainfall strongest at lag 0-1
   // (r~=0.32-0.35) and temperature strongest at lag 3-5 (r~=-0.21 to
   // -0.32); auto-picking whichever lag looks best on THIS farm's own
   // noise each time the page loads would cherry-pick a coincidence and
   // overstate it. This stays a SCREENING correlation on a still-small,
-  // still-growing sample, not a controlled or causal finding — see
+  // still-growing sample, not a controlled or causal finding: see
   // MIN_CORR_N and the caveat text in weatherEffectHtml() below.
   // ------------------------------------------------------------
   var RAIN_LAG_DAYS = 0, TEMP_LAG_DAYS = 3;
-  var MIN_CORR_N = 20; // below this, r is noise dressed up as a finding — show "not enough data yet" instead
+  var MIN_CORR_N = 20; // below this, r is noise dressed up as a finding: show "not enough data yet" instead
 
   function pearson(xs, ys){
     var n = xs.length;
@@ -704,7 +735,7 @@
   }
 
   // Day-over-day delta of rolling_weight_14d for ONE treatment, keyed by
-  // the LATER day of each pair — only genuinely consecutive calendar
+  // the LATER day of each pair: only genuinely consecutive calendar
   // days count (same rule as the Python test script), so a sync gap or
   // stale unit never gets treated as one big multi-day jump.
   function weightDeltasByDate(rows, treatment){
@@ -716,7 +747,7 @@
       // been backfilled) sitting alongside real-valued rows for other
       // dates. Assigning a null straight into byDate[date] let a later
       // subtraction do JS's "null - 240.47" == -240.47 (null coerces to 0
-      // in arithmetic) — a missing reading was silently read as the animal
+      // in arithmetic): a missing reading was silently read as the animal
       // dropping to 0kg, producing a fake ~240kg day-over-day swing that
       // fed directly into the lag/scatter correlation charts. Skipping
       // null rows here means a day with no real reading simply has no
@@ -745,7 +776,7 @@
   }
 
   // buildCorrelationContext() is the one place weight history + weather
-  // history get turned into "deltas by date" + "weather by date" — both
+  // history get turned into "deltas by date" + "weather by date": both
   // computeWeatherEffect() (the always-visible fixed-lag panel) and the
   // detail panel's lag-profile/scatter charts below build on this same
   // context, so a farm's numbers can never quietly disagree between the
@@ -777,11 +808,11 @@
   }
 
   // ------------------------------------------------------------
-  // DETAIL PANEL DATA — lag profile (r at every lag 0-6 days, SeaFeed
+  // DETAIL PANEL DATA: lag profile (r at every lag 0-6 days, SeaFeed
   // only, to keep the collapsed-by-default panel compact) and scatter
   // pairs (the raw points a reader can eyeball directly, plus a simple
   // least-squares trend line once there's enough of them). Added
-  // 2026-09-16 — see the file header "SECOND PASS" note.
+  // 2026-09-16: see the file header "SECOND PASS" note.
   // ------------------------------------------------------------
   var LAG_RANGE = [0, 1, 2, 3, 4, 5, 6];
 
@@ -802,7 +833,7 @@
     return points;
   }
 
-  // Plain least-squares line through the scatter points — this is what
+  // Plain least-squares line through the scatter points: this is what
   // the trend line dataset in renderScatterChart() draws, only once
   // there's a reasonable sample (see MIN_CORR_N gate at the call site),
   // so a handful of points never gets an overconfident line through them.
@@ -841,11 +872,11 @@
         '<div class="wd-corr-cells">' + corrCellHtml('SeaFeed', effect.rainfall.seafeed) + corrCellHtml('Control', effect.rainfall.control) + '</div></div>' +
       '<div class="wd-corr-row"><span class="wd-corr-row-label">Temperature &middot; effect 3 days after</span>' +
         '<div class="wd-corr-cells">' + corrCellHtml('SeaFeed', effect.temp.seafeed) + corrCellHtml('Control', effect.temp.control) + '</div></div>' +
-      '<p class="wd-corr-caveat">Pearson r between daily weight-gain change and weather &mdash; screening-level only, not a controlled result. Treat a number here as worth a closer look, not as a finding.</p>' +
+      '<p class="wd-corr-caveat">Pearson r between daily weight-gain change and weather: screening-level only, not a controlled result. Treat a number here as worth a closer look, not as a finding.</p>' +
       '</div>';
   }
 
-  // Collapsed-by-default detail panel — lag profile + scatter charts.
+  // Collapsed-by-default detail panel: lag profile + scatter charts.
   // Charts are built lazily on first expand (renderDetailCharts, wired up
   // in wireDetailToggle), not at page load, since a hidden canvas can't
   // size itself correctly and there's no point spending the work on a
@@ -869,14 +900,14 @@
           '<p class="wd-corr-row-label">Temperature vs weight-gain change &middot; effect 3 days after (SeaFeed)</p>' +
           '<div class="wd-scatter-chart-box"><canvas id="' + prefix + '-scatter-temp"></canvas><p class="wd-chart-empty" id="' + prefix + '-scatter-temp-empty">Not enough paired data yet.</p></div>' +
         '</div>' +
-        '<p class="wd-corr-caveat">Every lag and every day shown here, not just the best-looking one &mdash; screening-level only, same caveat as above.</p>' +
+        '<p class="wd-corr-caveat">Every lag and every day shown here, not just the best-looking one: screening-level only, same caveat as above.</p>' +
       '</div>';
   }
 
   // ------------------------------------------------------------
-  // LEADERBOARD — ranks farms by computeAdgPct() descending. Farms with
+  // LEADERBOARD: ranks farms by computeAdgPct() descending. Farms with
   // no valid figure yet (see computeAdgPct's null cases) are listed
-  // separately, unranked, rather than silently dropped — worth knowing
+  // separately, unranked, rather than silently dropped: worth knowing
   // WHO's not in the contest yet, not just who's winning it.
   // ------------------------------------------------------------
   function renderLeaderboard(allFarms, econByFarm){
@@ -916,7 +947,7 @@
     wrap.style.display = 'block';
   }
 
-  function cardHtml(prefix, farm, color, cur, econ, isStale, weatherEffect){
+  function cardHtml(prefix, farm, color, cur, econ, isStale, weatherEffect, startMs){
     var showFallbackNote = (!econ.seafeed || !econ.control) && (econ.seafeed || econ.control);
     return '<div class="wd-card" style="border-top-color:' + color + ';">' +
       '<div class="wd-card-head"><span class="wd-dot" style="background:' + color + ';"></span><h2 class="wd-name">' + farm + '</h2>' +
@@ -927,8 +958,8 @@
       weightStatHtml('Control', SLATE, cur.control) +
       '</div>' +
       '<div class="wd-gain-grid">' +
-      gainCellHtml('Gain (SeaFeed)', econ.seafeed, 'mint') +
-      gainCellHtml('Gain (Control)', econ.control, null) +
+      gainCellHtml('Gain (SeaFeed)', econ.seafeed, 'mint', startMs) +
+      gainCellHtml('Gain (Control)', econ.control, null, startMs) +
       adgAdvantageHtml(econ) +
       '</div>' +
       '<div class="wd-chart-box"><canvas id="' + prefix + '-chart"></canvas><p class="wd-chart-empty" id="' + prefix + '-chart-empty">No weight history to chart yet.</p></div>' +
@@ -943,7 +974,7 @@
   }
 
   // ------------------------------------------------------------
-  // CHART — same lineChart() pattern as farmer-portal-template.html /
+  // CHART: same lineChart() pattern as farmer-portal-template.html /
   // page-5-data.html: SeaFeed = mint, Control = slate, spanGaps so a
   // missing day on one line doesn't visually break it.
   // ------------------------------------------------------------
@@ -964,13 +995,13 @@
       { label: 'Control', data: dates.map(function(d){ return byDate[d].control != null ? byDate[d].control : null; }), borderColor: SLATE, backgroundColor: 'transparent', spanGaps: true }
     ];
 
-    // Heat-stress rug plot — added 2026-09-16, see file header "SECOND
+    // Heat-stress rug plot: added 2026-09-16, see file header "SECOND
     // PASS" note. A row of small orange dots sitting just under the
     // lowest weight line, one per day the region was in a heat-stress
     // category, so a dip is easy to eyeball against a hot stretch without
     // needing the correlation panel below at all. Placed on the SAME
     // category x-axis/index as the weight lines (not a separate scatter
-    // dataset with its own numeric axis) via a per-point radius array —
+    // dataset with its own numeric axis) via a per-point radius array:
     // radius 0 (invisible) on every ordinary day, radius 4 on a
     // heat-stress day. Only added when at least one heat-stress day
     // actually falls in this chart's date range, so a farm/period with
@@ -1027,18 +1058,18 @@
   }
 
   // ------------------------------------------------------------
-  // WEATHER CHART — added 2026-09-16. Rainfall as bars (left axis),
-  // mean temperature as a line (right axis, y1) — the standard way to
+  // WEATHER CHART: added 2026-09-16. Rainfall as bars (left axis),
+  // mean temperature as a line (right axis, y1): the standard way to
   // pair two different units on one chart without one series flattening
   // the other. Same x-axis date range as the weight chart directly above
   // it on the card, so the two are easy to eyeball together. Also surfaces
   // a small "X heat-stress day(s) in the last 30" note next to the chart
-  // label when the THI category crossed "mild" or worse — see 12. Weather_
+  // label when the THI category crossed "mild" or worse: see 12. Weather_
   // Data_Sync.py for the THI formula/thresholds (Mader et al. 2006).
   // ------------------------------------------------------------
   function renderWeatherChart(prefix, rows){
     var canvas = document.getElementById(prefix + '-weather-chart');
-    if (!canvas) return; // farm has no FARM_REGION_MAP entry — no weather section rendered for it
+    if (!canvas) return; // farm has no FARM_REGION_MAP entry: no weather section rendered for it
     var emptyEl = document.getElementById(prefix + '-weather-chart-empty');
     var noteEl = document.getElementById(prefix + '-weather-note');
 
@@ -1085,9 +1116,9 @@
   }
 
   // ------------------------------------------------------------
-  // DETAIL PANEL — collapsed by default (see .wd-detail-panel CSS and
+  // DETAIL PANEL: collapsed by default (see .wd-detail-panel CSS and
   // detailSectionHtml() above). Charts are built lazily, the first time a
-  // farm's panel is actually opened, rather than at page load — a
+  // farm's panel is actually opened, rather than at page load: a
   // display:none canvas can't size itself, and most page loads will never
   // open most of these panels anyway. Added 2026-09-16, see file header
   // "SECOND PASS" note.
@@ -1123,10 +1154,10 @@
   }
 
   // Small bar chart, r on a fixed -1..1 axis, one bar per lag (0-6 days
-  // after the weather reading — e.g. the "3d" bar is r between a day's
+  // after the weather reading: e.g. the "3d" bar is r between a day's
   // rainfall/temp and the weight-gain change measured 3 days later).
   // Labelled "days after" rather than "days earlier" (2026-09-16, per
-  // Jono's call) since it reads as the actual cause-then-effect story —
+  // Jono's call) since it reads as the actual cause-then-effect story:
   // the pairing itself is unchanged either way, see correlateAgainstWeather().
   // A lag with fewer than MIN_CORR_N paired days is left as a gap (null)
   // rather than plotting a noisy r, same "not enough data yet" gate the
@@ -1160,7 +1191,7 @@
 
   // Scatter of daily weight-gain change vs the weather value that lag
   // pairs it with, plus a least-squares trend line once there's a
-  // reasonable sample (MIN_CORR_N) — below that, the raw dots still show
+  // reasonable sample (MIN_CORR_N): below that, the raw dots still show
   // (a handful of points is still honest information) but no line is
   // drawn through them, since a trend line on 5 points overstates what's
   // there.
@@ -1201,7 +1232,7 @@
         },
         scales: {
           // y-axis title dropped 2026-09-17 (per Jono's readability report)
-          // — "weight-gain change (kg/day)" is the same on every scatter on
+          // "weight-gain change (kg/day)" is the same on every scatter on
           // this page and the panel heading above each one already says
           // what's being compared, so the title was chrome, not
           // information; removing it gives the plot area back the vertical
