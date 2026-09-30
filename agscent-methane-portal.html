@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!--
+  LEL AgScent Methane Portal: internal, Jono / Bronte / Tas only.
+
+  Built 2026-09-30. Sits beside Methane Data (the MODELLED abatement view).
+  This page shows what the AgScent sensor on Bowood's OptiWeigh unit
+  actually MEASURES, visit by visit, and how far that data can be trusted.
+
+  DATA SOURCE: LEL_Methane_Visits (one row per animal visit, written by
+  16. AgScent_Methane_Import.py from the AgScent dashboard CSV exports).
+  Item ID 909609c653cb49fd829565a5f8c4f16e.
+
+  ACCESS: same pattern as the other Staff Portal tools: unlisted, plain
+  fetch(), no login. The table was made public on 2026-09-30 (Jono is
+  confident in the data), so the link itself is the access control. Don't
+  publish the page anywhere public. noindex/nofollow below.
+
+  TREATMENT: every reading comes from the SeaFeed (treatment) group, per
+  Jono 2026-09-30, so there is no control comparison on this page.
+
+  MEASURED VS CHARMLEY EXPECTATION (reworked 2026-09-30, Jono's call):
+    Each animal's mean measured g CH4/day is compared directly with what
+    Charmley et al. (2016) expects for an untreated animal of that weight:
+        expected g CH4/day = liveweight x DMI% x g CH4 per kg DMI
+    using the same DMI% and yield the emissions pipeline uses (read live
+    from LEL_Model_Assumptions_Public, falling back to 2.5% and 20.7).
+        measured % of expected = measured / expected
+        below expected by      = 1 - measured / expected
+    The pipeline's modelled abatement (LEL_Emissions_Data_view) is shown
+    alongside as a reference: 100% minus abatement is where the model
+    says SeaFeed animals should sit.
+    TIA quality filters are still applied to the visits used (over 60 s,
+    3+ eructation peaks, animals with 10+ such visits), per the TIA report
+    on this same unit (Borojevic et al.). That report also found the sensor
+    reads roughly a third of Charmley on untreated animals, so a low % here
+    is not on its own proof of SeaFeed's effect. That one caveat stays in
+    the "How to read this" panel.
+
+  WHAT THE DATA CAN AND CANNOT SUPPORT (from the first four exports):
+    - Only ~42% of visits carry an AgScent emission estimate, and the
+      chance rises sharply with visit length. Averages describe visits
+      that produced a peak, not every visit.
+    - The estimate is in grams CH4 (confirmed by Jono 2026-09-30, read as
+      per day, matching TIA's Bell-method g/day).
+    - Within-animal visit-to-visit variation is large, so per-animal
+      figures are flagged Reliable / Indicative / Too few by valid-visit
+      count (thresholds below).
+    - No control-group readings exist, so nothing here compares SeaFeed
+      with control.
+-->
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#041221">
+<title>AgScent Methane | LEL internal</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --tf-navy-900:#041221;
+    --tf-slate-400:#a9b8c4;
+    --tf-slate-300:oklch(from var(--tf-slate-400) calc(l + 0.08) c h);
+    --tf-slate-200:oklch(from var(--tf-slate-400) calc(l + 0.14) c h);
+    --tf-slate-100:oklch(from var(--tf-slate-400) calc(l + 0.19) c h);
+    --tf-slate-600:oklch(from var(--tf-slate-400) calc(l - 0.18) c h);
+    --tf-seafeed:#3aa989;
+    --tf-blue:#2e6f9e;
+    --tf-red:#c0392b;
+    --tf-warning:#c98a2e;
+    --tf-white:#ffffff;
+    --surface-page:#ffffff;
+    --surface-sunken:#f6f8fa;
+    --surface-card:var(--tf-white);
+    --text-heading:var(--tf-navy-900);
+    --text-body:oklch(from var(--tf-navy-900) calc(l + 0.06) calc(c - 0.005) h);
+    --text-muted:var(--tf-slate-600);
+    --border-subtle:var(--tf-slate-200);
+    --border-default:var(--tf-slate-300);
+    --radius-lg:12px; --radius-md:10px; --radius-sm:6px;
+    --shadow-sm:0 1px 2px rgba(4,18,33,0.08);
+    --font-display:Tahoma,Verdana,sans-serif;
+    --font-body:Verdana,Tahoma,sans-serif;
+  }
+  html, body { margin: 0; background: var(--surface-page); }
+  body { font-family: var(--font-body); color: var(--text-body); -webkit-font-smoothing:antialiased; }
+  .ag-page { max-width: 1320px; margin: 0 auto; padding: 0 32px 64px; box-sizing: border-box; }
+  @media (max-width: 720px) { .ag-page { padding: 0 16px 48px; } }
+
+  .ag-hero { max-width: 1320px; margin: 0 auto; padding: 40px 32px 28px; box-sizing: border-box; border-bottom: 1px solid var(--border-subtle); margin-bottom: 32px; display: flex; gap: 24px; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; }
+  @media (max-width: 720px) { .ag-hero { padding: 28px 16px 20px; } }
+  .ag-hero-icon { width: 40px; height: 40px; border-radius: var(--radius-md); background: var(--surface-sunken); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+  .ag-hero-icon svg { width: 20px; height: 20px; stroke: var(--tf-seafeed); fill: none; stroke-width: 1.8; }
+  .ag-eyebrow { font-family: var(--font-display); font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin: 0 0 10px; }
+  .ag-hero h1 { font-family: var(--font-display); font-size: 30px; font-weight: 700; color: var(--text-heading); margin: 0 0 10px; }
+  .ag-hero-sub { font-size: 15px; color: var(--text-muted); margin: 0; max-width: 620px; line-height: 1.6; }
+  .ag-hero-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+  .ag-select, .ag-input { font-family: var(--font-display); font-size: 13px; color: var(--text-heading); background: var(--surface-card); border: 1px solid var(--border-default); border-radius: var(--radius-sm); padding: 8px 10px; }
+  .ag-btn { font-family: var(--font-display); font-size: 13px; font-weight: 700; color: #fff; background: var(--tf-navy-900); border: none; border-radius: var(--radius-sm); padding: 9px 16px; cursor: pointer; }
+  .ag-btn:hover { background: #0d2a44; }
+  .ag-btn.secondary { background: var(--surface-card); color: var(--text-heading); border: 1px solid var(--border-default); }
+  .ag-btn.secondary:hover { background: var(--surface-sunken); }
+
+  .ag-banner { display: flex; align-items: flex-start; gap: 12px; background: rgba(201,138,46,0.1); border: 1px solid rgba(201,138,46,0.32); border-radius: var(--radius-lg); padding: 14px 20px; margin-bottom: 24px; }
+  .ag-banner svg { flex-shrink: 0; width: 20px; height: 20px; stroke: var(--tf-warning); fill: none; stroke-width: 2; margin-top: 1px; }
+  .ag-banner-text { font-family: var(--font-display); font-size: 13.5px; color: #8a5f1f; line-height: 1.55; }
+  .ag-banner-text strong { color: #6f4a14; }
+
+  .ag-msg { background: var(--surface-sunken); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 32px; text-align: center; margin: 24px 0 40px; }
+  .ag-msg h2 { font-family: var(--font-display); font-size: 18px; color: var(--text-heading); margin: 0 0 8px; }
+  .ag-msg p { font-size: 13.5px; color: var(--text-muted); margin: 0 auto; max-width: 520px; line-height: 1.6; }
+
+  .ag-section-label { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; margin: 36px 0 14px 2px; }
+  .ag-section-label:first-of-type { margin-top: 0; }
+  .ag-section-intro { font-size: 13px; color: var(--text-muted); margin: -6px 0 14px 2px; max-width: 760px; line-height: 1.6; }
+
+  .ag-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+  .ag-kpi { background: var(--surface-card); border: 1px solid var(--border-subtle); border-top: 4px solid var(--tf-seafeed); border-radius: var(--radius-lg); padding: 18px 20px; box-shadow: var(--shadow-sm); box-sizing: border-box; }
+  .ag-kpi.warn { border-top-color: var(--tf-warning); }
+  .ag-kpi.blue { border-top-color: var(--tf-blue); }
+  .ag-kpi-label { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 8px; }
+  .ag-kpi-value { font-family: var(--font-display); font-size: 28px; font-weight: 700; color: var(--text-heading); margin: 0; }
+  .ag-kpi-note { font-family: var(--font-display); font-size: 11.5px; color: var(--text-muted); margin: 6px 0 0; line-height: 1.4; }
+
+  .ag-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 16px; align-items: stretch; }
+  @media (max-width: 520px) { .ag-grid { grid-template-columns: 1fr; } }
+  .ag-card { background: var(--surface-card); border: 1px solid var(--border-subtle); border-top: 4px solid var(--border-default); border-radius: var(--radius-lg); padding: 20px 22px; box-shadow: var(--shadow-sm); box-sizing: border-box; min-width: 0; }
+  .ag-card h3 { font-family: var(--font-display); font-size: 15px; color: var(--text-heading); margin: 0 0 4px; }
+  .ag-card-sub { font-size: 12px; color: var(--text-muted); margin: 0 0 12px; line-height: 1.5; }
+  .ag-chart-box { position: relative; height: 240px; }
+  .ag-chart-box.tall { height: 280px; }
+  .ag-empty { font-size: 12.5px; color: var(--text-muted); text-align: center; padding: 60px 0; display: none; }
+
+  .ag-est { background: var(--surface-card); border: 1px solid var(--border-subtle); border-top: 4px solid var(--tf-blue); border-radius: var(--radius-lg); padding: 20px 22px; box-shadow: var(--shadow-sm); box-sizing: border-box; }
+  .ag-est-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; font-family: var(--font-display); font-size: 12px; color: var(--text-muted); }
+  .ag-est-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 18px; }
+  .ag-est-cell .lab { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 6px; }
+  .ag-est-cell .val { font-family: var(--font-display); font-size: 30px; font-weight: 700; color: var(--text-heading); margin: 0; }
+  .ag-est-cell .val.big { color: var(--tf-blue); }
+  .ag-est-cell .sub { font-family: var(--font-display); font-size: 11.5px; color: var(--text-muted); margin: 5px 0 0; line-height: 1.45; }
+  .ag-est-verdict { margin: 18px 0 0; padding: 12px 16px; background: var(--surface-sunken); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); font-size: 13px; line-height: 1.6; color: var(--text-body); }
+  .ag-todo { margin: 0; padding-left: 18px; }
+  .ag-todo li { font-size: 12.5px; color: var(--text-muted); line-height: 1.6; margin-bottom: 8px; }
+  .ag-todo strong { color: var(--text-heading); }
+  .ag-gaps { list-style: none; margin: 0; padding: 0; }
+  .ag-gaps li { display: flex; justify-content: space-between; gap: 12px; font-family: var(--font-display); font-size: 13px; padding: 9px 0; border-bottom: 1px solid var(--border-subtle); }
+  .ag-gaps li:last-child { border-bottom: none; }
+  .ag-gaps .days { font-weight: 700; color: var(--tf-warning); white-space: nowrap; }
+  .ag-gaps .none { color: var(--text-muted); border: none; }
+
+  .ag-table-wrap { background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; }
+  .ag-table-tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 14px 16px; border-bottom: 1px solid var(--border-subtle); }
+  .ag-table-scroll { overflow-x: auto; max-height: 560px; overflow-y: auto; }
+  table.ag-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .ag-table th { position: sticky; top: 0; background: var(--surface-sunken); font-family: var(--font-display); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right; padding: 10px 14px; border-bottom: 1px solid var(--border-default); cursor: pointer; white-space: nowrap; user-select: none; }
+  .ag-table th:first-child, .ag-table td:first-child { text-align: left; }
+  .ag-table th.sorted::after { content: " \25BE"; }
+  .ag-table th.sorted.asc::after { content: " \25B4"; }
+  .ag-table td { text-align: right; padding: 9px 14px; border-bottom: 1px solid var(--border-subtle); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ag-table tr:last-child td { border-bottom: none; }
+  .ag-table td.eid { font-family: Menlo, Consolas, monospace; font-size: 12px; }
+  .ag-badge { display: inline-block; font-family: var(--font-display); font-size: 10.5px; font-weight: 700; border-radius: 999px; padding: 2px 10px; }
+  .ag-badge.reliable { color: #1d7359; background: rgba(58,169,137,0.15); }
+  .ag-badge.indicative { color: #8a5f1f; background: rgba(201,138,46,0.15); }
+  .ag-badge.few { color: var(--text-muted); background: var(--tf-slate-100); }
+  .ag-table-foot { padding: 10px 16px; font-size: 11.5px; color: var(--text-muted); border-top: 1px solid var(--border-subtle); }
+
+  .ag-method { background: var(--surface-sunken); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 18px 22px; }
+  .ag-method h3 { font-family: var(--font-display); font-size: 13px; color: var(--text-heading); margin: 0 0 8px; }
+  .ag-method ul { margin: 0; padding-left: 18px; }
+  .ag-method li { font-size: 12.5px; color: var(--text-muted); line-height: 1.65; margin-bottom: 6px; }
+  .ag-footer-note { font-family: var(--font-display); font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 40px; line-height: 1.6; }
+
+  @keyframes ag-shimmer{ 0%{ background-position:150% 0; } 100%{ background-position:-50% 0; } }
+  .ag-skel { display:inline-block; height:0.8em; vertical-align:middle; border-radius:6px; background-size:250% 100%; animation:ag-shimmer 1.4s ease-in-out infinite; background-image:linear-gradient(90deg, rgba(4,18,33,0.08) 25%, rgba(4,18,33,0.16) 37%, rgba(4,18,33,0.08) 63%); }
+  @media (prefers-reduced-motion: reduce) { .ag-skel { animation: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="ag-hero">
+  <div>
+    <div class="ag-hero-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"></path></svg>
+    </div>
+    <p class="ag-eyebrow">TasFarmers &middot; Low Emissions Livestock Project</p>
+    <h1>AgScent Methane</h1>
+    <p class="ag-hero-sub">Measured breath methane from the AgScent sensor on Bowood's OptiWeigh unit: visit by visit, from animals in the SeaFeed treatment group, with a plain view of how far the data can be trusted yet.</p>
+  </div>
+  <div class="ag-hero-tools" id="ag-tools">
+    <select class="ag-select" id="ag-farm" aria-label="Farm" style="display:none;"></select>
+  </div>
+</div>
+
+<div class="ag-page">
+
+  <div class="ag-msg" id="ag-msg" style="display:none;">
+    <h2 id="ag-msg-title"></h2>
+    <p id="ag-msg-text"></p>
+  </div>
+
+  <div id="ag-content">
+
+    <p class="ag-section-label">Snapshot</p>
+    <div class="ag-kpi-grid" id="ag-kpis"></div>
+
+    <p class="ag-section-label">Measured vs expected methane</p>
+    <p class="ag-section-intro">Each animal's measured methane (g CH4/day) against what Charmley's equation expects for an untreated animal of that weight: liveweight &times; dry matter intake &times; g CH4 per kg intake, the same inputs as the modelled abatement. Under 100% means measured methane is below the untreated expectation.</p>
+    <div class="ag-est" id="ag-est">
+      <div class="ag-est-tools">
+        <label for="ag-col">AgScent estimate used</label>
+        <select class="ag-select" id="ag-col"><option value="avg">CH4 estimate, average (AVG)</option><option value="max">CH4 estimate, maximum (MAX)</option></select>
+      </div>
+      <div class="ag-est-grid" id="ag-est-grid"></div>
+      <p class="ag-est-verdict" id="ag-est-verdict"></p>
+    </div>
+    <div class="ag-grid" style="margin-top:16px;">
+      <div class="ag-card">
+        <h3>Each animal against its expectation</h3>
+        <p class="ag-card-sub">Measured g CH4/day as a % of the Charmley expectation for that animal's weight. The top line is the untreated expectation (100%). The dashed line is where the pipeline's modelled abatement says SeaFeed animals should sit.</p>
+        <div class="ag-chart-box tall"><canvas id="ag-ch-ratio" aria-label="Measured as a share of expected, by animal"></canvas></div>
+        <div class="ag-empty" id="ag-ratio-empty">Not enough animals pass the quality filters yet.</div>
+      </div>
+      <div class="ag-card">
+        <h3>By month</h3>
+        <p class="ag-card-sub">Same measure for each month of filtered visits. Months with fewer than <span id="ag-minmonth"></span> filtered visits are left blank.</p>
+        <div class="ag-chart-box tall"><canvas id="ag-ch-ratio-m" aria-label="Measured as a share of expected, by month"></canvas></div>
+      </div>
+      <div class="ag-card">
+        <h3>Which visits are used</h3>
+        <p class="ag-card-sub">Quality filters from the TIA report on this unit, applied in order. Only visits that pass all of them feed the comparison.</p>
+        <ul class="ag-gaps" id="ag-funnel"></ul>
+      </div>
+    </div>
+
+    <p class="ag-section-label">Data health</p>
+    <p class="ag-section-intro">How complete and usable the data is. Only visits with an EID, a weight and an AgScent estimate count as valid for comparing animals.</p>
+    <div class="ag-grid">
+      <div class="ag-card" style="grid-column: 1 / -1;">
+        <h3>Visits per day</h3>
+        <p class="ag-card-sub">Every calendar day since the first visit, so gaps show as empty space. Valid visits are those with an EID, weight and estimate.</p>
+        <div class="ag-chart-box"><canvas id="ag-ch-daily" aria-label="Visits per day"></canvas></div>
+      </div>
+      <div class="ag-card">
+        <h3>Why so few visits have an estimate</h3>
+        <p class="ag-card-sub">Share of visits that produced an AgScent estimate, by how long the animal stayed. Short visits almost never do.</p>
+        <div class="ag-chart-box"><canvas id="ag-ch-detect" aria-label="Estimate rate by visit length"></canvas></div>
+      </div>
+      <div class="ag-card">
+        <h3>Periods with no data</h3>
+        <p class="ag-card-sub">Runs of 3 or more days with no visits at all: unit offline, or an export not yet loaded.</p>
+        <ul class="ag-gaps" id="ag-gaps"></ul>
+      </div>
+      <div class="ag-card">
+        <h3>Sensor baseline</h3>
+        <p class="ag-card-sub">Weekly median idle CH4 (ppm). A flat line means the sensor is stable. Clean air is about 1.9 ppm, so a steady reading above that suggests the sensor needs gas calibration (TIA saw about 3.0).</p>
+        <div class="ag-chart-box"><canvas id="ag-ch-base" aria-label="Sensor baseline by week"></canvas></div>
+      </div>
+      <div class="ag-card">
+        <h3>Match rates</h3>
+        <p class="ag-card-sub">Share of visits with each identifier, by month.</p>
+        <div class="ag-chart-box"><canvas id="ag-ch-match" aria-label="EID and estimate rate by month"></canvas></div>
+      </div>
+    </div>
+
+    <p class="ag-section-label">Trend</p>
+    <p class="ag-section-intro">Weekly median AgScent estimate across valid visits. Weeks with fewer than <span id="ag-minweek"></span> valid visits are left blank rather than plotted from too little data.</p>
+    <div class="ag-grid">
+      <div class="ag-card" style="grid-column: 1 / -1;">
+        <h3>Weekly median estimate</h3>
+        <p class="ag-card-sub">Line: median estimate in g CH4/day. Bars: valid visits that week.</p>
+        <div class="ag-chart-box tall"><canvas id="ag-ch-trend" aria-label="Weekly median AgScent estimate"></canvas></div>
+        <div class="ag-empty" id="ag-trend-empty">Not enough valid visits to plot a trend yet.</div>
+      </div>
+      <div class="ag-card" style="grid-column: 1 / -1;">
+        <h3>Spread between animals</h3>
+        <p class="ag-card-sub">Median estimate for each animal with at least <span id="ag-minind"></span> valid visits. A wide spread is what the sensor is meant to rank, but visit-to-visit noise inside one animal is also large.</p>
+        <div class="ag-chart-box"><canvas id="ag-ch-hist" aria-label="Distribution of animal medians"></canvas></div>
+        <div class="ag-empty" id="ag-hist-empty">No animals have enough valid visits yet.</div>
+      </div>
+    </div>
+
+    <p class="ag-section-label">Animals</p>
+    <p class="ag-section-intro">One row per EID. Reliability is by valid visit count: Reliable <span id="ag-minrel"></span> or more, Indicative <span id="ag-minind2"></span> to <span id="ag-minrel2"></span>, Too few below that. All animals are in the SeaFeed treatment group.</p>
+    <div class="ag-table-wrap">
+      <div class="ag-table-tools">
+        <input class="ag-input" id="ag-search" type="search" placeholder="Search EID" aria-label="Search EID">
+        <select class="ag-select" id="ag-rel-filter" aria-label="Reliability filter">
+          <option value="">All reliability</option>
+          <option value="reliable">Reliable</option>
+          <option value="indicative">Indicative</option>
+          <option value="few">Too few</option>
+        </select>
+        <button class="ag-btn secondary" id="ag-export" type="button" style="margin-left:auto;">Export CSV</button>
+      </div>
+      <div class="ag-table-scroll">
+        <table class="ag-table" id="ag-table">
+          <thead><tr>
+            <th data-k="eid" class="sorted asc">EID</th>
+            <th data-k="valid">Valid visits</th>
+            <th data-k="all">All visits</th>
+            <th data-k="med">Median g CH4/d</th>
+            <th data-k="p25">Q1</th>
+            <th data-k="p75">Q3</th>
+            <th data-k="wt">Median wt (kg)</th>
+            <th data-k="first">First</th>
+            <th data-k="last">Last</th>
+            <th data-k="rel">Reliability</th>
+          </tr></thead>
+          <tbody id="ag-tbody"></tbody>
+        </table>
+      </div>
+      <div class="ag-table-foot" id="ag-table-foot"></div>
+    </div>
+
+    <p class="ag-section-label">How to read this</p>
+    <div class="ag-method">
+      <h3>What this data is, and what it is not</h3>
+      <ul>
+        <li>The sensor samples an animal's breath during voluntary visits to the OptiWeigh unit. It is a short window, so it ranks animals against each other better than it gives an absolute daily total.</li>
+        <li>Only visits where AgScent found a methane peak get an emission estimate. Longer visits are far more likely to, so the estimates describe those visits, not every visit.</li>
+        <li>Estimates are in grams of CH4 per day. AgScent's export does not say which method (Bell or Madsen) produced them, or whether the AVG or MAX column is the one to use, and the two give very different results.</li>
+        <li>Expected methane is Charmley's equation applied to each animal's weight. TIA found this same sensor reads roughly a third of that on untreated animals, so a measured figure well below 100% is not by itself proof of SeaFeed's effect.</li>
+        <li>Individual visits vary a lot. Use animal figures only when marked Reliable, and herd trends only where the week has enough visits.</li>
+        <li>All readings are from SeaFeed-fed animals. Bowood is the only farm with a unit, so there is no control group in this data and no comparison to draw from it.</li>
+      </ul>
+    </div>
+
+    <p class="ag-footer-note">Source: LEL_Methane_Visits, loaded by 16. AgScent_Methane_Import.py from AgScent dashboard exports &middot; Times shown in Tasmanian local time &middot; Not for external distribution</p>
+  </div>
+
+</div>
+
+<script>
+(function(){
+
+  // ============================================================
+  // CONFIG
+  // ============================================================
+  var LAYER_URL = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Methane_Visits/FeatureServer/0/query";
+
+  var TZ = "Australia/Hobart";
+  var PAGE_SIZE = 2000;
+  var GAP_DAYS = 3;            // shown as a gap when this many days or more have no visits
+  var MIN_RELIABLE = 20;       // valid visits for a Reliable animal
+  var MIN_INDICATIVE = 10;     // valid visits for an Indicative animal
+  var MIN_WEEK_VISITS = 30;    // valid visits needed to plot a weekly median
+
+  var MINT = '#3aa989', BLUE = '#2e6f9e', SLATE = '#a9b8c4', AMBER = '#c98a2e', NAVY = '#041221';
+
+  var FIELDS = "visit_start,farm,eid,duration_s,weight_kg,ch4_baseline_ppm,ch4_est_avg,ch4_est_max,ch4_peak_count,has_estimate,is_valid_visit,imported_at";
+
+  // Measured vs expected: quality filters from the TIA report on this unit.
+  var TIA_MIN_DURATION_S = 60;     // visit longer than this
+  var TIA_MIN_PEAKS = 3;           // eructation peaks captured (TIA's smallest retained visit had 3)
+  var TIA_MIN_ANIMAL_VISITS = 10;  // valid visits per animal
+  var MIN_MONTH_VISITS = 25;       // filtered visits needed to plot a month
+  var UPLOAD_STALE_DAYS = 35;      // monthly uploads: flag when older than this
+  var BOOT_N = 3000;               // bootstrap resamples (over animals)
+  var ASSUMP_URL = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Model_Assumptions_Public/FeatureServer/0/query";
+  var EMISSIONS_URL = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Emissions_Data_view/FeatureServer/0/query";
+  var DEFAULT_DMI = 0.025, DEFAULT_MY = 20.7;   // same as the pipeline; used only if the live lookup fails
+
+  // ============================================================
+  // HELPERS
+  // ============================================================
+  function $(id){ return document.getElementById(id); }
+  function dayKey(ms){ return new Date(ms).toLocaleDateString('en-CA', { timeZone: TZ }); } // YYYY-MM-DD
+  function dayToUtcMs(k){ var p = k.split('-'); return Date.UTC(+p[0], +p[1]-1, +p[2]); }
+  function fmtDay(k){ return new Date(dayToUtcMs(k)).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', timeZone: 'UTC' }); }
+  function fmtDayY(k){ return new Date(dayToUtcMs(k)).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }); }
+  function addDays(k, n){ return new Date(dayToUtcMs(k) + n * 86400000).toISOString().slice(0, 10); }
+  function daysBetween(a, b){ return Math.round((dayToUtcMs(b) - dayToUtcMs(a)) / 86400000); }
+  function weekStart(k){ // Monday of the week containing k
+    var d = new Date(dayToUtcMs(k)), dow = (d.getUTCDay() + 6) % 7;
+    return addDays(k, -dow);
+  }
+  function monthKey(k){ return k.slice(0, 7); }
+  function median(a){ return pct(a, 0.5); }
+  function pct(a, p){
+    if (!a.length) return null;
+    var s = a.slice().sort(function(x, y){ return x - y; }), i = (s.length - 1) * p, lo = Math.floor(i), hi = Math.ceil(i);
+    return s[lo] + (s[hi] - s[lo]) * (i - lo);
+  }
+  function fmt1(v){ return v == null ? '–' : v.toFixed(1); }
+  function fmtInt(v){ return v == null ? '–' : Math.round(v).toLocaleString('en-AU'); }
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+  // ============================================================
+  // FETCH
+  // ============================================================
+  function q(params){
+    params.f = "json";
+    return fetch(LAYER_URL + "?" + new URLSearchParams(params)).then(function(r){ return r.json(); }).then(function(d){
+      if (d.error) { var e = new Error(d.error.message || "Query failed"); e.code = d.error.code; throw e; }
+      return d;
+    });
+  }
+
+  function fetchAll(){
+    return q({ where: "1=1", returnCountOnly: "true" }).then(function(c){
+      var n = c.count, pages = Math.ceil(n / PAGE_SIZE), reqs = [];
+      for (var i = 0; i < pages; i++) {
+        reqs.push(q({ where: "1=1", outFields: FIELDS, orderByFields: "FID ASC", resultOffset: String(i * PAGE_SIZE), resultRecordCount: String(PAGE_SIZE) }));
+      }
+      return Promise.all(reqs);
+    }).then(function(results){
+      var out = [];
+      results.forEach(function(r){ r.features.forEach(function(f){ out.push(f.attributes); }); });
+      return out;
+    });
+  }
+
+  function normalise(attrs){
+    return attrs.filter(function(a){ return a.visit_start != null; }).map(function(a){
+      return {
+        t: a.visit_start, day: dayKey(a.visit_start), farm: a.farm || 'Unknown',
+        eid: a.eid || '', dur: a.duration_s, wt: a.weight_kg, base: a.ch4_baseline_ppm,
+        est: a.ch4_est_avg, estMax: a.ch4_est_max, peaks: a.ch4_peak_count, imp: a.imported_at, hasEst: a.has_estimate === 'Y', valid: a.is_valid_visit === 'Y'
+      };
+    });
+  }
+
+  // ============================================================
+  // RENDER
+  // ============================================================
+  var ALL = [], charts = {}, animalRows = [], sortKey = 'eid', sortAsc = true;
+
+  function killCharts(){ Object.keys(charts).forEach(function(k){ charts[k].destroy(); }); charts = {}; }
+
+  function render(rows){
+    killCharts();
+    $('ag-minweek').textContent = MIN_WEEK_VISITS;
+    $('ag-minind').textContent = MIN_INDICATIVE; $('ag-minind2').textContent = MIN_INDICATIVE;
+    $('ag-minrel').textContent = MIN_RELIABLE; $('ag-minrel2').textContent = MIN_RELIABLE - 1;
+    if (!rows.length) { $('ag-kpis').innerHTML = '<div class="ag-kpi warn"><p class="ag-kpi-label">No visits</p><p class="ag-kpi-value">0</p></div>'; return; }
+
+    var valid = rows.filter(function(r){ return r.valid; });
+    var withEst = rows.filter(function(r){ return r.hasEst; });
+    var days = {}; rows.forEach(function(r){ days[r.day] = (days[r.day] || 0) + 1; });
+    var dayKeys = Object.keys(days).sort();
+    var first = dayKeys[0], last = dayKeys[dayKeys.length - 1];
+    var span = daysBetween(first, last) + 1;
+    var today = dayKey(Date.now());
+    var sinceLast = daysBetween(last, today);
+    var animals = {}; valid.forEach(function(r){ animals[r.eid] = (animals[r.eid] || 0) + 1; });
+    var animalCount = Object.keys(animals).length;
+    var enough = Object.keys(animals).filter(function(k){ return animals[k] >= MIN_INDICATIVE; }).length;
+    var medEst = median(valid.map(function(r){ return r.est; }));
+    var lastImp = rows.reduce(function(m, r){ return r.imp != null && r.imp > m ? r.imp : m; }, 0);
+    var uploadKpi = lastImp
+      ? (function(){ var k = dayKey(lastImp), ago = daysBetween(k, today); return { value: fmtDayY(k), note: 'Data runs to ' + fmtDay(last) + (ago > 0 ? ' (' + ago + ' days ago)' : ''), warn: ago > UPLOAD_STALE_DAYS }; })()
+      : { value: fmtDayY(last), note: 'Latest visit in the data', warn: sinceLast > UPLOAD_STALE_DAYS };
+
+    $('ag-kpis').innerHTML =
+      kpi('Visits', fmtInt(rows.length), fmtDay(first) + ' to ' + fmtDay(last), 'blue') +
+      kpi('With an estimate', Math.round(withEst.length / rows.length * 100) + '%', fmtInt(withEst.length) + ' of ' + fmtInt(rows.length) + ' visits', withEst.length / rows.length < 0.5 ? 'warn' : '') +
+      kpi('Valid visits', fmtInt(valid.length), 'EID, weight and estimate present') +
+      kpi('Animals', fmtInt(animalCount), enough + ' with ' + MIN_INDICATIVE + '+ valid visits') +
+      kpi('Days with data', dayKeys.length + ' of ' + span, Math.round(dayKeys.length / span * 100) + '% of the period', dayKeys.length / span < 0.7 ? 'warn' : '') +
+      kpi('Group', 'SeaFeed', 'All readings are treatment animals') +
+      kpi('Median estimate', fmt1(medEst), 'g CH4/day per valid visit (sensor reads low, see below)', 'blue') +
+      kpi('Last monthly upload', uploadKpi.value, uploadKpi.note, uploadKpi.warn ? 'warn' : '');
+
+    renderEstimate(rows);
+    renderDaily(days, first, last, valid);
+    renderDetect(rows);
+    renderGaps(dayKeys);
+    renderBaseline(rows);
+    renderMatch(rows);
+    renderTrend(valid);
+    renderHist(valid);
+    renderTable(rows);
+  }
+
+  function kpi(label, value, note, cls){
+    return '<div class="ag-kpi ' + (cls || '') + '"><p class="ag-kpi-label">' + esc(label) + '</p><p class="ag-kpi-value">' + esc(value) + '</p><p class="ag-kpi-note">' + esc(note) + '</p></div>';
+  }
+
+  var baseOpts = function(){ return {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { family: 'Tahoma, Verdana, sans-serif', size: 11 } } } },
+    scales: { x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 12 } }, y: { beginAtZero: true, ticks: { font: { size: 10 } } } }
+  }; };
+
+  function renderDaily(days, first, last, valid){
+    var validByDay = {}; valid.forEach(function(r){ validByDay[r.day] = (validByDay[r.day] || 0) + 1; });
+    var labels = [], vals = [], others = [], n = daysBetween(first, last);
+    for (var i = 0; i <= n; i++) {
+      var k = addDays(first, i), tot = days[k] || 0, v = validByDay[k] || 0;
+      labels.push(fmtDay(k)); vals.push(v); others.push(tot - v);
+    }
+    var o = baseOpts();
+    o.scales.x.stacked = true; o.scales.y.stacked = true;
+    o.plugins.tooltip = { mode: 'index', intersect: false };
+    charts.daily = new Chart($('ag-ch-daily'), { type: 'bar', data: { labels: labels, datasets: [
+      { label: 'Valid visits', data: vals, backgroundColor: MINT, borderWidth: 0 },
+      { label: 'Other visits', data: others, backgroundColor: SLATE, borderWidth: 0 }
+    ] }, options: o });
+  }
+
+  function renderDetect(rows){
+    var bins = [[0, 30, 'Under 30 s'], [30, 60, '30 to 60 s'], [60, 120, '1 to 2 min'], [120, 240, '2 to 4 min'], [240, 600, '4 to 10 min'], [600, 1e9, 'Over 10 min']];
+    var labels = [], rate = [], counts = [];
+    bins.forEach(function(b){
+      var g = rows.filter(function(r){ return r.dur != null && r.dur > b[0] && r.dur <= b[1]; });
+      labels.push(b[2]); counts.push(g.length);
+      rate.push(g.length ? g.filter(function(r){ return r.hasEst; }).length / g.length * 100 : 0);
+    });
+    var o = baseOpts(); o.scales.y.max = 100;
+    o.scales.y.ticks.callback = function(v){ return v + '%'; };
+    o.plugins.legend.display = false;
+    o.plugins.tooltip = { callbacks: { label: function(c){ return c.parsed.y.toFixed(0) + '% of ' + fmtInt(counts[c.dataIndex]) + ' visits'; } } };
+    charts.detect = new Chart($('ag-ch-detect'), { type: 'bar', data: { labels: labels, datasets: [{ data: rate, backgroundColor: BLUE, borderWidth: 0 }] }, options: o });
+  }
+
+  function renderGaps(dayKeys){
+    var list = [];
+    for (var i = 1; i < dayKeys.length; i++) {
+      var missing = daysBetween(dayKeys[i - 1], dayKeys[i]) - 1;
+      if (missing >= GAP_DAYS) list.push({ from: addDays(dayKeys[i - 1], 1), to: addDays(dayKeys[i], -1), n: missing });
+    }
+    var ul = $('ag-gaps');
+    if (!list.length) { ul.innerHTML = '<li class="none">No gaps of ' + GAP_DAYS + ' or more days.</li>'; return; }
+    ul.innerHTML = list.map(function(g){ return '<li><span>' + fmtDay(g.from) + ' to ' + fmtDay(g.to) + '</span><span class="days">' + g.n + ' days</span></li>'; }).join('');
+  }
+
+  function renderBaseline(rows){
+    var byWeek = {};
+    rows.forEach(function(r){ if (r.base != null) { var w = weekStart(r.day); (byWeek[w] = byWeek[w] || []).push(r.base); } });
+    var weeks = Object.keys(byWeek).sort();
+    var o = baseOpts(); o.plugins.legend.display = false; o.scales.y.suggestedMax = 5;
+    o.scales.x.ticks.callback = function(v){ return fmtDay(weeks[v]); };
+    charts.base = new Chart($('ag-ch-base'), { type: 'line', data: { labels: weeks, datasets: [{ data: weeks.map(function(w){ return median(byWeek[w]); }), borderColor: BLUE, backgroundColor: BLUE, pointRadius: 2, tension: 0.2 }] }, options: o });
+  }
+
+  function renderMatch(rows){
+    var byMonth = {};
+    rows.forEach(function(r){ var m = monthKey(r.day); var b = byMonth[m] = byMonth[m] || { n: 0, eid: 0, est: 0, valid: 0 }; b.n++; if (r.eid) b.eid++; if (r.hasEst) b.est++; if (r.valid) b.valid++; });
+    var months = Object.keys(byMonth).sort();
+    var label = function(m){ return new Date(Date.UTC(+m.slice(0, 4), +m.slice(5) - 1, 1)).toLocaleDateString('en-AU', { month: 'short', year: '2-digit', timeZone: 'UTC' }); };
+    var series = function(key, name, colour){ return { label: name, data: months.map(function(m){ return byMonth[m][key] / byMonth[m].n * 100; }), backgroundColor: colour, borderWidth: 0 }; };
+    var o = baseOpts(); o.scales.y.max = 100; o.scales.y.ticks.callback = function(v){ return v + '%'; };
+    charts.match = new Chart($('ag-ch-match'), { type: 'bar', data: { labels: months.map(label), datasets: [series('eid', 'Has EID', SLATE), series('est', 'Has estimate', BLUE), series('valid', 'Valid', MINT)] }, options: o });
+  }
+
+  function renderTrend(valid){
+    var byWeek = {};
+    valid.forEach(function(r){ var w = weekStart(r.day); (byWeek[w] = byWeek[w] || []).push(r.est); });
+    var weeks = Object.keys(byWeek).sort();
+    var plottable = weeks.filter(function(w){ return byWeek[w].length >= MIN_WEEK_VISITS; });
+    $('ag-trend-empty').style.display = plottable.length ? 'none' : 'block';
+    $('ag-ch-trend').style.display = plottable.length ? 'block' : 'none';
+    if (!plottable.length) return;
+    // Continuous weekly axis so skipped weeks show as breaks in the line.
+    var all = [], w = weeks[0];
+    while (w <= weeks[weeks.length - 1]) { all.push(w); w = addDays(w, 7); }
+    var o = baseOpts();
+    o.scales.x.ticks.callback = function(v){ return fmtDay(all[v]); };
+    o.scales.y.title = { display: true, text: 'Median g CH4/day', font: { size: 10 } };
+    o.scales.y1 = { position: 'right', beginAtZero: true, grid: { display: false }, title: { display: true, text: 'Valid visits', font: { size: 10 } }, ticks: { font: { size: 10 } } };
+    o.plugins.tooltip = { callbacks: { title: function(items){ return 'Week of ' + fmtDayY(all[items[0].dataIndex]); } } };
+    charts.trend = new Chart($('ag-ch-trend'), { data: { labels: all, datasets: [
+      { type: 'bar', label: 'Valid visits', data: all.map(function(k){ return byWeek[k] ? byWeek[k].length : 0; }), backgroundColor: 'rgba(169,184,196,0.55)', borderWidth: 0, yAxisID: 'y1', order: 2 },
+      { type: 'line', label: 'Median estimate', data: all.map(function(k){ return byWeek[k] && byWeek[k].length >= MIN_WEEK_VISITS ? median(byWeek[k]) : null; }), borderColor: MINT, backgroundColor: MINT, pointRadius: 3, tension: 0.2, spanGaps: false, order: 1 }
+    ] }, options: o });
+  }
+
+  function renderHist(valid){
+    var per = {}; valid.forEach(function(r){ (per[r.eid] = per[r.eid] || []).push(r.est); });
+    var meds = Object.keys(per).filter(function(k){ return per[k].length >= MIN_INDICATIVE; }).map(function(k){ return median(per[k]); });
+    $('ag-hist-empty').style.display = meds.length ? 'none' : 'block';
+    $('ag-ch-hist').style.display = meds.length ? 'block' : 'none';
+    if (!meds.length) return;
+    var step = 10, top = 100, labels = [], counts = [];
+    for (var lo = 0; lo < top; lo += step) { labels.push(lo + ' to ' + (lo + step)); counts.push(0); }
+    labels.push(top + ' and over'); counts.push(0);
+    meds.forEach(function(m){ var i = Math.min(Math.floor(m / step), labels.length - 1); counts[i]++; });
+    var o = baseOpts(); o.plugins.legend.display = false;
+    o.scales.y.title = { display: true, text: 'Animals', font: { size: 10 } };
+    o.scales.y.ticks.precision = 0;
+    charts.hist = new Chart($('ag-ch-hist'), { type: 'bar', data: { labels: labels, datasets: [{ data: counts, backgroundColor: MINT, borderWidth: 0 }] }, options: o });
+  }
+
+
+  // ---------------- Measured vs Charmley expectation ----------------
+  var MODEL = { dmi: DEFAULT_DMI, my: DEFAULT_MY, abate: null, live: false };
+  var curRows = [];
+
+  function qu(url, params){
+    params.f = "json";
+    return fetch(url + "?" + new URLSearchParams(params)).then(function(r){ return r.json(); }).then(function(d){
+      if (d.error) throw new Error(d.error.message || "Query failed");
+      return d;
+    });
+  }
+
+  function fetchModel(farm){
+    var a = qu(ASSUMP_URL, { where: "1=1", outFields: "dmi_pct_of_bodyweight,charmley_my_g_per_kg_dmi", orderByFields: "last_updated DESC", resultRecordCount: "1" })
+      .then(function(d){ var r = d.features && d.features[0] && d.features[0].attributes; return r && r.dmi_pct_of_bodyweight != null && r.charmley_my_g_per_kg_dmi != null ? r : null; })
+      .catch(function(){ return null; });
+    var b = qu(EMISSIONS_URL, { where: "farm_name='" + String(farm).replace(/'/g, "''") + "' AND treatment='seafeed'", outFields: "abatement_rate", orderByFields: "record_date DESC", resultRecordCount: "1" })
+      .then(function(d){ var r = d.features && d.features[0] && d.features[0].attributes; return r && r.abatement_rate != null ? r.abatement_rate : null; })
+      .catch(function(){ return null; });
+    return Promise.all([a, b]).then(function(x){
+      if (x[0]) { MODEL.dmi = x[0].dmi_pct_of_bodyweight; MODEL.my = x[0].charmley_my_g_per_kg_dmi; MODEL.live = true; }
+      MODEL.abate = x[1];
+    });
+  }
+
+  function estOf(r){ return $('ag-col').value === 'max' ? r.estMax : r.est; }
+  function mean(a){ return a.reduce(function(x, y){ return x + y; }, 0) / a.length; }
+  function pctTxt(x){ return Math.round(x * 100) + '%'; }
+  function expectedG(weightKg){ return weightKg * MODEL.dmi * MODEL.my; }   // Charmley: DMI x g CH4 per kg DMI
+
+  function renderEstimate(rows){
+    if (rows) curRows = rows;
+    ['ratio', 'ratioM'].forEach(function(k){ if (charts[k]) { charts[k].destroy(); delete charts[k]; } });
+    $('ag-minmonth').textContent = MIN_MONTH_VISITS;
+
+    // Funnel: quality filters, in order.
+    var steps = [], cur = curRows;
+    function step(label, fn){ cur = cur.filter(fn); steps.push([label, cur.length]); }
+    steps.push(['All visits', cur.length]);
+    step('EID and weight present', function(r){ return r.eid && r.wt > 0; });
+    step('AgScent produced an estimate', function(r){ return estOf(r) != null; });
+    step('Visit longer than ' + TIA_MIN_DURATION_S + ' seconds', function(r){ return r.dur > TIA_MIN_DURATION_S; });
+    step(TIA_MIN_PEAKS + ' or more eructation peaks', function(r){ return r.peaks != null && r.peaks >= TIA_MIN_PEAKS; });
+    var cnt = {}; cur.forEach(function(r){ cnt[r.eid] = (cnt[r.eid] || 0) + 1; });
+    step('Animal has ' + TIA_MIN_ANIMAL_VISITS + '+ such visits', function(r){ return cnt[r.eid] >= TIA_MIN_ANIMAL_VISITS; });
+    var used = cur;
+
+    var per = {}; used.forEach(function(r){ (per[r.eid] = per[r.eid] || []).push(r); });
+    var animals = Object.keys(per).map(function(e){
+      var g = per[e], m = mean(g.map(estOf)), w = mean(g.map(function(r){ return r.wt; }));
+      return { eid: e, n: g.length, m: m, w: w, exp: expectedG(w), ratio: m / expectedG(w) };
+    }).sort(function(a, b){ return a.ratio - b.ratio; });
+
+    $('ag-funnel').innerHTML = steps.map(function(x, i){
+      return '<li><span>' + esc(x[0]) + '</span><span class="days" style="color:' + (i === steps.length - 1 ? '#1d7359' : 'var(--text-heading)') + ';">' + fmtInt(x[1]) + '</span></li>';
+    }).join('') + '<li><span>Animals used</span><span class="days" style="color:#1d7359;">' + animals.length + '</span></li>';
+
+    var grid = $('ag-est-grid'), verdict = $('ag-est-verdict');
+    if (animals.length < 5) {
+      grid.innerHTML = cell('Not enough data', animals.length + ' animals', 'At least 5 animals must pass the quality filters before a comparison is shown.');
+      verdict.textContent = 'Load more months of data, or check the filters, and this will fill in.';
+      $('ag-ratio-empty').style.display = 'block'; $('ag-ch-ratio').style.display = 'none';
+      return;
+    }
+    $('ag-ratio-empty').style.display = 'none'; $('ag-ch-ratio').style.display = 'block';
+
+    var measured = mean(animals.map(function(a){ return a.m; })), expected = mean(animals.map(function(a){ return a.exp; }));
+    var k = measured / expected, below = 1 - k;
+
+    // Bootstrap over animals: sampling uncertainty in the average only.
+    var out = [];
+    for (var b = 0; b < BOOT_N; b++) {
+      var sm = 0, se = 0, j, a;
+      for (j = 0; j < animals.length; j++) { a = animals[Math.floor(Math.random() * animals.length)]; sm += a.m; se += a.exp; }
+      out.push(1 - sm / se);
+    }
+    out.sort(function(x, y){ return x - y; });
+    var lo = out[Math.floor(BOOT_N * 0.025)], hi = out[Math.floor(BOOT_N * 0.975)];
+
+    var neg = function(v){ return (v < 0 ? '\u2212' : '') + Math.abs(Math.round(v * 100)) + '%'; };
+    var modelled = MODEL.abate != null ? 1 - MODEL.abate / 100 : null;
+    grid.innerHTML =
+      cell('Expected without SeaFeed', fmt1(expected) + ' g', 'Charmley: weight x ' + (MODEL.dmi * 100).toFixed(1) + '% intake x ' + MODEL.my + ' g CH4/kg, averaged over these animals.') +
+      cell('Measured', fmt1(measured) + ' g', 'AgScent, g CH4/day. ' + animals.length + ' animals, ' + fmtInt(used.length) + ' visits.') +
+      cell('Measured vs expected', pctTxt(k), 'Under 100% means below the untreated expectation.') +
+      cell('Below expected by', neg(below), 'Range ' + neg(lo) + ' to ' + neg(hi) + ' (95%, sampling only)', true) +
+      cell('Modelled abatement', MODEL.abate != null ? MODEL.abate.toFixed(1) + '%' : '\u2013', modelled != null ? 'Pipeline figure. The model puts SeaFeed animals at about ' + pctTxt(modelled) + ' of expected.' : 'Pipeline figure for this farm.');
+
+    var v = 'Averaged over ' + animals.length + ' animals, measured methane is ' + neg(below) + ' ' + (below >= 0 ? 'below' : 'above') + ' Charmley\'s expectation for animals of their weight (95% range ' + neg(lo) + ' to ' + neg(hi) + ').';
+    if (modelled != null) {
+      var mo = MODEL.abate / 100;
+      v += ' The pipeline\'s modelled abatement is ' + MODEL.abate.toFixed(1) + '%, so the measured figure is ' + (below > mo ? 'further below expected than the model predicts' : (below < mo ? 'not as far below expected as the model predicts' : 'in line with the model')) + '.';
+    }
+    v += ' Caution: TIA found this same sensor reading about a third of Charmley on untreated animals, so this gap is not all SeaFeed.';
+    verdict.textContent = v;
+
+    // Chart: each animal as % of expectation.
+    var flat = function(x){ return animals.map(function(){ return x * 100; }); };
+    var line = function(label, val, col, dash, w){ return { type: 'line', label: label, data: flat(val), borderColor: col, borderDash: dash, borderWidth: w, pointRadius: 0, fill: false }; };
+    var o = baseOpts(); o.scales.x.ticks.callback = function(v){ return '\u2026' + animals[v].eid.slice(-4); };
+    o.scales.y.suggestedMax = 110; o.scales.y.ticks.callback = function(v){ return v + '%'; };
+    o.plugins.tooltip = { callbacks: { title: function(it){ return animals[it[0].dataIndex].eid; }, label: function(c){ var a = animals[c.dataIndex]; return c.dataset.type === 'bar' ? Math.round(c.parsed.y) + '% of expected (' + a.n + ' visits, ' + fmt1(a.m) + ' of ' + fmt1(a.exp) + ' g/day)' : c.dataset.label + ': ' + Math.round(c.parsed.y) + '%'; } } };
+    var ds = [
+      { type: 'bar', label: 'Bowood animal', data: animals.map(function(a){ return a.ratio * 100; }), backgroundColor: MINT, borderWidth: 0, order: 3 },
+      line('Charmley expectation (untreated)', 1, NAVY, [], 2)
+    ];
+    if (modelled != null) ds.push(line('Modelled with SeaFeed', modelled, AMBER, [6, 4], 2));
+    ds.push(line('Bowood average', k, BLUE, [], 2));
+    charts.ratio = new Chart($('ag-ch-ratio'), { data: { labels: animals.map(function(a){ return a.eid; }), datasets: ds }, options: o });
+
+    // Chart: by month.
+    var byM = {}; used.forEach(function(r){ var m = monthKey(r.day); var t = byM[m] = byM[m] || { est: 0, exp: 0, n: 0 }; t.est += estOf(r); t.exp += expectedG(r.wt); t.n++; });
+    var months = Object.keys(byM).sort();
+    var mlabel = function(m){ return new Date(Date.UTC(+m.slice(0, 4), +m.slice(5) - 1, 1)).toLocaleDateString('en-AU', { month: 'short', year: '2-digit', timeZone: 'UTC' }); };
+    var om = baseOpts(); om.scales.y.suggestedMax = 110; om.scales.y.ticks.callback = function(v){ return v + '%'; };
+    var mline = function(label, val, col, dash){ return { type: 'line', label: label, data: months.map(function(){ return val * 100; }), borderColor: col, borderDash: dash, borderWidth: 2, pointRadius: 0, fill: false }; };
+    var mds = [
+      { type: 'bar', label: 'Bowood', data: months.map(function(m){ return byM[m].n >= MIN_MONTH_VISITS ? byM[m].est / byM[m].exp * 100 : null; }), backgroundColor: MINT, borderWidth: 0 },
+      mline('Charmley expectation (untreated)', 1, NAVY, [])
+    ];
+    if (modelled != null) mds.push(mline('Modelled with SeaFeed', modelled, AMBER, [6, 4]));
+    charts.ratioM = new Chart($('ag-ch-ratio-m'), { data: { labels: months.map(mlabel), datasets: mds }, options: om });
+  }
+
+  function cell(lab, val, sub, big){
+    return '<div class="ag-est-cell"><p class="lab">' + esc(lab) + '</p><p class="val' + (big ? ' big' : '') + '">' + esc(val) + '</p><p class="sub">' + esc(sub) + '</p></div>';
+  }
+
+  // ---------------- Animal table ----------------
+  function relOf(n){ return n >= MIN_RELIABLE ? 'reliable' : (n >= MIN_INDICATIVE ? 'indicative' : 'few'); }
+  var REL_ORDER = { reliable: 3, indicative: 2, few: 1 };
+  var REL_LABEL = { reliable: 'Reliable', indicative: 'Indicative', few: 'Too few' };
+
+  function renderTable(rows){
+    var per = {};
+    rows.forEach(function(r){
+      if (!r.eid) return;
+      var a = per[r.eid] = per[r.eid] || { eid: r.eid, all: 0, ests: [], wts: [], first: r.day, last: r.day };
+      a.all++;
+      if (r.valid) { a.ests.push(r.est); if (r.wt) a.wts.push(r.wt); }
+      if (r.day < a.first) a.first = r.day;
+      if (r.day > a.last) a.last = r.day;
+    });
+    animalRows = Object.keys(per).map(function(k){
+      var a = per[k], n = a.ests.length;
+      return { eid: a.eid, valid: n, all: a.all, med: median(a.ests), p25: pct(a.ests, 0.25), p75: pct(a.ests, 0.75), wt: median(a.wts), first: a.first, last: a.last, rel: relOf(n) };
+    });
+    drawTable();
+  }
+
+  function drawTable(){
+    var term = $('ag-search').value.trim().toLowerCase(), relF = $('ag-rel-filter').value;
+    var rows = animalRows.filter(function(a){ return (!term || a.eid.toLowerCase().indexOf(term) !== -1) && (!relF || a.rel === relF); });
+    rows.sort(function(a, b){
+      var x = sortKey === 'rel' ? REL_ORDER[a.rel] : a[sortKey], y = sortKey === 'rel' ? REL_ORDER[b.rel] : b[sortKey];
+      if (x == null) return 1; if (y == null) return -1;
+      var c = x < y ? -1 : (x > y ? 1 : 0);
+      return sortAsc ? c : -c;
+    });
+    $('ag-tbody').innerHTML = rows.map(function(a){
+      return '<tr><td class="eid">' + esc(a.eid) + '</td><td>' + a.valid + '</td><td>' + a.all + '</td><td>' + fmt1(a.med) + '</td><td>' + fmt1(a.p25) + '</td><td>' + fmt1(a.p75) + '</td><td>' + fmtInt(a.wt) + '</td><td>' + fmtDay(a.first) + '</td><td>' + fmtDay(a.last) + '</td><td><span class="ag-badge ' + a.rel + '">' + REL_LABEL[a.rel] + '</span></td></tr>';
+    }).join('');
+    var counts = { reliable: 0, indicative: 0, few: 0 }; animalRows.forEach(function(a){ counts[a.rel]++; });
+    $('ag-table-foot').textContent = rows.length + ' of ' + animalRows.length + ' animals shown. Reliable: ' + counts.reliable + ', Indicative: ' + counts.indicative + ', Too few: ' + counts.few + '. Median uses valid visits only, in g CH4/day.';
+    Array.prototype.forEach.call(document.querySelectorAll('#ag-table th'), function(th){
+      th.classList.toggle('sorted', th.dataset.k === sortKey); th.classList.toggle('asc', th.dataset.k === sortKey && sortAsc);
+    });
+  }
+
+  function exportCsv(){
+    var cols = ['eid', 'valid', 'all', 'med', 'p25', 'p75', 'wt', 'first', 'last', 'rel'];
+    var head = ['eid', 'valid_visits', 'all_visits', 'median_estimate', 'q1', 'q3', 'median_weight_kg', 'first_visit', 'last_visit', 'reliability'];
+    var lines = [head.join(',')].concat(animalRows.map(function(a){
+      return cols.map(function(c){ var v = a[c]; return v == null ? '' : (typeof v === 'number' ? Math.round(v * 100) / 100 : '"' + v + '"'); }).join(',');
+    }));
+    var blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = dayKey(Date.now()) + ' AgScent animal summary.csv'; document.body.appendChild(a); a.click(); a.remove();
+  }
+
+  // ============================================================
+  // START
+  // ============================================================
+  function showError(title, text){
+    $('ag-content').style.display = 'none';
+    $('ag-msg').style.display = 'block';
+    $('ag-msg-title').textContent = title;
+    $('ag-msg-text').textContent = text;
+  }
+
+  function start(){
+    $('ag-kpis').innerHTML = [1, 2, 3, 4].map(function(){ return '<div class="ag-kpi" aria-hidden="true"><p class="ag-kpi-label"><span class="ag-skel" style="width:70px;height:9px;"></span></p><p class="ag-kpi-value"><span class="ag-skel" style="width:96px;height:24px;"></span></p></div>'; }).join('');
+
+    fetchAll().then(function(attrs){
+      ALL = normalise(attrs);
+      return fetchModel(ALL.length ? ALL[0].farm : 'Bowood Farm');
+    }).then(function(){
+      var farms = Array.from(new Set(ALL.map(function(r){ return r.farm; }))).sort();
+      var sel = $('ag-farm');
+      sel.innerHTML = '<option value="">All farms</option>' + farms.map(function(f){ return '<option>' + esc(f) + '</option>'; }).join('');
+      sel.style.display = farms.length > 1 ? 'inline-block' : 'none';
+      render(ALL);
+    }).catch(function(err){
+      showError('Could not load the data', (err && err.message ? err.message : 'Request failed') + '. Try again in a moment.');
+    });
+  }
+
+  $('ag-farm').addEventListener('change', function(){ var f = this.value; render(f ? ALL.filter(function(r){ return r.farm === f; }) : ALL); });
+  $('ag-col').addEventListener('change', function(){ renderEstimate(); });
+  $('ag-search').addEventListener('input', drawTable);
+  $('ag-rel-filter').addEventListener('change', drawTable);
+  $('ag-export').addEventListener('click', exportCsv);
+  Array.prototype.forEach.call(document.querySelectorAll('#ag-table th'), function(th){
+    th.addEventListener('click', function(){
+      var k = th.dataset.k; if (sortKey === k) sortAsc = !sortAsc; else { sortKey = k; sortAsc = (k === 'eid'); }
+      drawTable();
+    });
+  });
+
+  start();
+})();
+</script>
+</body>
+</html>
