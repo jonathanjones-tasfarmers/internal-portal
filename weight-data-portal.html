@@ -279,6 +279,32 @@
   .wd-lb-pct.red { color: var(--tf-red); }
   .wd-lb-unranked { padding: 10px 18px; font-size: 12px; color: var(--text-muted); border-top: 1px solid var(--border-subtle); }
 
+  /* OptiWeigh ADG comparison (added 2026-10-02, ADG measurement plan Phase 3 start).
+     Reads LEL_ADG_Comparison: OptiWeigh's own per-mob ADG for the same window
+     on both mobs. Additive: the existing ADG advantage figures on the farm
+     cards and leaderboard are untouched until Jono decides. */
+  .wd-ow { margin-bottom: 28px; }
+  .wd-ow-card { background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; }
+  .wd-ow-scroll { overflow-x: auto; }
+  table.wd-ow-table { width: 100%; border-collapse: collapse; min-width: 640px; }
+  .wd-ow-table th { font-family: var(--font-display); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: left; padding: 12px 16px; background: var(--surface-sunken); border-bottom: 1px solid var(--border-default); }
+  .wd-ow-table td { padding: 14px 16px; border-bottom: 1px solid var(--border-subtle); vertical-align: top; }
+  .wd-ow-table tr:last-child td { border-bottom: none; }
+  .wd-ow-scope { font-family: var(--font-display); font-size: 14px; font-weight: 700; color: var(--text-heading); white-space: nowrap; }
+  .wd-ow-scope .wd-dot { margin-right: 8px; }
+  .wd-ow-scope small { display: block; font-size: 11px; font-weight: 400; color: var(--text-muted); margin-top: 3px; }
+  .wd-ow-pct { font-family: var(--font-display); font-size: 20px; font-weight: 700; }
+  .wd-ow-pct.mint { color: var(--tf-seafeed); }
+  .wd-ow-pct.red { color: var(--tf-red); }
+  .wd-ow-na { font-size: 12px; color: var(--text-muted); font-style: italic; }
+  .wd-ow-sub { display: block; font-size: 11px; color: var(--text-muted); margin-top: 3px; line-height: 1.4; white-space: nowrap; }
+  .wd-ow-badge { display: inline-block; font-family: var(--font-display); font-size: 10.5px; font-weight: 700; color: #8a5f1f; background: rgba(201,138,46,0.16); border-radius: 999px; padding: 2px 9px; margin-left: 8px; vertical-align: middle; cursor: help; }
+  .wd-ow-flags { border-top: 1px solid var(--border-subtle); background: rgba(201,138,46,0.07); padding: 14px 18px; }
+  .wd-ow-flags-title { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: #8a5f1f; margin: 0 0 6px; }
+  .wd-ow-flags ul { margin: 0; padding-left: 18px; }
+  .wd-ow-flags li { font-size: 12.5px; color: #6f4a14; line-height: 1.55; margin-bottom: 4px; }
+  .wd-ow-note { padding: 12px 18px; border-top: 1px solid var(--border-subtle); font-size: 11.5px; color: var(--text-muted); line-height: 1.6; }
+
   .wd-footer-note { font-family: var(--font-display); font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 40px; line-height: 1.6; }
 
   @keyframes wd-shimmer{ 0%{ background-position:150% 0; } 100%{ background-position:-50% 0; } }
@@ -319,6 +345,11 @@
     <div class="wd-leaderboard-list" id="wd-leaderboard-list"></div>
   </div>
 
+  <div class="wd-ow" id="wd-ow" style="display:none;">
+    <p class="wd-section-label">OptiWeigh ADG &middot; SeaFeed vs Control, same window for both mobs</p>
+    <div class="wd-ow-card" id="wd-ow-card"></div>
+  </div>
+
   <p class="wd-section-label">Farms</p>
   <div class="wd-grid" id="wd-grid">
     <div class="wd-card" aria-hidden="true">
@@ -348,6 +379,7 @@
   var PRODUCTIVITY_URL = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/OptiWeigh_Cattle_Weights/FeatureServer/0/query";
   var ECON_URL          = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Economics_Data/FeatureServer/0/query";
   var WEATHER_URL       = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Weather_Data/FeatureServer/0/query";
+  var OW_COMPARISON_URL = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_ADG_Comparison/FeatureServer/0/query";
 
   var AGGREGATE_LABEL = "All Farms (Trial Aggregate)";
   var STALE_AFTER_DAYS = 14; // matches every other page on this site
@@ -501,16 +533,88 @@
   // ============================================================
   // LOAD + RENDER
   // ============================================================
+  // OptiWeigh ADG comparison: newest day's rows only. Non-fatal: if the table is
+  // missing, empty or not shared, the section simply stays hidden and the rest of
+  // the page loads as before.
+  function fetchOwComparison(){
+    return q(OW_COMPARISON_URL, {
+      where: "1=1",
+      outFields: "comparison_date,farm_name,window_days,seafeed_adg,control_adg,diff_g,diff_pct,seafeed_animals,control_animals,seafeed_days,control_days,farms_included,eligible,note,flag",
+      orderByFields: "comparison_date DESC", resultRecordCount: "200", f: "json"
+    }).then(function(data){
+      var rows = (data.features || []).map(function(f){ return f.attributes; });
+      if (!rows.length) return [];
+      var latest = rows[0].comparison_date;
+      return rows.filter(function(r){ return r.comparison_date === latest; });
+    }).catch(function(err){ console.warn('OptiWeigh comparison unavailable:', err); return []; });
+  }
+
+  var OW_WINDOWS = [14, 30, 90, 180];
+  function renderOwComparison(rows, allFarms){
+    var wrap = document.getElementById('wd-ow'), card = document.getElementById('wd-ow-card');
+    if (!rows || !rows.length) { wrap.style.display = 'none'; return; }
+    var scopes = [];
+    rows.forEach(function(r){ if (scopes.indexOf(r.farm_name) === -1) scopes.push(r.farm_name); });
+    // trial-wide last, farms alphabetical
+    scopes.sort(function(a, b){ return (a === AGGREGATE_LABEL) - (b === AGGREGATE_LABEL) || a.localeCompare(b); });
+    var flags = [];
+
+    function cell(scope, win){
+      var r = rows.filter(function(x){ return x.farm_name === scope && x.window_days === win; })[0];
+      if (!r) return '<td><span class="wd-ow-na">–</span></td>';
+      var flagged = !!(r.flag && String(r.flag).trim());
+      if (flagged) flags.push({ scope: scope, win: win, text: String(r.flag).trim() });
+      if (r.eligible !== 'Y' || r.diff_pct == null) {
+        return '<td><span class="wd-ow-na" title="' + escAttr(r.note || '') + '">Not enough data</span>' +
+          (r.note ? '<span class="wd-ow-sub" style="white-space:normal;max-width:150px;">' + escHtml(r.note) + '</span>' : '') + '</td>';
+      }
+      var cls = r.diff_pct >= 0 ? 'mint' : 'red';
+      var sign = r.diff_pct >= 0 ? '+' : '\u2212';
+      var animals = (scope === AGGREGATE_LABEL)
+        ? r.farms_included + (r.farms_included === 1 ? ' farm' : ' farms') + ', ' + r.seafeed_animals + ' / ' + r.control_animals + ' animals'
+        : r.seafeed_animals + ' / ' + r.control_animals + ' animals';
+      return '<td><span class="wd-ow-pct ' + cls + '">' + sign + Math.abs(r.diff_pct).toFixed(1) + '%</span>' +
+        (flagged ? '<span class="wd-ow-badge" title="' + escAttr(r.flag) + '">Check</span>' : '') +
+        '<span class="wd-ow-sub">' + Math.round(r.seafeed_adg).toLocaleString() + ' vs ' + Math.round(r.control_adg).toLocaleString() + ' g/day</span>' +
+        '<span class="wd-ow-sub">' + animals + '</span></td>';
+    }
+
+    var head = '<tr><th></th>' + OW_WINDOWS.map(function(w){ return '<th>' + w + '-day</th>'; }).join('') + '</tr>';
+    var body = scopes.map(function(scope){
+      var isAgg = scope === AGGREGATE_LABEL;
+      var dot = isAgg ? '' : '<span class="wd-dot" style="background:' + farmColor(scope, allFarms) + ';"></span>';
+      return '<tr><td class="wd-ow-scope">' + dot + escHtml(isAgg ? 'Trial-wide' : scope) +
+        (isAgg ? '<small>farm differences combined, weighted by animals</small>' : '') + '</td>' +
+        OW_WINDOWS.map(function(w){ return cell(scope, w); }).join('') + '</tr>';
+    }).join('');
+
+    var flagHtml = flags.length
+      ? '<div class="wd-ow-flags"><p class="wd-ow-flags-title">Flagged for your judgement</p><ul>' +
+        flags.map(function(f){ return '<li><strong>' + escHtml(f.scope === AGGREGATE_LABEL ? 'Trial-wide' : f.scope) + ', ' + f.win + '-day:</strong> ' + escHtml(f.text) + '</li>'; }).join('') +
+        '</ul></div>'
+      : '';
+
+    card.innerHTML = '<div class="wd-ow-scroll"><table class="wd-ow-table"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' + flagHtml +
+      '<div class="wd-ow-note">OptiWeigh&rsquo;s own average daily gain for each mob, per window, as of the latest daily snapshot (' + fmtDate(rows[0].comparison_date) + '). ' +
+      'The percentage is SeaFeed minus Control over Control. Animal counts are SeaFeed / Control. A figure needs at least 10 animals and 7 days of data per mob. ' +
+      '&ldquo;Check&rdquo; marks a mob whose 14-day ADG differs from its own 30-day ADG by 40% or more. Nothing is hidden or adjusted. ' +
+      'The ADG advantage on each farm card below is a different measure (weight gained since the trial began, divided by days), so the two will not match. ' +
+      'Only the 14-day window has been confirmed against OptiWeigh&rsquo;s own interface; the 30, 90 and 180-day windows are inferred. These figures start on 2 Oct 2026 and have no history before that.</div>';
+    wrap.style.display = 'block';
+  }
+  function escHtml(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function escAttr(s){ return escHtml(s); }
+
   function loadAll(){
-    Promise.all([fetchCurrentWeights(), fetchWeightHistory(), fetchEconLatest(), fetchAggregateEcon(), fetchWeatherHistory()]).then(function(results){
-      render(results[0], results[1], results[2], results[3], results[4]);
+    Promise.all([fetchCurrentWeights(), fetchWeightHistory(), fetchEconLatest(), fetchAggregateEcon(), fetchWeatherHistory(), fetchOwComparison()]).then(function(results){
+      render(results[0], results[1], results[2], results[3], results[4], results[5]);
     }).catch(function(err){
       console.error('Weight Data load failed:', err);
       document.getElementById('wd-grid').innerHTML = '<div class="wd-loading">Could not load weight data. Check the browser console and the feature service URLs at the top of this page’s script.</div>';
     });
   }
 
-  function render(currentByFarm, historyByFarm, econByFarm, aggEcon, weatherByRegion){
+  function render(currentByFarm, historyByFarm, econByFarm, aggEcon, weatherByRegion, owRows){
     var grid = document.getElementById('wd-grid');
 
     var allFarms = Object.keys(currentByFarm);
@@ -519,6 +623,7 @@
     allFarms.sort();
 
     renderKpis(aggEcon, allFarms.length);
+    renderOwComparison(owRows, allFarms);
 
     if (!allFarms.length) {
       grid.innerHTML = '<div class="wd-loading">No farm weight data found yet. This page will populate once at least one farm has logged OptiWeigh readings.</div>';
