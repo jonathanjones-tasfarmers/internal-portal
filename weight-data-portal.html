@@ -554,24 +554,25 @@
     return null;
   }
   function owUsable(r){ return !!(r && r.eligible === 'Y' && r.diff_pct != null); }
-  // Windows in order of preference: the longest period with enough data is the
-  // most reliable measure of the productivity effect (Jono, 2026-10-02).
-  var OW_LONGEST_FIRST = [180, 90, 30, 14];
-  function owLongestUsable(scope){
-    for (var i = 0; i < OW_LONGEST_FIRST.length; i++) {
-      var r = owRow(scope, OW_LONGEST_FIRST[i]);
+  // STAPLE WINDOW (2026-10-02, per Jono): the 90-day figure is the one used for the
+  // headline, the farm cards and the leaderboard. A farm that does not have enough
+  // data for 90 days (10+ animals and 7+ days per mob) uses its 30-day figure, then
+  // its 14-day figure. This is picked per farm, so a new farm on 14 days never drags
+  // the farms that already have 90 days back to a shorter window, and the trial-wide
+  // figure stays on 90 days from the farms that have it. The 180-day figure stays in
+  // the table but is not the staple.
+  var OW_PREFERRED = [90, 30, 14];
+  // The trial-wide row never uses a window under 30 days (Jono, 2026-10-02): a short
+  // window from one or two farms should not set the headline trial-wide figure.
+  var TRIAL_MIN_WINDOW = 30;
+  function owMinWindow(scope){ return scope === AGGREGATE_LABEL ? TRIAL_MIN_WINDOW : 0; }
+  function owStapleRow(scope){
+    for (var i = 0; i < OW_PREFERRED.length; i++) {
+      if (OW_PREFERRED[i] < owMinWindow(scope)) continue;
+      var r = owRow(scope, OW_PREFERRED[i]);
       if (owUsable(r)) return r;
     }
     return null;
-  }
-  // "14d +16.4% / 30d +19.1% ..." for every usable window except the one already shown.
-  function owOthersText(scope, exceptWin){
-    var parts = [];
-    [14, 30, 90, 180].forEach(function(w){
-      var r = owRow(scope, w);
-      if (w !== exceptWin && owUsable(r)) parts.push(w + 'd ' + fmtPctSigned(r.diff_pct));
-    });
-    return parts.join(' \u00b7 ');
   }
   function fmtPctSigned(v){ return (v >= 0 ? '+' : '\u2212') + Math.abs(v).toFixed(1) + '%'; }
 
@@ -586,6 +587,9 @@
 
     function cell(scope, win){
       var r = rows.filter(function(x){ return x.farm_name === scope && x.window_days === win; })[0];
+      if (scope === AGGREGATE_LABEL && win < TRIAL_MIN_WINDOW) {
+        return '<td><span class="wd-ow-na">Not used</span><span class="wd-ow-sub" style="white-space:normal;max-width:150px;">Trial-wide uses ' + TRIAL_MIN_WINDOW + ' days or more</span></td>';
+      }
       if (!r) return '<td><span class="wd-ow-na">–</span></td>';
       if (r.eligible !== 'Y' || r.diff_pct == null) {
         return '<td><span class="wd-ow-na" title="' + escAttr(r.note || '') + '">Not enough data</span>' +
@@ -613,7 +617,7 @@
     card.innerHTML = '<div class="wd-ow-scroll"><table class="wd-ow-table"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' +
       '<div class="wd-ow-note">OptiWeigh&rsquo;s own average daily gain for each mob, per window, as of the latest daily snapshot (' + fmtDate(rows[0].comparison_date) + '). ' +
       'The percentage is SeaFeed minus Control over Control. Animal counts are SeaFeed / Control. A figure needs at least 10 animals and 7 days of data per mob. ' +
-      'The headline figure and the leaderboard use the longest window where at least two farms have enough data, and each farm card uses that farm\u2019s own longest window, because a longer period is a more reliable measure of the productivity effect. ' +
+      'The 90-day figure is the staple used for the headline, the farm cards and the leaderboard. A farm without enough data for 90 days uses its 30-day figure, then its 14-day figure, so a newly joined farm does not pull the others onto a shorter window. The trial-wide row only uses 30 days or more. ' +
       'The 14, 30, 90 and 180-day windows match OptiWeigh\u2019s own interface. These figures start on 2 Oct 2026 and have no history before that.</div>';
     wrap.style.display = 'block';
   }
@@ -725,10 +729,7 @@
     // (same figure as the comparison table), with the old since-trial-start figure
     // kept alongside in the note. Falls back to the old figure alone if the
     // comparison table has nothing usable yet.
-    var owFarms = [];
-    OW_ROWS.forEach(function(r){ if (r.farm_name !== AGGREGATE_LABEL && owFarms.indexOf(r.farm_name) === -1) owFarms.push(r.farm_name); });
-    var kpiWin = pickLeaderboardWindow(owFarms);
-    var owAgg = (kpiWin != null && owUsable(owRow(AGGREGATE_LABEL, kpiWin))) ? owRow(AGGREGATE_LABEL, kpiWin) : owLongestUsable(AGGREGATE_LABEL);
+    var owAgg = owStapleRow(AGGREGATE_LABEL);
     var useOw = owUsable(owAgg);
     var sincePct = computeAdgPct(aggEcon || {});
     var pct = useOw ? owAgg.diff_pct : sincePct;
@@ -736,8 +737,7 @@
     var pctClass = pct != null && pct < 0 ? ' red' : '';
     var advLabel = useOw ? 'Trial ADG advantage, ' + owAgg.window_days + ' days' : 'Trial ADG advantage';
     var advNote = useOw
-      ? 'SeaFeed vs Control, OptiWeigh, ' + owAgg.farms_included + (owAgg.farms_included === 1 ? ' farm' : ' farms') +
-        (owOthersText(AGGREGATE_LABEL, owAgg.window_days) ? '. Also: ' + owOthersText(AGGREGATE_LABEL, owAgg.window_days) : '')
+      ? 'SeaFeed vs Control, OptiWeigh, ' + owAgg.farms_included + (owAgg.farms_included === 1 ? ' farm' : ' farms')
       : 'SeaFeed vs Control, since trial start';
 
     var sfEcon = aggEcon && aggEcon.seafeed;
@@ -826,13 +826,11 @@
 
   function adgAdvantageHtml(econ, farm){
     var since = computeAdgPct(econ);
-    var ow = owLongestUsable(farm);
+    var ow = owStapleRow(farm);
     if (ow) {
       var cls = ow.diff_pct >= 0 ? 'mint' : 'red';
-      var others = owOthersText(farm, ow.window_days);
       return '<div><span class="wd-label">ADG advantage, ' + ow.window_days + ' days</span><span class="wd-value ' + cls + '">' + fmtPctSigned(ow.diff_pct) + '</span>' +
-        '<div class="wd-value-sub">OptiWeigh, ' + ow.seafeed_animals + ' / ' + ow.control_animals + ' animals' +
-        (others ? '<br>Also: ' + others : '') + '</div></div>';
+        '<div class="wd-value-sub">OptiWeigh, ' + ow.seafeed_animals + ' / ' + ow.control_animals + ' animals</div></div>';
     }
     if (since == null) {
       var sf = econ.seafeed, ct = econ.control;
@@ -1064,32 +1062,18 @@
   // separately, unranked, rather than silently dropped: worth knowing
   // WHO's not in the contest yet, not just who's winning it.
   // ------------------------------------------------------------
-  // Leaderboard window (2026-10-02, per Jono): rank on the LONGEST OptiWeigh
-  // window in which at least two farms have enough data (10+ animals and 7+
-  // days per mob), so every ranked farm is compared over the same period and
-  // the longest, most reliable one available. The longer the period, the more
-  // confident we can be of the productivity effect for those mobs. Falls back
-  // to the longest window with at least one eligible farm, then to nothing.
-  var LB_WINDOWS = [180, 90, 30, 14];
-  function pickLeaderboardWindow(allFarms){
-    for (var minFarms = 2; minFarms >= 1; minFarms--) {
-      for (var i = 0; i < LB_WINDOWS.length; i++) {
-        var n = allFarms.filter(function(f){ return owUsable(owRow(f, LB_WINDOWS[i])); }).length;
-        if (n >= minFarms) return LB_WINDOWS[i];
-      }
-    }
-    return null;
-  }
-
+  // Leaderboard (2026-10-02, per Jono): each farm is ranked on its staple figure,
+  // 90 days where it has the data, otherwise 30 then 14 days (see OW_PREFERRED), so
+  // a new farm on 14 days does not move the established farms off 90. Each row
+  // shows the window it was ranked on.
   function renderLeaderboard(allFarms, econByFarm){
     var wrap = document.getElementById('wd-leaderboard');
     var list = document.getElementById('wd-leaderboard-list');
     var title = document.getElementById('wd-leaderboard-title');
 
-    var win = OW_ROWS.length ? pickLeaderboardWindow(allFarms) : null;
-    var useOw = win != null;
+    var useOw = OW_ROWS.length > 0 && allFarms.some(function(f){ return owStapleRow(f); });
     if (title) title.innerHTML = useOw
-      ? 'ADG leaderboard &middot; last ' + win + ' days, SeaFeed vs own Control (OptiWeigh)'
+      ? 'ADG leaderboard &middot; SeaFeed vs own Control, 90-day (OptiWeigh)'
       : 'ADG leaderboard &middot; SeaFeed vs own Control';
 
     var ranked = [];
@@ -1097,9 +1081,9 @@
     allFarms.forEach(function(farm){
       var color = farmColor(farm, allFarms);
       if (useOw) {
-        var ow = owRow(farm, win);
-        if (!owUsable(ow)) { unranked.push(farm); }
-        else { ranked.push({ farm: farm, pct: ow.diff_pct, color: color, animals: ow.seafeed_animals + ' / ' + ow.control_animals + ' animals' }); }
+        var ow = owStapleRow(farm);
+        if (!ow) { unranked.push(farm); }
+        else { ranked.push({ farm: farm, pct: ow.diff_pct, color: color, animals: ow.window_days + '-day, ' + ow.seafeed_animals + ' / ' + ow.control_animals + ' animals', win: ow.window_days }); }
       } else {
         var pct = computeAdgPct(econByFarm[farm] || {});
         if (pct == null) { unranked.push(farm); }
@@ -1124,10 +1108,13 @@
     }).join('');
 
     var unrankedHtml = unranked.length
-      ? '<div class="wd-lb-unranked">Not yet ranked (' + (useOw ? 'need 10+ animals and 7+ days per mob over ' + win + ' days' : 'need 14+ days of paired data') + '): ' + unranked.join(', ') + '</div>'
+      ? '<div class="wd-lb-unranked">Not yet ranked (' + (useOw ? 'need 10+ animals and 7+ days per mob, even over 14 days' : 'need 14+ days of paired data') + '): ' + unranked.join(', ') + '</div>'
       : '';
+    var shorter = ranked.filter(function(r){ return r.win && r.win !== 90; });
     var basisHtml = useOw
-      ? '<div class="wd-lb-unranked">Ranked on the longest window where at least two farms have enough data, because a longer period is a more reliable measure of the productivity effect. Every window is in the OptiWeigh table above.</div>'
+      ? '<div class="wd-lb-unranked">Ranked on each farm&rsquo;s 90-day figure. A farm without enough data for 90 days is ranked on its 30-day, then 14-day figure' +
+        (shorter.length ? ' (' + shorter.map(function(r){ return r.farm + ': ' + r.win + '-day'; }).join(', ') + ', so not strictly like-for-like with the 90-day farms)' : '') +
+        '. Every window is in the OptiWeigh table below.</div>'
       : '';
 
     list.innerHTML = rowsHtml + unrankedHtml + basisHtml;

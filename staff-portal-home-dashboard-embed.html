@@ -308,7 +308,8 @@
     }).catch(function(err){ console.warn('ADG comparison unavailable:', err); return []; });
   }
   var OW_ROWS = [];
-  var OW_LONGEST_FIRST = [180, 90, 30, 14];
+  // Staple window (2026-10-02, per Jono): 90 days, then 30, then 14 where a farm lacks the data.
+  var OW_LONGEST_FIRST = [90, 30, 14];
   function owUsable(r){ return !!(r && r.eligible === 'Y' && r.diff_pct != null); }
   function owRow(farm, win){
     for (var i = 0; i < OW_ROWS.length; i++) if (OW_ROWS[i].farm_name === farm && OW_ROWS[i].window_days === win) return OW_ROWS[i];
@@ -479,9 +480,8 @@
     var sfEconPrev = econPrevByKey[farm + '|seafeed'];
     var ctEconPrev = econPrevByKey[farm + '|control'];
 
-    // ADG advantage: OptiWeigh's figure over the LONGEST window with enough data for
-    // this farm (more data, more confidence), with the other windows listed beside
-    // it. Falls back to the older since-trial-start figure if there is no
+    // ADG advantage: OptiWeigh's 90-day figure (30 then 14 days if this farm lacks
+    // the data), with the other windows listed beside it. Falls back to the older since-trial-start figure if there is no
     // OptiWeigh comparison yet.
     var adgClass = 'muted';
     var adgValue = 'Not enough data yet';
@@ -496,9 +496,7 @@
       adgLabel = 'ADG advantage, ' + owBest.window_days + ' days';
       adgValue = signedPct(owBest.diff_pct);
       adgClass = owBest.diff_pct >= 0 ? 'ok' : 'neg';
-      var others = [14, 30, 90, 180].filter(function(w){ return w !== owBest.window_days && owUsable(owRow(farm, w)); })
-        .map(function(w){ return w + 'd ' + signedPct(owRow(farm, w).diff_pct); }).join(' \u00b7 ');
-      adgNote = 'SeaFeed vs Control, OptiWeigh' + (others ? '. Also: ' + others : '');
+      adgNote = 'SeaFeed vs Control, OptiWeigh';
     } else {
       var adgPct = computeFarmAdgPct(sfEcon, ctEcon);
       if (adgPct != null) {
