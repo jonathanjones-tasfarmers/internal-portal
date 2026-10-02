@@ -487,7 +487,7 @@
   function fetchAggregateEcon(){
     return q(ECON_URL, {
       where: "farm_name='" + AGGREGATE_LABEL + "' AND treatment IN ('seafeed','control')",
-      outFields: "treatment,weight_gain_kg_per_head,days_of_data,cost_per_kg_gain_aud,calculation_date",
+      outFields: "treatment,weight_gain_kg_per_head,days_of_data,cost_per_kg_gain_aud,cost_per_kg_gain_ow_aud,ow_window_days,calculation_date",
       orderByFields: "calculation_date DESC", resultRecordCount: "50", f: "json"
     }).then(function(data){
       var latest = {}; // { seafeed: {...}, control: {...} }
@@ -742,13 +742,21 @@
 
     var sfEcon = aggEcon && aggEcon.seafeed;
     var ctEcon = aggEcon && aggEcon.control;
-    var sfGain = sfEcon && sfEcon.cost_per_kg_gain_aud != null ? sfEcon.cost_per_kg_gain_aud : null;
-    var ctGain = ctEcon && ctEcon.cost_per_kg_gain_aud != null ? ctEcon.cost_per_kg_gain_aud : null;
+    // $/kg gain (ADG measurement plan, Phase 4 step 3, 2026-10-02): uses the
+    // MATCHED-WINDOW figure (cost and OptiWeigh ADG over the same period) when
+    // both arms have one, because the older cost_per_kg_gain_aud divides cost
+    // since a mob's first block by gain since a later comparison start, which
+    // overstates SeaFeed. Falls back to the older figure for BOTH arms together
+    // if either is missing, so the two are always the same method.
+    var owCost = !!(sfEcon && ctEcon && sfEcon.cost_per_kg_gain_ow_aud != null && ctEcon.cost_per_kg_gain_ow_aud != null);
+    var sfGain = owCost ? sfEcon.cost_per_kg_gain_ow_aud : (sfEcon && sfEcon.cost_per_kg_gain_aud != null ? sfEcon.cost_per_kg_gain_aud : null);
+    var ctGain = owCost ? ctEcon.cost_per_kg_gain_ow_aud : (ctEcon && ctEcon.cost_per_kg_gain_aud != null ? ctEcon.cost_per_kg_gain_aud : null);
+    var gainNote = owCost ? 'trial-wide, cost and OptiWeigh ADG over the same period' : 'trial-wide, to date (older method)';
 
     var cards = [
       { label: advLabel, value: pctDisplay, valueClass: pctClass, note: advNote },
-      { label: '$/kg liveweight gain, SeaFeed', value: sfGain != null ? '$' + sfGain.toFixed(2) : '–', note: sfGain != null ? 'trial-wide, to date' : 'Not enough data yet' },
-      { label: '$/kg liveweight gain, Control', value: ctGain != null ? '$' + ctGain.toFixed(2) : '–', note: ctGain != null ? 'trial-wide, to date' : 'Not enough data yet' },
+      { label: '$/kg liveweight gain, SeaFeed', value: sfGain != null ? '$' + sfGain.toFixed(2) : '–', note: sfGain != null ? gainNote : 'Not enough data yet' },
+      { label: '$/kg liveweight gain, Control', value: ctGain != null ? '$' + ctGain.toFixed(2) : '–', note: ctGain != null ? gainNote : 'Not enough data yet' },
       { label: 'Farms reporting', value: String(farmCount), note: farmCount === 1 ? 'farm with live OptiWeigh data' : 'farms with live OptiWeigh data' }
     ];
 
