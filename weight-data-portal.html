@@ -298,11 +298,6 @@
   .wd-ow-pct.red { color: var(--tf-red); }
   .wd-ow-na { font-size: 12px; color: var(--text-muted); font-style: italic; }
   .wd-ow-sub { display: block; font-size: 11px; color: var(--text-muted); margin-top: 3px; line-height: 1.4; white-space: nowrap; }
-  .wd-ow-badge { display: inline-block; font-family: var(--font-display); font-size: 10.5px; font-weight: 700; color: #8a5f1f; background: rgba(201,138,46,0.16); border-radius: 999px; padding: 2px 9px; margin-left: 8px; vertical-align: middle; cursor: help; }
-  .wd-ow-flags { border-top: 1px solid var(--border-subtle); background: rgba(201,138,46,0.07); padding: 14px 18px; }
-  .wd-ow-flags-title { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: #8a5f1f; margin: 0 0 6px; }
-  .wd-ow-flags ul { margin: 0; padding-left: 18px; }
-  .wd-ow-flags li { font-size: 12.5px; color: #6f4a14; line-height: 1.55; margin-bottom: 4px; }
   .wd-ow-note { padding: 12px 18px; border-top: 1px solid var(--border-subtle); font-size: 11.5px; color: var(--text-muted); line-height: 1.6; }
 
   .wd-footer-note { font-family: var(--font-display); font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 40px; line-height: 1.6; }
@@ -341,7 +336,7 @@
   </div>
 
   <div class="wd-leaderboard" id="wd-leaderboard" style="display:none;">
-    <p class="wd-section-label">ADG leaderboard &middot; SeaFeed vs own Control</p>
+    <p class="wd-section-label" id="wd-leaderboard-title">ADG leaderboard &middot; SeaFeed vs own Control</p>
     <div class="wd-leaderboard-list" id="wd-leaderboard-list"></div>
   </div>
 
@@ -549,6 +544,37 @@
     }).catch(function(err){ console.warn('OptiWeigh comparison unavailable:', err); return []; });
   }
 
+  // Latest OptiWeigh comparison rows, indexed so the KPI band, farm cards and
+  // leaderboard can all use the same figures as the comparison table.
+  var OW_ROWS = [];
+  function owRow(scope, win){
+    for (var i = 0; i < OW_ROWS.length; i++) {
+      if (OW_ROWS[i].farm_name === scope && OW_ROWS[i].window_days === win) return OW_ROWS[i];
+    }
+    return null;
+  }
+  function owUsable(r){ return !!(r && r.eligible === 'Y' && r.diff_pct != null); }
+  // Windows in order of preference: the longest period with enough data is the
+  // most reliable measure of the productivity effect (Jono, 2026-10-02).
+  var OW_LONGEST_FIRST = [180, 90, 30, 14];
+  function owLongestUsable(scope){
+    for (var i = 0; i < OW_LONGEST_FIRST.length; i++) {
+      var r = owRow(scope, OW_LONGEST_FIRST[i]);
+      if (owUsable(r)) return r;
+    }
+    return null;
+  }
+  // "14d +16.4% / 30d +19.1% ..." for every usable window except the one already shown.
+  function owOthersText(scope, exceptWin){
+    var parts = [];
+    [14, 30, 90, 180].forEach(function(w){
+      var r = owRow(scope, w);
+      if (w !== exceptWin && owUsable(r)) parts.push(w + 'd ' + fmtPctSigned(r.diff_pct));
+    });
+    return parts.join(' \u00b7 ');
+  }
+  function fmtPctSigned(v){ return (v >= 0 ? '+' : '\u2212') + Math.abs(v).toFixed(1) + '%'; }
+
   var OW_WINDOWS = [14, 30, 90, 180];
   function renderOwComparison(rows, allFarms){
     var wrap = document.getElementById('wd-ow'), card = document.getElementById('wd-ow-card');
@@ -557,13 +583,10 @@
     rows.forEach(function(r){ if (scopes.indexOf(r.farm_name) === -1) scopes.push(r.farm_name); });
     // trial-wide last, farms alphabetical
     scopes.sort(function(a, b){ return (a === AGGREGATE_LABEL) - (b === AGGREGATE_LABEL) || a.localeCompare(b); });
-    var flags = [];
 
     function cell(scope, win){
       var r = rows.filter(function(x){ return x.farm_name === scope && x.window_days === win; })[0];
       if (!r) return '<td><span class="wd-ow-na">–</span></td>';
-      var flagged = !!(r.flag && String(r.flag).trim());
-      if (flagged) flags.push({ scope: scope, win: win, text: String(r.flag).trim() });
       if (r.eligible !== 'Y' || r.diff_pct == null) {
         return '<td><span class="wd-ow-na" title="' + escAttr(r.note || '') + '">Not enough data</span>' +
           (r.note ? '<span class="wd-ow-sub" style="white-space:normal;max-width:150px;">' + escHtml(r.note) + '</span>' : '') + '</td>';
@@ -574,7 +597,6 @@
         ? r.farms_included + (r.farms_included === 1 ? ' farm' : ' farms') + ', ' + r.seafeed_animals + ' / ' + r.control_animals + ' animals'
         : r.seafeed_animals + ' / ' + r.control_animals + ' animals';
       return '<td><span class="wd-ow-pct ' + cls + '">' + sign + Math.abs(r.diff_pct).toFixed(1) + '%</span>' +
-        (flagged ? '<span class="wd-ow-badge" title="' + escAttr(r.flag) + '">Check</span>' : '') +
         '<span class="wd-ow-sub">' + Math.round(r.seafeed_adg).toLocaleString() + ' vs ' + Math.round(r.control_adg).toLocaleString() + ' g/day</span>' +
         '<span class="wd-ow-sub">' + animals + '</span></td>';
     }
@@ -588,18 +610,11 @@
         OW_WINDOWS.map(function(w){ return cell(scope, w); }).join('') + '</tr>';
     }).join('');
 
-    var flagHtml = flags.length
-      ? '<div class="wd-ow-flags"><p class="wd-ow-flags-title">Flagged for your judgement</p><ul>' +
-        flags.map(function(f){ return '<li><strong>' + escHtml(f.scope === AGGREGATE_LABEL ? 'Trial-wide' : f.scope) + ', ' + f.win + '-day:</strong> ' + escHtml(f.text) + '</li>'; }).join('') +
-        '</ul></div>'
-      : '';
-
-    card.innerHTML = '<div class="wd-ow-scroll"><table class="wd-ow-table"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' + flagHtml +
+    card.innerHTML = '<div class="wd-ow-scroll"><table class="wd-ow-table"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' +
       '<div class="wd-ow-note">OptiWeigh&rsquo;s own average daily gain for each mob, per window, as of the latest daily snapshot (' + fmtDate(rows[0].comparison_date) + '). ' +
       'The percentage is SeaFeed minus Control over Control. Animal counts are SeaFeed / Control. A figure needs at least 10 animals and 7 days of data per mob. ' +
-      '&ldquo;Check&rdquo; marks a mob whose 14-day ADG differs from its own 30-day ADG by 40% or more. Nothing is hidden or adjusted. ' +
-      'The ADG advantage on each farm card below is a different measure (weight gained since the trial began, divided by days), so the two will not match. ' +
-      'Only the 14-day window has been confirmed against OptiWeigh&rsquo;s own interface; the 30, 90 and 180-day windows are inferred. These figures start on 2 Oct 2026 and have no history before that.</div>';
+      'The headline figure and the leaderboard use the longest window where at least two farms have enough data, and each farm card uses that farm\u2019s own longest window, because a longer period is a more reliable measure of the productivity effect. ' +
+      'The 14, 30, 90 and 180-day windows match OptiWeigh\u2019s own interface. These figures start on 2 Oct 2026 and have no history before that.</div>';
     wrap.style.display = 'block';
   }
   function escHtml(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
@@ -622,6 +637,7 @@
     Object.keys(econByFarm).forEach(function(f){ if (allFarms.indexOf(f) === -1) allFarms.push(f); });
     allFarms.sort();
 
+    OW_ROWS = owRows || [];
     renderKpis(aggEcon, allFarms.length);
     renderOwComparison(owRows, allFarms);
 
@@ -705,9 +721,24 @@
   // request.
   // ------------------------------------------------------------
   function renderKpis(aggEcon, farmCount){
-    var pct = computeAdgPct(aggEcon || {});
+    // Headline ADG advantage: OptiWeigh's trial-wide 14-day figure when available
+    // (same figure as the comparison table), with the old since-trial-start figure
+    // kept alongside in the note. Falls back to the old figure alone if the
+    // comparison table has nothing usable yet.
+    var owFarms = [];
+    OW_ROWS.forEach(function(r){ if (r.farm_name !== AGGREGATE_LABEL && owFarms.indexOf(r.farm_name) === -1) owFarms.push(r.farm_name); });
+    var kpiWin = pickLeaderboardWindow(owFarms);
+    var owAgg = (kpiWin != null && owUsable(owRow(AGGREGATE_LABEL, kpiWin))) ? owRow(AGGREGATE_LABEL, kpiWin) : owLongestUsable(AGGREGATE_LABEL);
+    var useOw = owUsable(owAgg);
+    var sincePct = computeAdgPct(aggEcon || {});
+    var pct = useOw ? owAgg.diff_pct : sincePct;
     var pctDisplay = pct == null ? '–' : (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%';
     var pctClass = pct != null && pct < 0 ? ' red' : '';
+    var advLabel = useOw ? 'Trial ADG advantage, ' + owAgg.window_days + ' days' : 'Trial ADG advantage';
+    var advNote = useOw
+      ? 'SeaFeed vs Control, OptiWeigh, ' + owAgg.farms_included + (owAgg.farms_included === 1 ? ' farm' : ' farms') +
+        (owOthersText(AGGREGATE_LABEL, owAgg.window_days) ? '. Also: ' + owOthersText(AGGREGATE_LABEL, owAgg.window_days) : '')
+      : 'SeaFeed vs Control, since trial start';
 
     var sfEcon = aggEcon && aggEcon.seafeed;
     var ctEcon = aggEcon && aggEcon.control;
@@ -715,7 +746,7 @@
     var ctGain = ctEcon && ctEcon.cost_per_kg_gain_aud != null ? ctEcon.cost_per_kg_gain_aud : null;
 
     var cards = [
-      { label: 'Trial ADG advantage', value: pctDisplay, valueClass: pctClass, note: 'SeaFeed vs Control, trial-wide' },
+      { label: advLabel, value: pctDisplay, valueClass: pctClass, note: advNote },
       { label: '$/kg liveweight gain, SeaFeed', value: sfGain != null ? '$' + sfGain.toFixed(2) : '–', note: sfGain != null ? 'trial-wide, to date' : 'Not enough data yet' },
       { label: '$/kg liveweight gain, Control', value: ctGain != null ? '$' + ctGain.toFixed(2) : '–', note: ctGain != null ? 'trial-wide, to date' : 'Not enough data yet' },
       { label: 'Farms reporting', value: String(farmCount), note: farmCount === 1 ? 'farm with live OptiWeigh data' : 'farms with live OptiWeigh data' }
@@ -785,16 +816,26 @@
     return Math.round(((sfRate - ctRate) / ctRate) * 1000) / 10;
   }
 
-  function adgAdvantageHtml(econ){
-    var pct = computeAdgPct(econ);
-    if (pct == null) {
+  function adgAdvantageHtml(econ, farm){
+    var since = computeAdgPct(econ);
+    var ow = owLongestUsable(farm);
+    if (ow) {
+      var cls = ow.diff_pct >= 0 ? 'mint' : 'red';
+      var others = owOthersText(farm, ow.window_days);
+      return '<div><span class="wd-label">ADG advantage, ' + ow.window_days + ' days</span><span class="wd-value ' + cls + '">' + fmtPctSigned(ow.diff_pct) + '</span>' +
+        '<div class="wd-value-sub">OptiWeigh, ' + ow.seafeed_animals + ' / ' + ow.control_animals + ' animals' +
+        (others ? '<br>Also: ' + others : '') + '</div></div>';
+    }
+    if (since == null) {
       var sf = econ.seafeed, ct = econ.control;
       var reason = (sf && ct) ? 'Control baseline not positive' : 'Not enough data yet';
       return '<div><span class="wd-label">ADG advantage</span><span class="wd-value">–</span><div class="wd-value-sub">' + reason + '</div></div>';
     }
-    var cls = pct >= 0 ? 'mint' : 'red';
-    return '<div><span class="wd-label">ADG advantage</span><span class="wd-value ' + cls + '">' + (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%</span><div class="wd-value-sub">SeaFeed vs Control</div></div>';
+    var clsS = since >= 0 ? 'mint' : 'red';
+    return '<div><span class="wd-label">ADG advantage, since start</span><span class="wd-value ' + clsS + '">' + fmtPctSigned(since) + '</span><div class="wd-value-sub">SeaFeed vs Control</div></div>';
   }
+
+
 
   // ------------------------------------------------------------
   // WEATHER EFFECT: added 2026-09-16, per Jono's request to see the
@@ -1015,18 +1056,47 @@
   // separately, unranked, rather than silently dropped: worth knowing
   // WHO's not in the contest yet, not just who's winning it.
   // ------------------------------------------------------------
+  // Leaderboard window (2026-10-02, per Jono): rank on the LONGEST OptiWeigh
+  // window in which at least two farms have enough data (10+ animals and 7+
+  // days per mob), so every ranked farm is compared over the same period and
+  // the longest, most reliable one available. The longer the period, the more
+  // confident we can be of the productivity effect for those mobs. Falls back
+  // to the longest window with at least one eligible farm, then to nothing.
+  var LB_WINDOWS = [180, 90, 30, 14];
+  function pickLeaderboardWindow(allFarms){
+    for (var minFarms = 2; minFarms >= 1; minFarms--) {
+      for (var i = 0; i < LB_WINDOWS.length; i++) {
+        var n = allFarms.filter(function(f){ return owUsable(owRow(f, LB_WINDOWS[i])); }).length;
+        if (n >= minFarms) return LB_WINDOWS[i];
+      }
+    }
+    return null;
+  }
+
   function renderLeaderboard(allFarms, econByFarm){
     var wrap = document.getElementById('wd-leaderboard');
     var list = document.getElementById('wd-leaderboard-list');
+    var title = document.getElementById('wd-leaderboard-title');
+
+    var win = OW_ROWS.length ? pickLeaderboardWindow(allFarms) : null;
+    var useOw = win != null;
+    if (title) title.innerHTML = useOw
+      ? 'ADG leaderboard &middot; last ' + win + ' days, SeaFeed vs own Control (OptiWeigh)'
+      : 'ADG leaderboard &middot; SeaFeed vs own Control';
 
     var ranked = [];
     var unranked = [];
     allFarms.forEach(function(farm){
-      var econ = econByFarm[farm] || {};
-      var pct = computeAdgPct(econ);
       var color = farmColor(farm, allFarms);
-      if (pct == null) { unranked.push(farm); }
-      else { ranked.push({ farm: farm, pct: pct, color: color }); }
+      if (useOw) {
+        var ow = owRow(farm, win);
+        if (!owUsable(ow)) { unranked.push(farm); }
+        else { ranked.push({ farm: farm, pct: ow.diff_pct, color: color, animals: ow.seafeed_animals + ' / ' + ow.control_animals + ' animals' }); }
+      } else {
+        var pct = computeAdgPct(econByFarm[farm] || {});
+        if (pct == null) { unranked.push(farm); }
+        else { ranked.push({ farm: farm, pct: pct, color: color }); }
+      }
     });
 
     if (!ranked.length) { wrap.style.display = 'none'; return; }
@@ -1040,17 +1110,23 @@
         '<span class="wd-lb-rank' + (rank === 1 ? ' gold' : '') + '">#' + rank + '</span>' +
         '<span class="wd-lb-dot" style="background:' + r.color + ';"></span>' +
         '<span class="wd-lb-name">' + r.farm + '</span>' +
+        (r.animals ? '<span class="wd-lb-meta">' + r.animals + '</span>' : '') +
         '<span class="wd-lb-pct ' + cls + '">' + (r.pct >= 0 ? '+' : '') + r.pct.toFixed(1) + '%</span>' +
         '</div>';
     }).join('');
 
     var unrankedHtml = unranked.length
-      ? '<div class="wd-lb-unranked">Not yet ranked (need 14+ days of paired data): ' + unranked.join(', ') + '</div>'
+      ? '<div class="wd-lb-unranked">Not yet ranked (' + (useOw ? 'need 10+ animals and 7+ days per mob over ' + win + ' days' : 'need 14+ days of paired data') + '): ' + unranked.join(', ') + '</div>'
+      : '';
+    var basisHtml = useOw
+      ? '<div class="wd-lb-unranked">Ranked on the longest window where at least two farms have enough data, because a longer period is a more reliable measure of the productivity effect. Every window is in the OptiWeigh table above.</div>'
       : '';
 
-    list.innerHTML = rowsHtml + unrankedHtml;
+    list.innerHTML = rowsHtml + unrankedHtml + basisHtml;
     wrap.style.display = 'block';
   }
+
+
 
   function cardHtml(prefix, farm, color, cur, econ, isStale, weatherEffect, startMs){
     var showFallbackNote = (!econ.seafeed || !econ.control) && (econ.seafeed || econ.control);
@@ -1065,7 +1141,7 @@
       '<div class="wd-gain-grid">' +
       gainCellHtml('Gain (SeaFeed)', econ.seafeed, 'mint', startMs) +
       gainCellHtml('Gain (Control)', econ.control, null, startMs) +
-      adgAdvantageHtml(econ) +
+      adgAdvantageHtml(econ, farm) +
       '</div>' +
       '<div class="wd-chart-box"><canvas id="' + prefix + '-chart"></canvas><p class="wd-chart-empty" id="' + prefix + '-chart-empty">No weight history to chart yet.</p></div>' +
       (showFallbackNote ? '<p class="wd-fallback-note">Only one treatment group has weight-gain history at this farm yet. The other is likely a newer unit still building up readings.</p>' : '') +
