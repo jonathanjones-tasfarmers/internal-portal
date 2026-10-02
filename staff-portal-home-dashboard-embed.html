@@ -4,49 +4,49 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!--
-  LEL Staff Portal — Home page, FARM CARDS embed.
+  LEL Staff Portal: Home page, FARM CARDS embed.
 
   REBUILT 2026-09-02 per Jono's call: "I just don't love the landing page.
   This helps me, but not really my team." The previous version of this
   file was an admin-style Operations dashboard (KPI strip + Pipeline
   Health + Reorder at a Glance, both grouped by DATA SOURCE). This version
-  is grouped by FARM instead — one card per trial farm, each showing what
+  is grouped by FARM instead: one card per trial farm, each showing what
   that farm's own team actually needs at a glance: ADG advantage, lick
   block supply/reorder status for BOTH mobs, cost per kg gain, and next
   visit due. Old admin KPIs (pipeline freshness per data source, ADG%
   swing check, data integrity/reconciliation) are folded into this new
-  layout rather than kept as a separate section — see below for where
+  layout rather than kept as a separate section: see below for where
   each one went, per Jono's explicit choice ("fold the useful bits into
   farm cards").
 
   WHERE THE OLD KPIs WENT:
     - "Pipeline status" (per-source freshness: OptiWeigh/Emissions/
-      Economics/Lick block) — dropped as a KPI grid. Kept as ONE quiet
+      Economics/Lick block): dropped as a KPI grid. Kept as ONE quiet
       freshness line under the farm grid ("Lick block data last updated
       ..."), since that's the one pipeline the team can actually act on
       day to day (ordering/collecting blocks). The other three sources
-      feed the public site, not this team's daily work — Jono can still
+      feed the public site, not this team's daily work: Jono can still
       check those directly in AGOL if needed.
-    - "Next reorder due" / "Needs attention" — now live INSIDE each farm
+    - "Next reorder due" / "Needs attention": now live INSIDE each farm
       card's supply section (see below), plus a short alert banner at the
       top of the page if anything across any farm is overdue or due soon,
       so it's still visible without opening every card.
-    - "ADG% check" (the +/-15pt swing flag) — now computed PER FARM and
+    - "ADG% check" (the +/-15pt swing flag): now computed PER FARM and
       applied as the colour on that farm's own ADG advantage figure, using
       the same latest-vs-previous-reading comparison, instead of one
       trial-wide number in a separate KPI card.
-    - "Data integrity" (LEL_Reconciliation_Log) — dropped. It never got
+    - "Data integrity" (LEL_Reconciliation_Log): dropped. It never got
       past a placeholder (RECON_URL) and doesn't map to a farm or a
-      milestone — it's an admin/data-QA concern, not something a farm
+      milestone: it's an admin/data-QA concern, not something a farm
       team card should carry. Still fine for Jono to check directly in
       AGOL/via 07. Weekly_Reconciliation.py's own log.
 
   LAYOUT:
     1. Section label + one-line intro.
-    2. Alert banner — only rendered if at least one mob at any farm is
+    2. Alert banner: only rendered if at least one mob at any farm is
        overdue or due soon for reorder. Skipped entirely when everything's
        fine, so it doesn't become permanent visual noise.
-    3. Farm card grid — one card per farm with usage history (currently
+    3. Farm card grid: one card per farm with usage history (currently
        Bowood Farm, Eastbourne Farm), each with:
          - Farm name + "Next visit due" (from LEL_Farm_Directory).
          - ADG advantage (SeaFeed vs Control, same g/day-advantage-%
@@ -55,11 +55,11 @@
          - Cost per kg gain, SeaFeed vs Control.
          - Lick block supply, two columns (SeaFeed | Control): on hand,
            days left, reorder-by date/status.
-       No footer links to the Lick Block Tracker / Farm Directory pages —
+       No footer links to the Lick Block Tracker / Farm Directory pages:
        removed 2026-09-02 per Jono's call, kept the cards self-contained
        instead.
        PLUS one static "TRT Pastoral" card, hand-written rather than data-
-       driven — TRT hasn't started yet and has no rows in Usage History
+       driven: TRT hasn't started yet and has no rows in Usage History
        (which is what drives the dynamic farm list), so there's nothing to
        fetch for it yet. Delete this block and it'll pick up automatically
        once TRT starts logging usage. Real farm names are used throughout
@@ -67,10 +67,10 @@
        public site, so the NFF Farm Data Code de-identification rule that
        applies to the public Farms/Data pages does NOT apply here.
 
-  GRACEFUL DEGRADATION — confirmed by live query 2026-09-02, both handled
+  GRACEFUL DEGRADATION: confirmed by live query 2026-09-02, both handled
   below rather than assumed uniform:
     - LEL_Economics_Data currently has per-farm rows for Bowood Farm only
-      (Eastbourne Farm has none yet — it only appears in the trial-wide
+      (Eastbourne Farm has none yet: it only appears in the trial-wide
       "All Farms" aggregate so far). Eastbourne's card shows "Not enough
       data yet" for ADG and cost/kg gain instead of blank or a fetch error.
     - LEL_Farm_Directory currently has next_visit_due set for Eastbourne
@@ -78,7 +78,7 @@
       scheduled" with a link to set one, instead of a blank date.
 
   DATA SOURCES: LEL_Lick_Block_Usage_History + LEL_Lick_Block_Orders (drive
-  the dynamic farm list and the supply/reorder maths — same REORDER_LEAD_
+  the dynamic farm list and the supply/reorder maths: same REORDER_LEAD_
   DAYS / SOON_THRESHOLD_DAYS logic as before), LEL_Economics_Data (ADG +
   cost/kg gain, filtered to real farm_name values only, i.e. excluding
   "All Farms (Trial Aggregate)"), LEL_Farm_Directory (next_visit_due).
@@ -87,10 +87,10 @@
   (jonathanjones-tasfarmers/internal-portal), same filename as before, so
   it drops straight into the existing Embed block in Hub's Home page
   editor with no re-wiring needed (assuming that embed was already
-  pointed at this file — worth double-checking in Hub, since browsing the
+  pointed at this file: worth double-checking in Hub, since browsing the
   live Home page on 2026-09-01 found this section wasn't rendering at
   all). Height will grow a little as more farms come online (one more
-  card per farm) — check it fits after first live load.
+  card per farm): check it fits after first live load.
 -->
 <meta name="robots" content="noindex, nofollow">
 <title>Farm status</title>
@@ -106,9 +106,9 @@
     --tf-red:#c0392b;
     --tf-warning:#c98a2e;
     --tf-white:#ffffff;
-    --surface-page:#ffffff; /* was #faf9f6 (cream) — switched to plain white 2026-09-08, per Jono's request */
+    --surface-page:#ffffff; /* was #faf9f6 (cream): switched to plain white 2026-09-08, per Jono's request */
     --surface-card:var(--tf-white);
-    --surface-sunken:#ffffff; /* was var(--tf-slate-100) (light slate tint) — switched to plain white 2026-09-08; elements that relied on this tint alone for definition picked up a companion border in the same pass, see each rule below */
+    --surface-sunken:#ffffff; /* was var(--tf-slate-100) (light slate tint): switched to plain white 2026-09-08; elements that relied on this tint alone for definition picked up a companion border in the same pass, see each rule below */
     --text-heading:var(--tf-navy-900);
     --text-body:oklch(from var(--tf-navy-900) calc(l + 0.06) calc(c - 0.005) h);
     --text-muted:var(--tf-slate-600);
@@ -156,6 +156,7 @@
   .sp-metric-value.ok { color: var(--tf-seafeed); }
   .sp-metric-value.warning { color: var(--tf-warning); }
   .sp-metric-value.overdue { color: var(--tf-red); }
+  .sp-metric-value.neg { color: var(--tf-red); }
   .sp-metric-value.muted { color: var(--text-muted); font-weight: 400; font-size: 13px; }
   .sp-metric-note { font-size: 11px; color: var(--text-muted); margin: 3px 0 0; }
 
@@ -176,7 +177,7 @@
 
   .sp-freshness { font-size: 11.5px; color: var(--text-muted); margin: 12px 2px 0; }
 
-  /* --- loading skeleton (added 2026-09-03) — shown in #sp-farm-grid while
+  /* --- loading skeleton (added 2026-09-03): shown in #sp-farm-grid while
      the four Promise.all() fetches are in flight; grid.innerHTML is fully
      replaced on resolve, so no separate teardown needed. Ghost cards
      mirror renderFarmCard()'s real layout (top/metric-row/supply-grid) so
@@ -189,13 +190,13 @@
   .pp-skel-sm { width:52px; }
   @media (prefers-reduced-motion: reduce) { .pp-skel { animation: none !important; } }
 
-  /* --- Onboarding Roadmap preview strip — added 2026-09-09, per Jono's
+  /* --- Onboarding Roadmap preview strip: added 2026-09-09, per Jono's
      request for a Home page presence for the new roadmap tool. Self-
      contained: its own fetch/render block at the bottom of the script,
      independent of the farm-card logic above, so it degrades on its own
      ("not set up yet") without breaking the rest of this embed if
-     LEL_Onboarding_Targets isn't created yet. Deliberately compact —
-     current quarter only, for both species — full detail (quarterly
+     LEL_Onboarding_Targets isn't created yet. Deliberately compact:
+     current quarter only, for both species: full detail (quarterly
      timeline, per-farm pipeline) lives on onboarding-roadmap-portal.html,
      linked from the header/footer nav and the Home page hero's quick-link
      row instead. The "View full roadmap" link that used to sit in this
@@ -270,14 +271,15 @@
   var ORDERS_URL         = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lick_Block_Orders/FeatureServer/0/query";
   var ECON_URL           = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Economics_Data/FeatureServer/0/query";
   var DIRECTORY_URL      = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Farm_Directory/FeatureServer/0/query";
+  var ADG_COMPARISON_URL = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_ADG_Comparison/FeatureServer/0/query";
 
   var REORDER_LEAD_DAYS = 40;
   var SOON_THRESHOLD_DAYS = 14;
-  var ADG_SWING_FLAG_PTS = 15;   // percentage points — flag red at/above this, vs the previous reading
-  var ADG_SWING_WARN_PTS = 8;    // percentage points — flag amber at/above this
+  // ADG swing flags removed 2026-10-02 (per Jono): OptiWeigh's data is trusted and a
+  // big move in ADG advantage is a real result, not something to flag.
   var VISIT_SOON_DAYS = 14;      // flag "next visit due" amber inside this many days, red if overdue
 
-  // Hand-written — TRT Pastoral has no Usage History rows yet (trial not
+  // Hand-written: TRT Pastoral has no Usage History rows yet (trial not
   // started), so it never appears in the dynamic farm list below. Delete
   // this once it starts logging usage and it'll pick up automatically.
   var PENDING_FARMS = [
@@ -290,6 +292,29 @@
       return data;
     });
   }
+
+  // OptiWeigh's own SeaFeed vs Control comparison, newest day's rows (written daily
+  // by 01. Optiweigh_Liveweight_Sync_v2.py). Non-fatal: the card falls back to the
+  // older figure if this is unavailable.
+  function fetchAdgComparison(){
+    return q(ADG_COMPARISON_URL, {
+      where: "1=1",
+      outFields: "comparison_date,farm_name,window_days,diff_pct,eligible",
+      orderByFields: "comparison_date DESC", resultRecordCount: "200", f: "json"
+    }).then(function(data){
+      var rows = data.features.map(function(f){ return f.attributes; });
+      if (!rows.length) return [];
+      return rows.filter(function(r){ return r.comparison_date === rows[0].comparison_date; });
+    }).catch(function(err){ console.warn('ADG comparison unavailable:', err); return []; });
+  }
+  var OW_ROWS = [];
+  var OW_LONGEST_FIRST = [180, 90, 30, 14];
+  function owUsable(r){ return !!(r && r.eligible === 'Y' && r.diff_pct != null); }
+  function owRow(farm, win){
+    for (var i = 0; i < OW_ROWS.length; i++) if (OW_ROWS[i].farm_name === farm && OW_ROWS[i].window_days === win) return OW_ROWS[i];
+    return null;
+  }
+  function signedPct(v, d){ return (v >= 0 ? '+' : '\u2212') + Math.abs(v).toFixed(d == null ? 1 : d) + '%'; }
 
   function fetchUsageHistory(){
     return q(USAGE_HISTORY_URL, {
@@ -311,12 +336,12 @@
       return [];
     });
   }
-  // Real per-farm rows only — excludes the "All Farms (Trial Aggregate)"
+  // Real per-farm rows only: excludes the "All Farms (Trial Aggregate)"
   // rows the public site uses, which is a separate concern from this page.
   function fetchEconByFarm(){
     return q(ECON_URL, {
       where: "farm_name <> 'All Farms (Trial Aggregate)' AND treatment IN ('seafeed','control')",
-      outFields: "farm_name,treatment,weight_gain_kg_per_head,days_of_data,cost_per_kg_gain_aud,calculation_date",
+      outFields: "farm_name,treatment,weight_gain_kg_per_head,days_of_data,cost_per_kg_gain_aud,cost_per_kg_gain_ow_aud,calculation_date",
       orderByFields: "calculation_date DESC", resultRecordCount: "1000", f: "json"
     }).then(function(data){ return data.features.map(function(f){ return f.attributes; }); }).catch(function(err){
       console.error('Economics by-farm fetch failed:', err);
@@ -395,10 +420,10 @@
 
   // Same ADG-vs-control % formula the public Data/Farms pages use, applied
   // PER FARM instead of trial-wide: each mob's own g/day rate from its own
-  // days_of_data (2026-09-02 fix — a shared min(sf.days, ct.days)
+  // days_of_data (2026-09-02 fix: a shared min(sf.days, ct.days)
   // denominator, used here until now, inflates whichever mob has been
   // running longer whenever the two mobs' start dates differ, e.g.
-  // Bowood's SeaFeed ~mid-May vs Control 15 Jun — confirmed live producing
+  // Bowood's SeaFeed ~mid-May vs Control 15 Jun: confirmed live producing
   // a >100% "advantage" figure), as a % of control's own g/day rate.
   function computeFarmAdgPct(sf, ct){
     if (!sf || !ct || !sf.weight_gain_kg_per_head || !ct.weight_gain_kg_per_head || !sf.days_of_data || !ct.days_of_data) return null;
@@ -454,26 +479,44 @@
     var sfEconPrev = econPrevByKey[farm + '|seafeed'];
     var ctEconPrev = econPrevByKey[farm + '|control'];
 
-    var adgPct = computeFarmAdgPct(sfEcon, ctEcon);
-    var adgPctPrev = computeFarmAdgPct(sfEconPrev, ctEconPrev);
+    // ADG advantage: OptiWeigh's figure over the LONGEST window with enough data for
+    // this farm (more data, more confidence), with the other windows listed beside
+    // it. Falls back to the older since-trial-start figure if there is no
+    // OptiWeigh comparison yet.
     var adgClass = 'muted';
     var adgValue = 'Not enough data yet';
     var adgNote = '';
-    if (adgPct != null) {
-      adgValue = (adgPct >= 0 ? '+' : '') + adgPct.toFixed(1) + '%';
-      adgClass = 'ok';
-      if (adgPctPrev != null) {
-        var swing = Math.abs(adgPct - adgPctPrev);
-        adgClass = swing >= ADG_SWING_FLAG_PTS ? 'overdue' : (swing >= ADG_SWING_WARN_PTS ? 'warning' : 'ok');
-        adgNote = swing >= ADG_SWING_WARN_PTS ? ((adgPct - adgPctPrev >= 0 ? '+' : '') + (adgPct - adgPctPrev).toFixed(1) + ' pts vs last reading') : 'SeaFeed vs Control';
-      } else {
-        adgNote = 'SeaFeed vs Control';
+    var adgLabel = 'ADG advantage';
+    var owBest = null;
+    for (var wi = 0; wi < OW_LONGEST_FIRST.length && !owBest; wi++) {
+      var cand = owRow(farm, OW_LONGEST_FIRST[wi]);
+      if (owUsable(cand)) owBest = cand;
+    }
+    if (owBest) {
+      adgLabel = 'ADG advantage, ' + owBest.window_days + ' days';
+      adgValue = signedPct(owBest.diff_pct);
+      adgClass = owBest.diff_pct >= 0 ? 'ok' : 'neg';
+      var others = [14, 30, 90, 180].filter(function(w){ return w !== owBest.window_days && owUsable(owRow(farm, w)); })
+        .map(function(w){ return w + 'd ' + signedPct(owRow(farm, w).diff_pct); }).join(' \u00b7 ');
+      adgNote = 'SeaFeed vs Control, OptiWeigh' + (others ? '. Also: ' + others : '');
+    } else {
+      var adgPct = computeFarmAdgPct(sfEcon, ctEcon);
+      if (adgPct != null) {
+        adgValue = signedPct(adgPct);
+        adgClass = adgPct >= 0 ? 'ok' : 'neg';
+        adgNote = 'SeaFeed vs Control, since trial start';
       }
     }
 
     var costValue = 'Not enough data yet';
     var costClass = 'muted';
-    if (sfEcon && ctEcon && sfEcon.cost_per_kg_gain_aud != null && ctEcon.cost_per_kg_gain_aud != null) {
+    // Matched-window $/kg gain (ADG measurement plan Phase 4 step 3, 2026-10-02):
+    // cost and OptiWeigh ADG over the same period. Used when both arms have it,
+    // otherwise the older figure for both arms, so the two are the same method.
+    if (sfEcon && ctEcon && sfEcon.cost_per_kg_gain_ow_aud != null && ctEcon.cost_per_kg_gain_ow_aud != null) {
+      costValue = 'SeaFeed $' + sfEcon.cost_per_kg_gain_ow_aud.toFixed(2) + ' · Control $' + ctEcon.cost_per_kg_gain_ow_aud.toFixed(2);
+      costClass = '';
+    } else if (sfEcon && ctEcon && sfEcon.cost_per_kg_gain_aud != null && ctEcon.cost_per_kg_gain_aud != null) {
       costValue = 'SeaFeed $' + sfEcon.cost_per_kg_gain_aud.toFixed(2) + ' · Control $' + ctEcon.cost_per_kg_gain_aud.toFixed(2);
       costClass = '';
     }
@@ -494,7 +537,7 @@
         '</div>' +
         '<div class="sp-metric-row">' +
           '<div>' +
-            '<p class="sp-metric-label">ADG advantage</p>' +
+            '<p class="sp-metric-label">' + adgLabel + '</p>' +
             '<p class="sp-metric-value' + (adgValue.indexOf('%') > -1 ? ' ' + adgClass : ' muted small') + '">' + adgValue + '</p>' +
             (adgNote ? '<p class="sp-metric-note">' + adgNote + '</p>' : '') +
           '</div>' +
@@ -532,19 +575,21 @@
     fetchUsageHistory(),
     fetchOrders(),
     fetchEconByFarm(),
-    fetchDirectory()
+    fetchDirectory(),
+    fetchAdgComparison()
   ]).then(function(results){
     var usageHistory = results[0];
     var orders = results[1];
     var econRows = results[2];
     var directoryRows = results[3];
+    OW_ROWS = results[4] || [];
 
     var farms = Array.from(new Set(usageHistory.map(function(r){ return r.trial_site; }))).sort();
     var reorderRows = computeReorderRows(usageHistory, orders);
 
     // econRows is sorted calculation_date DESC already (from the query),
     // so the first row per farm+treatment key is the latest reading and
-    // the second is the previous one — used for the ADG swing flag.
+    // the second is the previous one: used for the ADG swing flag.
     var econByKey = {}, econPrevByKey = {};
     econRows.forEach(function(r){
       var key = r.farm_name + '|' + r.treatment;
@@ -582,11 +627,11 @@
 })();
 
 // ------------------------------------------------------------
-// ONBOARDING ROADMAP PREVIEW — added 2026-09-09. Deliberately its own
+// ONBOARDING ROADMAP PREVIEW: added 2026-09-09. Deliberately its own
 // self-contained IIFE, not folded into the farm-status logic above, so a
 // problem with either one (e.g. LEL_Onboarding_Targets not created yet)
 // can never break the other. Shows just the CURRENT quarter's beef/sheep
-// farm-count target vs actual — full quarterly timeline and per-farm
+// farm-count target vs actual: full quarterly timeline and per-farm
 // pipeline list live on onboarding-roadmap-portal.html instead. Same
 // effectivePipelineStage() fallback logic as Farm Directory's own script
 // and the full roadmap page, kept in sync deliberately: a directory row
