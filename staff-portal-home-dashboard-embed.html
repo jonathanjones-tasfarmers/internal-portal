@@ -58,11 +58,10 @@
        No footer links to the Lick Block Tracker / Farm Directory pages:
        removed 2026-09-02 per Jono's call, kept the cards self-contained
        instead.
-       PLUS one static "TRT Pastoral" card, hand-written rather than data-
-       driven: TRT hasn't started yet and has no rows in Usage History
-       (which is what drives the dynamic farm list), so there's nothing to
-       fetch for it yet. Delete this block and it'll pick up automatically
-       once TRT starts logging usage. Real farm names are used throughout
+       Farms with no Usage History rows yet can be shown as a static "Coming
+       soon" card via PENDING_FARMS (currently empty: TRT Pastoral started
+       logging on 2026-10-11 and now comes through the dynamic list).
+       Real farm names are used throughout
        this file deliberately: this is the INTERNAL Staff Portal, not the
        public site, so the NFF Farm Data Code de-identification rule that
        applies to the public Farms/Data pages does NOT apply here.
@@ -279,12 +278,12 @@
   // big move in ADG advantage is a real result, not something to flag.
   var VISIT_SOON_DAYS = 14;      // flag "next visit due" amber inside this many days, red if overdue
 
-  // Hand-written: TRT Pastoral has no Usage History rows yet (trial not
-  // started), so it never appears in the dynamic farm list below. Delete
-  // this once it starts logging usage and it'll pick up automatically.
-  var PENDING_FARMS = [
-    { name: 'TRT Pastoral', region: 'King Island' }
-  ];
+  // Hand-written "Coming soon" cards for farms with no Usage History rows yet.
+  // Emptied 2026-10-26: TRT Pastoral started logging lick block usage on
+  // 2026-10-11, so it now arrives through the dynamic farm list and its
+  // static card here was producing a duplicate. Add an entry back for the
+  // next farm that is signed up but not yet feeding out.
+  var PENDING_FARMS = [];
 
   function q(url, params){
     return fetch(url + "?" + new URLSearchParams(params)).then(function(res){ return res.json(); }).then(function(data){
