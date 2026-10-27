@@ -642,7 +642,10 @@
     allFarms.sort();
 
     OW_ROWS = owRows || [];
-    renderKpis(aggEcon, allFarms.length);
+    // Farms with real OptiWeigh weights only: a farm can be in the Economics table
+    // (lick block data) before its OptiWeigh units are installed (TRT Pastoral, 2026-10).
+    var owFarmCount = allFarms.filter(function(f){ return currentByFarm[f] || historyByFarm[f]; }).length;
+    renderKpis(aggEcon, owFarmCount);
     renderOwComparison(owRows, allFarms);
 
     if (!allFarms.length) {
@@ -834,7 +837,8 @@
     }
     if (since == null) {
       var sf = econ.seafeed, ct = econ.control;
-      var reason = (sf && ct) ? 'Control baseline not positive' : 'Not enough data yet';
+      var hasWeights = (sf && sf.weight_gain_kg_per_head != null) || (ct && ct.weight_gain_kg_per_head != null);
+      var reason = !hasWeights ? 'No OptiWeigh units live yet' : ((sf && ct) ? 'Control baseline not positive' : 'Not enough data yet');
       return '<div><span class="wd-label">ADG advantage</span><span class="wd-value">–</span><div class="wd-value-sub">' + reason + '</div></div>';
     }
     var clsS = since >= 0 ? 'mint' : 'red';
