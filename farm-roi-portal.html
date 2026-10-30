@@ -308,7 +308,7 @@
       <div class="roi-grid" id="roi-grid"></div>
 
       <p class="roi-footer-note">
-        The "SeaFeed gaining Xg/day" stat, the cost-accrual chart, the ahead/behind line and the monthly snapshot strip all read real history from LEL_Economics_Data (cumulative_cost_aud and weight_gain_kg_per_head, one row per farm/treatment per day since that farm's trial start): genuine SeaFeed cost accrued from real lick blocks fed out and real observed weight gain, not a projection, and this is the page's only "ahead or behind" verdict. The farmer/grant split on the cost chart, and every "net" figure, apply each card's own Contribution rate (%) assumption to that real cost: edit it in Adjust assumptions if the project-wide rate changes, and every real-data figure on the card updates together. Sale price (used to value the ADG advantage) auto-fills from the MLA National Heavy Steer Indicator: edit it once and this page stops touching it. The separate "Modelled annual estimate" block on each card is a projection from the assumptions in Adjust assumptions (dose &times; price &times; visitation &times; 365), useful for "what would justify this" conversations, but it won't match the real cumulative figure above it unless every assumption happens to hold exactly, and it carries no verdict of its own. SeaFeed cost, contribution rate and benefit-pathway defaults in that modelled estimate reproduce the live TLEL Project Budget model (Supplement Costs, Farmer Break-Even, Project Budget sheets, as at 8 Sep 2026). Head counts default to each farm's 2026 deployment from the Beef Farm Head/Mob table: edit them to match what's actually on the ground when you're talking to a farmer. Dose auto-fills per farm from the Lick Block Tracker's own measured consumption rate (LEL_Lick_Block_Usage_History): edit it once and this page stops touching it. Cards and any farms you add are saved in this browser only.
+        The "SeaFeed gaining Xg/day" stat, the cost-accrual chart, the ahead/behind line and the monthly snapshot strip all read real history from LEL_Economics_Data (cumulative_cost_aud and weight_gain_kg_per_head, one row per farm/treatment per day since that farm's trial start): genuine SeaFeed cost accrued from real lick blocks fed out and real observed weight gain, with SeaFeed and Control compared at the same number of days of weight data, not a projection, and this is the page's only "ahead or behind" verdict. The farmer/grant split on the cost chart, and every "net" figure, apply each card's own Contribution rate (%) assumption to that real cost: edit it in Adjust assumptions if the project-wide rate changes, and every real-data figure on the card updates together. Sale price (used to value the ADG advantage) auto-fills from the MLA National Heavy Steer Indicator: edit it once and this page stops touching it. The separate "Modelled annual estimate" block on each card is a projection from the assumptions in Adjust assumptions (dose &times; price &times; 365; the visitation rate is applied only to a planned dose, not to a live one, because a live dose already covers the whole mob), useful for "what would justify this" conversations, but it won't match the real cumulative figure above it unless every assumption happens to hold exactly, and it carries no verdict of its own. SeaFeed cost, contribution rate and benefit-pathway defaults in that modelled estimate reproduce the live TLEL Project Budget model (Supplement Costs, Farmer Break-Even, Project Budget sheets, as at 8 Sep 2026). Head counts default to each farm's 2026 deployment from the Beef Farm Head/Mob table: edit them to match what's actually on the ground when you're talking to a farmer. Dose auto-fills per farm from the Lick Block Tracker's own measured consumption rate (LEL_Lick_Block_Usage_History): edit it once and this page stops touching it. Cards and any farms you add are saved in this browser only.
       </p>
     </div>
 
@@ -330,9 +330,12 @@
       };
 
       var SEED_FARMS = [
-        { id: 'bowood',     name: 'Bowood Farm',     headCount: 150 },
-        { id: 'eastbourne', name: 'Eastbourne Farm', headCount: 200 },
-        { id: 'trt',        name: 'TRT Pastoral',    headCount: 250 }
+        // CHANGED 2026-10-30: seed head counts match the trial's SeaFeed
+        // head on the public LEL site; they then follow the live
+        // representative_head_count (see headCountAuto below).
+        { id: 'bowood',     name: 'Bowood Farm',     headCount: 160 },
+        { id: 'eastbourne', name: 'Eastbourne Farm', headCount: 206 },
+        { id: 'trt',        name: 'TRT Pastoral',    headCount: 356 }
       ];
 
       function seedCards() {
@@ -351,6 +354,7 @@
         return list.map(function (c) {
           if (c.salePriceAuto === undefined) c.salePriceAuto = true;
           if (c.doseAuto === undefined) c.doseAuto = true;
+          if (c.headCountAuto === undefined) c.headCountAuto = true;
           return c;
         });
       }
@@ -556,15 +560,20 @@
       // per-card caption and the monthly snapshot strip all read from, so
       // none of them can quietly disagree with each other.
       function buildNetPositionSeries(sfRows, ctRows, salePrice, contributionRate) {
-        var ctByDay = {};
-        ctRows.forEach(function (r) { if (r.weight_gain_kg_per_head != null) ctByDay[dayKey(r.calculation_date)] = r; });
+        // CHANGED 2026-10-30: match SeaFeed and Control at the same number of
+        // DAYS OF WEIGHT DATA, not the same calendar day. The two mobs can start
+        // weighing on different dates (Bowood control started a week before
+        // SeaFeed), and a calendar match then compares 130 days of control gain
+        // with 123 days of SeaFeed gain. Last row wins for a given day count.
+        var ctByDays = {};
+        ctRows.forEach(function (r) { if (r.weight_gain_kg_per_head != null && r.days_of_data) ctByDays[r.days_of_data] = r; });
 
         var rateFrac = contributionRate / 100;
         var byDay = {}; // last row wins for a given day (sfRows is sorted asc, so "last" = most recent/complete for that day)
         sfRows.forEach(function (sf) {
           if (sf.weight_gain_kg_per_head == null || sf.cumulative_cost_aud == null) return;
           var day = dayKey(sf.calculation_date);
-          var ct = ctByDay[day];
+          var ct = sf.days_of_data ? ctByDays[sf.days_of_data] : null;
           if (!ct) return;
           var extraKgCumulative = sf.weight_gain_kg_per_head - ct.weight_gain_kg_per_head;
           var headCount = sf.representative_head_count || 0;
@@ -691,7 +700,12 @@
 
       function compute(c) {
         var doseKg = c.dose / 1000;
-        var visitFrac = c.visitation / 100;
+        // CHANGED 2026-10-30: a LIVE dose (from the Lick Block Tracker) is already
+        // grams per head across the whole mob, so visitation is already inside it
+        // and must not be applied a second time. Visitation only converts a PLANNED
+        // dose (per visiting animal, e.g. the 150g default) into a per-head figure.
+        var doseIsLive = c.doseAuto !== false && doseByFarm[c.name] != null;
+        var visitFrac = doseIsLive ? 1 : c.visitation / 100;
         var rateFrac = c.contributionRate / 100;
 
         var costPerHeadDay = doseKg * c.price * visitFrac;
@@ -896,7 +910,7 @@
             '<div class="roi-real-data-col">' +
               '<p class="roi-real-data-title">Ahead or behind on ROI, over time</p>' +
               '<div class="roi-chart-box"><canvas id="' + netCanvasId + '"></canvas></div>' +
-              '<p class="roi-chart-caption">Currently <b class="' + (latestNet >= 0 ? 'mint' : 'red') + '">' + (latestNet >= 0 ? 'ahead' : 'behind') + ' by ' + cur(Math.abs(latestNet), 0) + '</b>: observed SeaFeed-vs-Control gain valued at ' + cur(c.salePrice) + '/kg, against the farmer&rsquo;s own ' + fmt(c.contributionRate, 0) + '% share of real SeaFeed cost. The line starts already carrying whatever cost had accrued before enough paired weight data existed to measure a gain: real upfront spend, not a data error.</p>' +
+              '<p class="roi-chart-caption">Currently <b class="' + (latestNet >= 0 ? 'mint' : 'red') + '">' + (latestNet >= 0 ? 'ahead' : 'behind') + ' by ' + cur(Math.abs(latestNet), 0) + '</b>: observed SeaFeed-vs-Control gain (compared at the same number of days of weight data) valued at ' + cur(c.salePrice) + '/kg, against the farmer&rsquo;s own ' + fmt(c.contributionRate, 0) + '% share of real SeaFeed cost. The line starts already carrying whatever cost had accrued before enough paired weight data existed to measure a gain: real upfront spend, not a data error.</p>' +
             '</div>';
         }
 
@@ -919,7 +933,7 @@
             '</div>' +
             '<div class="roi-headcount-row">' +
               '<input class="roi-headcount-input tabular" type="number" min="0" step="10" value="' + c.headCount + '" data-field="headCount">' +
-              '<span class="roi-headcount-label">head on farm now</span>' +
+              '<span class="roi-headcount-label">' + (c.headCountAuto !== false ? 'SeaFeed head, live from trial data' : 'head (your figure)') + '</span>' +
             '</div>' +
             realDataSectionHtml(c, idx) +
             '<div class="roi-annual-wrap">' +
@@ -939,7 +953,7 @@
               '<div class="roi-field-grid">' +
                 doseFieldHtml(c) +
                 field('SeaFeed price ($/kg)', 'price', c.price, 0.01) +
-                field('Visitation rate (%)', 'visitation', c.visitation, 1) +
+                field('Visitation rate (%), planned dose only', 'visitation', c.visitation, 1) +
                 field('Contribution rate (%)', 'contributionRate', c.contributionRate, 0.01) +
               '</div>' +
               '<div class="roi-field-group-label">Benefit pathway (per head)</div>' +
@@ -1059,6 +1073,8 @@
           // Same idea for a manually-typed dose: stop the Lick Block
           // Tracker fetch from overwriting it on a future load.
           if (field === 'dose') card.doseAuto = false;
+          // CHANGED 2026-10-30: same for a typed head count.
+          if (field === 'headCount') card.headCountAuto = false;
         }
         saveCards();
         // re-render just the results without losing focus: full re-render is fine except for the field being typed in,
@@ -1205,6 +1221,18 @@
 
         econHistoryByFarm = results[2];
         econHistoryReady = true;
+
+        // CHANGED 2026-10-30: head count follows the SeaFeed head in the
+        // latest economics row, the same figure the public LEL site shows.
+        // A typed head count (headCountAuto false) is left alone.
+        cards.forEach(function (c) {
+          var h = econHistoryByFarm[c.name];
+          var rows = h && h.seafeed;
+          if (c.headCountAuto !== false && rows && rows.length) {
+            var last = rows[rows.length - 1].representative_head_count;
+            if (last > 0) c.headCount = last;
+          }
+        });
 
         saveCards();
         render();
