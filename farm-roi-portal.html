@@ -486,6 +486,90 @@
         }).catch(function (err) { console.error('Economics history fetch failed:', err); return {}; });
       }
 
+
+      // ------------------------------------------------------------
+      // COHORT CHAINING (added 2026-11-05, per Jono: the ROI must take the
+      // WHOLE farm's history into account, with a new cohort's cost data
+      // joining the old one seamlessly). A farm that restarts its trial gets
+      // a new key in the data ("Bowood Farm - Cohort 2") whose cumulative
+      // cost and weight gain start again at zero. A card named "Bowood Farm"
+      // therefore chains every cohort of that farm:
+      //   - SeaFeed cost: cumulative_cost_aud of each later cohort is
+      //     offset by everything spent in the earlier ones, so the cost
+      //     line carries on instead of dropping back to $0.
+      //   - Benefit: each cohort's extra-kg-vs-control benefit is worked out
+      //     on its own (same-animals-per-mob only holds within a cohort),
+      //     then added to the earlier cohorts' final benefit.
+      // The raw per-cohort rows are kept on hist.segments for the net
+      // position series; hist.seafeed / hist.control are the stitched rows
+      // every other calculation on this page already reads.
+      // ------------------------------------------------------------
+      function baseFarmName(n) { return String(n).replace(/ - Cohort \d+$/, ''); }
+      function cohortNumber(n) { var m = /Cohort (\d+)$/.exec(String(n)); return m ? parseInt(m[1], 10) : 1; }
+
+      function chainCohortHistories(byFarm) {
+        var groups = {};
+        Object.keys(byFarm).forEach(function (k) {
+          var b = baseFarmName(k);
+          (groups[b] = groups[b] || []).push(k);
+        });
+        var out = Object.assign({}, byFarm);
+        Object.keys(groups).forEach(function (b) {
+          var keys = groups[b];
+          if (keys.length < 2) return;
+          keys.sort(function (a, c) { return cohortNumber(a) - cohortNumber(c); });
+          var segments = [], seafeed = [], control = [], costOffset = 0;
+          keys.forEach(function (k) {
+            var h = byFarm[k];
+            if (!h || !h.seafeed.length) return;
+            segments.push({ seafeed: h.seafeed, control: h.control });
+            var off = costOffset;
+            h.seafeed.forEach(function (r) {
+              var c2 = Object.assign({}, r);
+              if (c2.cumulative_cost_aud != null) c2.cumulative_cost_aud += off;
+              seafeed.push(c2);
+            });
+            h.control.forEach(function (r) { control.push(r); });
+            var last = h.seafeed[h.seafeed.length - 1].cumulative_cost_aud;
+            if (last != null) costOffset += last;
+          });
+          if (segments.length) out[b] = { seafeed: seafeed, control: control, segments: segments };
+        });
+        return out;
+      }
+
+      // The live lick block consumption rate for a chained farm: the newest
+      // cohort that has a figure.
+      function chainCohortDose(byFarm) {
+        var best = {};
+        Object.keys(byFarm).forEach(function (k) {
+          var b = baseFarmName(k), n = cohortNumber(k);
+          if (!best[b] || n > best[b].n) best[b] = { n: n, v: byFarm[k] };
+        });
+        var out = Object.assign({}, byFarm);
+        Object.keys(best).forEach(function (b) { out[b] = best[b].v; });
+        return out;
+      }
+
+      // Net-position series across all cohorts of a farm (see above).
+      function buildNetSeriesForHist(hist, salePrice, contributionRate) {
+        if (!hist.segments || hist.segments.length < 2) {
+          return buildNetPositionSeries(hist.seafeed, hist.control, salePrice, contributionRate);
+        }
+        var rateFrac = contributionRate / 100, out = [], benefitOff = 0, costOff = 0;
+        hist.segments.forEach(function (seg) {
+          var s = buildNetPositionSeries(seg.seafeed, seg.control, salePrice, contributionRate);
+          s.forEach(function (p) {
+            var benefit = p.benefit + benefitOff, grossCost = p.grossCost + costOff, farmerCost = grossCost * rateFrac;
+            out.push({ day: p.day, ms: p.ms, benefit: benefit, grossCost: grossCost, farmerCost: farmerCost, net: benefit - farmerCost });
+          });
+          if (s.length) benefitOff = out[out.length - 1].benefit;
+          var lastCost = seg.seafeed[seg.seafeed.length - 1].cumulative_cost_aud;
+          if (lastCost != null) costOff += lastCost;
+        });
+        return out;
+      }
+
       // ------------------------------------------------------------
       // DATE / MONTH HELPERS: local (browser) time throughout, same as
       // every date this page already formats; month-level bucketing
@@ -804,7 +888,7 @@
         cards.forEach(function (c) {
           var hist = econHistoryByFarm[c.name];
           if (!hist || !hist.seafeed.length) return;
-          var netSeries = buildNetPositionSeries(hist.seafeed, hist.control, c.salePrice, c.contributionRate);
+          var netSeries = buildNetSeriesForHist(hist, c.salePrice, c.contributionRate);
           var snap = computeMonthlySnapshot(netSeries);
           if (!snap) return;
           rows.push({ name: c.name, snap: snap });
@@ -849,7 +933,7 @@
           var hist = econHistoryByFarm[c.name];
           if (!hist || !hist.seafeed.length) return;
           renderCostAccrualChart('roi-cost-chart-' + idx, monthlyCostAccrual(hist.seafeed), c.contributionRate);
-          var netSeries = buildNetPositionSeries(hist.seafeed, hist.control, c.salePrice, c.contributionRate);
+          var netSeries = buildNetSeriesForHist(hist, c.salePrice, c.contributionRate);
           if (netSeries.length >= 2) renderNetPositionChart('roi-net-chart-' + idx, netSeries);
         });
       }
@@ -888,7 +972,7 @@
             '<p class="roi-chart-caption">Cumulative to date: <b>' + cur(totalCost, 0) + '</b> (farmer ' + cur(farmerTotal, 0) + ' &middot; grant-covered ' + cur(grantTotal, 0) + ', at the current ' + fmt(c.contributionRate, 0) + '% contribution rate)</p>' +
           '</div>';
 
-        var netSeries = buildNetPositionSeries(hist.seafeed, hist.control, c.salePrice, c.contributionRate);
+        var netSeries = buildNetSeriesForHist(hist, c.salePrice, c.contributionRate);
         var netCol;
         if (netSeries.length < 2) {
           netCol =
@@ -1139,7 +1223,7 @@
             var hist = econHistoryByFarm[card.name];
             if (hist && hist.seafeed.length) {
               renderCostAccrualChart('roi-cost-chart-' + idx, monthlyCostAccrual(hist.seafeed), card.contributionRate);
-              var netSeries = buildNetPositionSeries(hist.seafeed, hist.control, card.salePrice, card.contributionRate);
+              var netSeries = buildNetSeriesForHist(hist, card.salePrice, card.contributionRate);
               if (netSeries.length >= 2) renderNetPositionChart('roi-net-chart-' + idx, netSeries);
             }
           }
@@ -1213,13 +1297,13 @@
         // everything else (a new "Add Farm" card, a renamed/hypothetical
         // one, or a card the user has already typed a dose into) is left
         // exactly as is.
-        doseByFarm = results[1];
+        doseByFarm = chainCohortDose(results[1]);
         doseReady = true;
         cards.forEach(function (c) {
           if (c.doseAuto !== false && doseByFarm[c.name] != null) c.dose = doseByFarm[c.name];
         });
 
-        econHistoryByFarm = results[2];
+        econHistoryByFarm = chainCohortHistories(results[2]);
         econHistoryReady = true;
 
         // CHANGED 2026-10-30: head count follows the SeaFeed head in the

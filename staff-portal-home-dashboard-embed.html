@@ -285,6 +285,17 @@
   // next farm that is signed up but not yet feeding out.
   var PENDING_FARMS = [];
 
+  // RETIRED_FARMS: cohorts that have finished (same list as RETIRED_FARMS in
+  // lel_farms.py, keep the two in step). Their history stays in the layers but
+  // is hidden here so only the current cohort of each farm shows. Added
+  // 2026-11-05 after the Bowood crossover and Eastbourne sire-draft restart.
+  var RETIRED_FARMS = ["Bowood Farm", "Eastbourne Farm"];
+  var RETIRED_SQL = "(" + RETIRED_FARMS.map(function(f){ return "'" + f + "'"; }).join(",") + ")";
+  // "Bowood Farm - Cohort 2" -> "Bowood Farm": the Farm Directory and ADG rows are
+  // keyed on the base farm name, the cohort suffix only exists in the trial data.
+  function baseFarm(n){ return String(n).replace(/ - Cohort \d+$/, ""); }
+  function cohortLabel(n){ var m = /Cohort (\d+)$/.exec(String(n)); return m ? "Cohort " + m[1] : ""; }
+
   function q(url, params){
     return fetch(url + "?" + new URLSearchParams(params)).then(function(res){ return res.json(); }).then(function(data){
       if (data.error) throw new Error(data.error.message || "Query failed");
@@ -318,7 +329,7 @@
 
   function fetchUsageHistory(){
     return q(USAGE_HISTORY_URL, {
-      where: "treatment IN ('seafeed','control')",
+      where: "treatment IN ('seafeed','control') AND trial_site NOT IN " + RETIRED_SQL,
       outFields: "snapshot_date,trial_site,treatment,cumulative_blocks_used,blocks_per_day_current",
       orderByFields: "snapshot_date ASC", resultRecordCount: "4000", f: "json"
     }).then(function(data){ return data.features.map(function(f){ return f.attributes; }); }).catch(function(err){
@@ -529,7 +540,7 @@
     return '' +
       '<div class="sp-farm-card">' +
         '<div class="sp-farm-top">' +
-          '<div><p class="sp-farm-name">' + farm + '</p></div>' +
+          '<div><p class="sp-farm-name">' + baseFarm(farm) + '</p>' + (cohortLabel(farm) ? '<p class="sp-farm-region">' + cohortLabel(farm) + '</p>' : '') + '</div>' +
           '<span class="sp-visit-pill ' + visitPillClass + '">' + visitText + '</span>' +
         '</div>' +
         '<div class="sp-metric-row">' +
@@ -602,7 +613,7 @@
       grid.innerHTML = '<p class="sp-empty-note">No farms are logging lick block usage yet. Run 06. Lick_Block_Portal_Feed.py to populate this.</p>' + PENDING_FARMS.map(renderPendingCard).join('');
     } else {
       grid.innerHTML = farms.map(function(farm){
-        return renderFarmCard(farm, reorderRows, econByKey, econPrevByKey, directoryByFarm[farm]);
+        return renderFarmCard(farm, reorderRows, econByKey, econPrevByKey, directoryByFarm[farm] || directoryByFarm[baseFarm(farm)]);
       }).join('') + PENDING_FARMS.map(renderPendingCard).join('');
     }
 
