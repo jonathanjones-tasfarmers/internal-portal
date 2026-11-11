@@ -553,77 +553,6 @@
         <div class="fd-alert-banner-text" id="fd-alert-banner-text"></div>
       </div>
 
-      <div class="fd-newfarm-bar">
-        <button type="button" class="fd-newfarm-btn" id="fd-newfarm-btn">
-          + Add new farm
-        </button>
-      </div>
-      <div
-        class="fd-newfarm-panel"
-        id="fd-newfarm-panel"
-        style="display: none"
-      >
-        <p class="fd-field-label" style="margin-bottom: 12px">
-          New farm, prospect or already signed. This adds a row to Farm
-          Directory so it can be tracked on the Onboarding Roadmap before it
-          has any lick block or weight data of its own.
-        </p>
-        <div class="fd-newfarm-grid">
-          <label class="fd-field-label"
-            >Farm name *<input
-              type="text"
-              class="fd-field-input"
-              id="fd-newfarm-name"
-          /></label>
-          <label class="fd-field-label"
-            >Species
-            <select class="fd-field-select" id="fd-newfarm-species">
-              <option value="Beef">Beef</option>
-              <option value="Sheep">Sheep</option>
-            </select>
-          </label>
-          <label class="fd-field-label"
-            >Committed head count<input
-              type="number"
-              min="0"
-              class="fd-field-input"
-              id="fd-newfarm-head"
-          /></label>
-          <label class="fd-field-label"
-            >Pipeline stage
-            <select class="fd-field-select" id="fd-newfarm-stage">
-              <option value="Prospect">Prospect</option>
-              <option value="In discussion">In discussion</option>
-              <option value="Signed">Signed</option>
-              <option value="Active">Active</option>
-            </select>
-          </label>
-          <label class="fd-field-label"
-            >Target go-live quarter<input
-              type="text"
-              class="fd-field-input"
-              id="fd-newfarm-quarter"
-              placeholder="e.g. 2027 Q1"
-          /></label>
-          <label class="fd-field-label"
-            >Contact name<input
-              type="text"
-              class="fd-field-input"
-              id="fd-newfarm-contact"
-          /></label>
-        </div>
-        <p class="fd-form-error" id="fd-newfarm-error"></p>
-        <div class="fd-form-actions">
-          <button type="button" class="fd-confirm-btn" id="fd-newfarm-save">
-            Save
-          </button>
-          <button type="button" class="fd-cancel-btn" id="fd-newfarm-cancel">
-            Cancel
-          </button>
-        </div>
-      </div>
-
-      <p class="fd-section-label">Farms</p>
       <div class="fd-grid" id="fd-grid">
         <div class="fd-card" aria-hidden="true">
           <div class="fd-card-head">
@@ -698,9 +627,7 @@
       </div>
 
       <p class="fd-footer-note">
-        Contact and visit details are edited here and saved straight to
-        LEL_Farm_Directory in ArcGIS Online &middot; Farm list drawn from
-        LEL_Lick_Block_Usage_History &middot; Not for external distribution
+        Read-only view. Contact details are kept private in ArcGIS Online (LEL_Farm_Directory) and edited there when signed in &middot; Farm list drawn from LEL_Lick_Block_Usage_History &middot; Not for external distribution
       </p>
     </div>
 
@@ -710,11 +637,7 @@
           "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lick_Block_Usage_History/FeatureServer/0/query";
 
         var DIRECTORY_URL =
-          "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Farm_Directory/FeatureServer/0/query";
-        var DIRECTORY_ADD_URL =
-          "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Farm_Directory/FeatureServer/0/addFeatures";
-        var DIRECTORY_UPDATE_URL =
-          "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Farm_Directory/FeatureServer/0/updateFeatures";
+          "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Farm_Directory_view/FeatureServer/0/query";
 
         var DEFAULT_VISIT_INTERVAL_DAYS = 28;
 
@@ -774,7 +697,7 @@
           return q(DIRECTORY_URL, {
             where: "1=1",
             outFields:
-              "OBJECTID,trial_site,contact_name,contact_phone,contact_email,address,last_visit_date,next_visit_due,notes,species,committed_head_count,pipeline_stage,target_go_live_quarter",
+              "OBJECTID,trial_site,last_visit_date,next_visit_due,species,committed_head_count,pipeline_stage,target_go_live_quarter",
             resultRecordCount: "500",
             f: "json",
           })
@@ -790,37 +713,6 @@
               );
               return null; // null = "not available", distinct from [] = "available but empty"
             });
-        }
-
-        function writeFeature(url, attributes) {
-          var body = new URLSearchParams({
-            f: "json",
-            features: JSON.stringify([{ attributes: attributes }]),
-          });
-          return fetch(url, { method: "POST", body: body })
-            .then(function (res) {
-              return res.json();
-            })
-            .then(function (data) {
-              if (data.error)
-                throw new Error(data.error.message || "Write failed");
-              var result = (data.addResults || data.updateResults || [])[0];
-              if (!result || !result.success) {
-                throw new Error(
-                  (result && result.error && result.error.description) ||
-                    "ArcGIS Online rejected the write: the response gave no further detail.",
-                );
-              }
-              return result;
-            });
-        }
-        function addDirectoryRow(attrs) {
-          return writeFeature(DIRECTORY_ADD_URL, attrs);
-        }
-        function updateDirectoryRow(objectId, attrs) {
-          var full = { OBJECTID: objectId };
-          for (var k in attrs) full[k] = attrs[k];
-          return writeFeature(DIRECTORY_UPDATE_URL, full);
         }
 
         function fmtDate(ms) {
@@ -924,7 +816,7 @@
           allFarms.forEach(function (farm) {
             var row = byFarm[farm];
             if (!row) {
-              alertItems.push(farm + ": no contact details on file");
+              alertItems.push(farm + ": no directory entry yet");
               return;
             }
             if (row.next_visit_due != null && row.next_visit_due < now) {
@@ -939,7 +831,7 @@
 
           if (!allFarms.length) {
             grid.innerHTML =
-              '<div class="fd-loading">No farms yet. Farms appear here once they’ve logged lick block usage, or once added below as a prospect for the Onboarding Roadmap.</div>';
+              '<div class="fd-loading">No farms yet. Farms appear here once they’ve logged lick block usage.</div>';
           } else {
             grid.innerHTML = allFarms
               .map(function (farm, idx) {
@@ -953,17 +845,6 @@
               })
               .join("");
 
-            allFarms.forEach(function (farm, idx) {
-              var row = byFarm[farm];
-              var prefix = "fd-" + idx;
-              if (row) {
-                wireVisitForm(prefix, row.OBJECTID);
-                wireNotesSave(prefix, row.OBJECTID);
-                wirePipelineSave(prefix, row.OBJECTID);
-              } else {
-                wireAddForm(prefix, farm);
-              }
-            });
           }
 
           if (alertItems.length) {
@@ -993,169 +874,19 @@
           var lastVisitAgo = daysAgoText(row.last_visit_date);
           var nextDueAgo = daysAgoText(row.next_visit_due);
           var stage = effectivePipelineStage(row, hasUsageHistory);
-
-          var directionsHtml = row.address
-            ? '<a href="https://www.google.com/maps/dir/?api=1&destination=' +
-              encodeURIComponent(row.address) +
-              '" target="_blank" rel="noopener">' +
-              row.address +
-              " &#8599;</a>"
-            : "–";
           return (
-            '<div class="fd-card" style="border-top-color:' +
-            color +
-            ';">' +
-            '<div class="fd-card-head"><span class="fd-dot" style="background:' +
-            color +
-            ';"></span><h2 class="fd-name">' +
-            farm +
-            "</h2>" +
-            stageBadgeHtml(stage) +
-            "</div>" +
+            '<div class="fd-card" style="border-top-color:' + color + ';">' +
+            '<div class="fd-card-head"><span class="fd-dot" style="background:' + color + ';"></span><h2 class="fd-name">' +
+            farm + "</h2>" + stageBadgeHtml(stage) + "</div>" +
             '<div class="fd-info-grid">' +
-            '  <div><span class="fd-label">Species</span><span class="fd-value">' +
-            (row.species || "–") +
-            "</span></div>" +
+            '  <div><span class="fd-label">Species</span><span class="fd-value">' + (row.species || "–") + "</span></div>" +
             '  <div><span class="fd-label">Committed head</span><span class="fd-value">' +
-            (row.committed_head_count != null
-              ? row.committed_head_count
-              : "–") +
-            "</span></div>" +
-            '  <div><span class="fd-label">Contact</span><span class="fd-value">' +
-            (row.contact_name || "–") +
-            "</span></div>" +
-            '  <div><span class="fd-label">Phone</span><span class="fd-value">' +
-            (row.contact_phone
-              ? '<a href="tel:' +
-                row.contact_phone +
-                '">' +
-                row.contact_phone +
-                "</a>"
-              : "–") +
-            "</span></div>" +
-            '  <div class="fd-span-2"><span class="fd-label">Email</span><span class="fd-value">' +
-            (row.contact_email
-              ? '<a href="mailto:' +
-                row.contact_email +
-                '">' +
-                row.contact_email +
-                "</a>"
-              : "–") +
-            "</span></div>" +
-            '  <div class="fd-span-2"><span class="fd-label">Address</span><span class="fd-value">' +
-            directionsHtml +
-            "</span></div>" +
-            '  <div><span class="fd-label">Last visit</span><span class="fd-value">' +
-            fmtDate(row.last_visit_date) +
-            (lastVisitAgo
-              ? ' <span class="fd-days-ago">(' + lastVisitAgo + ")</span>"
-              : "") +
-            "</span></div>" +
-            '  <div><span class="fd-label">Next visit due</span><span class="fd-value' +
-            (overdue ? " overdue" : "") +
-            '">' +
-            fmtDate(row.next_visit_due) +
-            (nextDueAgo
-              ? ' <span class="fd-days-ago">(' + nextDueAgo + ")</span>"
-              : "") +
-            "</span></div>" +
-            "</div>" +
-            '<button type="button" class="fd-visit-btn" id="' +
-            prefix +
-            '-visitbtn">Log a visit</button>' +
-            '<div class="fd-inline-form" id="' +
-            prefix +
-            '-visitform" style="display:none;">' +
-            '  <label class="fd-field-label">Visit date<input type="date" class="fd-field-input" id="' +
-            prefix +
-            '-visitdate"></label>' +
-            '  <label class="fd-field-label">Next visit due<input type="date" class="fd-field-input" id="' +
-            prefix +
-            '-nextdue"></label>' +
-            '  <p class="fd-form-error" id="' +
-            prefix +
-            '-visiterror"></p>' +
-            '  <div class="fd-form-actions">' +
-            '    <button type="button" class="fd-confirm-btn" id="' +
-            prefix +
-            '-visitconfirm">Confirm</button>' +
-            '    <button type="button" class="fd-cancel-btn" id="' +
-            prefix +
-            '-visitcancel">Cancel</button>' +
-            "  </div>" +
-            "</div>" +
-            '<label class="fd-notes-label">Notes</label>' +
-            '<textarea class="fd-notes-input" id="' +
-            prefix +
-            '-notes" maxlength="500">' +
-            (row.notes || "") +
-            "</textarea>" +
-            '<div class="fd-form-actions"><button type="button" class="fd-confirm-btn" id="' +
-            prefix +
-            '-savenotes">Save notes</button><span class="fd-saved-note" id="' +
-            prefix +
-            '-notessaved"></span></div>' +
-            '<p class="fd-form-error" id="' +
-            prefix +
-            '-noteserror"></p>' +
-            '<button type="button" class="fd-pipeline-toggle" id="' +
-            prefix +
-            '-pipelinetoggle">Edit pipeline details ▾</button>' +
-            '<div class="fd-inline-form" id="' +
-            prefix +
-            '-pipelineform" style="display:none;">' +
-            '  <label class="fd-field-label">Species' +
-            '    <select class="fd-field-select" id="' +
-            prefix +
-            '-species">' +
-            '      <option value=""' +
-            (row.species ? "" : " selected") +
-            ">–</option>" +
-            '      <option value="Beef"' +
-            (row.species === "Beef" ? " selected" : "") +
-            ">Beef</option>" +
-            '      <option value="Sheep"' +
-            (row.species === "Sheep" ? " selected" : "") +
-            ">Sheep</option>" +
-            "    </select>" +
-            "  </label>" +
-            '  <label class="fd-field-label">Committed head count<input type="number" min="0" class="fd-field-input" id="' +
-            prefix +
-            '-head" value="' +
-            (row.committed_head_count != null ? row.committed_head_count : "") +
-            '"></label>' +
-            '  <label class="fd-field-label">Pipeline stage' +
-            '    <select class="fd-field-select" id="' +
-            prefix +
-            '-stage">' +
-            ["Prospect", "In discussion", "Signed", "Active"]
-              .map(function (s) {
-                return (
-                  '<option value="' +
-                  s +
-                  '"' +
-                  (stage === s ? " selected" : "") +
-                  ">" +
-                  s +
-                  "</option>"
-                );
-              })
-              .join("") +
-            "    </select>" +
-            "  </label>" +
-            '  <label class="fd-field-label">Target go-live quarter<input type="text" class="fd-field-input" id="' +
-            prefix +
-            '-quarter" value="' +
-            (row.target_go_live_quarter || "") +
-            '" placeholder="e.g. 2027 Q1"></label>' +
-            '  <p class="fd-form-error" id="' +
-            prefix +
-            '-pipelineerror"></p>' +
-            '  <div class="fd-form-actions"><button type="button" class="fd-confirm-btn" id="' +
-            prefix +
-            '-pipelinesave">Save pipeline details</button><span class="fd-saved-note" id="' +
-            prefix +
-            '-pipelinesaved"></span></div>' +
+            (row.committed_head_count != null ? row.committed_head_count : "–") + "</span></div>" +
+            '  <div><span class="fd-label">Go-live quarter</span><span class="fd-value">' + (row.target_go_live_quarter || "–") + "</span></div>" +
+            '  <div><span class="fd-label">Last visit</span><span class="fd-value">' + fmtDate(row.last_visit_date) +
+            (lastVisitAgo ? ' <span class="fd-days-ago">(' + lastVisitAgo + ")</span>" : "") + "</span></div>" +
+            '  <div><span class="fd-label">Next visit due</span><span class="fd-value' + (overdue ? " overdue" : "") + '">' +
+            fmtDate(row.next_visit_due) + (nextDueAgo ? ' <span class="fd-days-ago">(' + nextDueAgo + ")</span>" : "") + "</span></div>" +
             "</div>" +
             "</div>"
           );
@@ -1164,319 +895,13 @@
         function emptyCardHtml(prefix, farm, color) {
           return (
             '<div class="fd-card fd-card-empty">' +
-            '<div class="fd-card-head"><span class="fd-dot" style="background:' +
-            color +
-            ';"></span><h2 class="fd-name">' +
-            farm +
-            "</h2></div>" +
-            '<p class="fd-empty-note">No contact details on file yet.</p>' +
-            '<button type="button" class="fd-add-btn" id="' +
-            prefix +
-            '-addbtn">+ Add contact details</button>' +
-            '<div class="fd-inline-form" id="' +
-            prefix +
-            '-addform" style="display:none;">' +
-            '  <label class="fd-field-label">Contact name<input type="text" class="fd-field-input" id="' +
-            prefix +
-            '-addname"></label>' +
-            '  <label class="fd-field-label">Phone<input type="tel" class="fd-field-input" id="' +
-            prefix +
-            '-addphone"></label>' +
-            '  <label class="fd-field-label">Email<input type="email" class="fd-field-input" id="' +
-            prefix +
-            '-addemail"></label>' +
-            '  <label class="fd-field-label">Address<input type="text" class="fd-field-input" id="' +
-            prefix +
-            '-addaddress"></label>' +
-            '  <p class="fd-form-error" id="' +
-            prefix +
-            '-adderror"></p>' +
-            '  <div class="fd-form-actions">' +
-            '    <button type="button" class="fd-confirm-btn" id="' +
-            prefix +
-            '-addconfirm">Save</button>' +
-            '    <button type="button" class="fd-cancel-btn" id="' +
-            prefix +
-            '-addcancel">Cancel</button>' +
-            "  </div>" +
-            "</div>" +
+            '<div class="fd-card-head"><span class="fd-dot" style="background:' + color + ';"></span><h2 class="fd-name">' +
+            farm + "</h2></div>" +
+            '<p class="fd-empty-note">No directory entry yet.</p>' +
             "</div>"
           );
         }
 
-        // ------------------------------------------------------------
-        // WIRING
-        // ------------------------------------------------------------
-        function wireVisitForm(prefix, objectId) {
-          var btn = document.getElementById(prefix + "-visitbtn");
-          var form = document.getElementById(prefix + "-visitform");
-          var visitDateInput = document.getElementById(prefix + "-visitdate");
-          var nextDueInput = document.getElementById(prefix + "-nextdue");
-          var errorEl = document.getElementById(prefix + "-visiterror");
-          var confirmBtn = document.getElementById(prefix + "-visitconfirm");
-          var cancelBtn = document.getElementById(prefix + "-visitcancel");
-
-          btn.addEventListener("click", function () {
-            errorEl.textContent = "";
-            visitDateInput.value = toDateInputValue(Date.now());
-            nextDueInput.value = toDateInputValue(
-              Date.now() + DEFAULT_VISIT_INTERVAL_DAYS * 86400000,
-            );
-            form.style.display = "block";
-            btn.style.display = "none";
-          });
-
-          visitDateInput.addEventListener("change", function () {
-            if (!visitDateInput.value) return;
-            var visitMs = Date.parse(visitDateInput.value + "T00:00:00Z");
-            nextDueInput.value = toDateInputValue(
-              visitMs + DEFAULT_VISIT_INTERVAL_DAYS * 86400000,
-            );
-          });
-          cancelBtn.addEventListener("click", function () {
-            form.style.display = "none";
-            btn.style.display = "inline-block";
-          });
-          confirmBtn.addEventListener("click", function () {
-            if (!visitDateInput.value) {
-              errorEl.textContent = "Enter the date you visited.";
-              return;
-            }
-            confirmBtn.disabled = true;
-            confirmBtn.textContent = "Saving…";
-            errorEl.textContent = "";
-            updateDirectoryRow(objectId, {
-              last_visit_date: Date.parse(visitDateInput.value + "T00:00:00Z"),
-              next_visit_due: nextDueInput.value
-                ? Date.parse(nextDueInput.value + "T00:00:00Z")
-                : null,
-            })
-              .then(function () {
-                return loadAll();
-              })
-              .catch(function (err) {
-                errorEl.textContent = "Could not save: " + err.message;
-                confirmBtn.disabled = false;
-                confirmBtn.textContent = "Confirm";
-              });
-          });
-        }
-
-        function wireNotesSave(prefix, objectId) {
-          var textarea = document.getElementById(prefix + "-notes");
-          var saveBtn = document.getElementById(prefix + "-savenotes");
-          var savedNote = document.getElementById(prefix + "-notessaved");
-          var errorEl = document.getElementById(prefix + "-noteserror");
-
-          saveBtn.addEventListener("click", function () {
-            saveBtn.disabled = true;
-            saveBtn.textContent = "Saving…";
-            errorEl.textContent = "";
-            savedNote.textContent = "";
-            updateDirectoryRow(objectId, {
-              notes: textarea.value ? textarea.value.slice(0, 500) : null,
-            })
-              .then(function () {
-                saveBtn.disabled = false;
-                saveBtn.textContent = "Save notes";
-                savedNote.textContent = "Saved ✓";
-              })
-              .catch(function (err) {
-                errorEl.textContent = "Could not save: " + err.message;
-                saveBtn.disabled = false;
-                saveBtn.textContent = "Save notes";
-              });
-          });
-        }
-
-        function wirePipelineSave(prefix, objectId) {
-          var toggleBtn = document.getElementById(prefix + "-pipelinetoggle");
-          var form = document.getElementById(prefix + "-pipelineform");
-          var speciesSel = document.getElementById(prefix + "-species");
-          var headInput = document.getElementById(prefix + "-head");
-          var stageSel = document.getElementById(prefix + "-stage");
-          var quarterInput = document.getElementById(prefix + "-quarter");
-          var errorEl = document.getElementById(prefix + "-pipelineerror");
-          var saveBtn = document.getElementById(prefix + "-pipelinesave");
-          var savedNote = document.getElementById(prefix + "-pipelinesaved");
-
-          toggleBtn.addEventListener("click", function () {
-            var showing = form.style.display !== "none";
-            form.style.display = showing ? "none" : "block";
-            toggleBtn.textContent = showing
-              ? "Edit pipeline details ▾"
-              : "Edit pipeline details ▴";
-          });
-
-          saveBtn.addEventListener("click", function () {
-            saveBtn.disabled = true;
-            saveBtn.textContent = "Saving…";
-            errorEl.textContent = "";
-            savedNote.textContent = "";
-            updateDirectoryRow(objectId, {
-              species: speciesSel.value || null,
-              committed_head_count: headInput.value
-                ? parseInt(headInput.value, 10)
-                : null,
-              pipeline_stage: stageSel.value || null,
-              target_go_live_quarter: quarterInput.value
-                ? quarterInput.value.slice(0, 10)
-                : null,
-            })
-              .then(function () {
-                return loadAll();
-              })
-              .catch(function (err) {
-                errorEl.textContent = "Could not save: " + err.message;
-                saveBtn.disabled = false;
-                saveBtn.textContent = "Save pipeline details";
-              });
-          });
-        }
-
-        function wireAddForm(prefix, farm) {
-          var btn = document.getElementById(prefix + "-addbtn");
-          var form = document.getElementById(prefix + "-addform");
-          var nameInput = document.getElementById(prefix + "-addname");
-          var phoneInput = document.getElementById(prefix + "-addphone");
-          var emailInput = document.getElementById(prefix + "-addemail");
-          var addressInput = document.getElementById(prefix + "-addaddress");
-          var errorEl = document.getElementById(prefix + "-adderror");
-          var confirmBtn = document.getElementById(prefix + "-addconfirm");
-          var cancelBtn = document.getElementById(prefix + "-addcancel");
-
-          btn.addEventListener("click", function () {
-            errorEl.textContent = "";
-            form.style.display = "block";
-            btn.style.display = "none";
-            nameInput.focus();
-          });
-          cancelBtn.addEventListener("click", function () {
-            form.style.display = "none";
-            btn.style.display = "inline-block";
-          });
-          confirmBtn.addEventListener("click", function () {
-            if (!nameInput.value && !phoneInput.value && !addressInput.value) {
-              errorEl.textContent =
-                "Enter at least a contact name, phone, or address.";
-              return;
-            }
-            confirmBtn.disabled = true;
-            confirmBtn.textContent = "Saving…";
-            errorEl.textContent = "";
-            addDirectoryRow({
-              trial_site: farm,
-              contact_name: nameInput.value || null,
-              contact_phone: phoneInput.value || null,
-              contact_email: emailInput.value || null,
-              address: addressInput.value || null,
-              notes: null,
-              last_visit_date: null,
-              next_visit_due: null,
-            })
-              .then(function () {
-                return loadAll();
-              })
-              .catch(function (err) {
-                errorEl.textContent =
-                  "Could not save: " +
-                  err.message +
-                  ". If this is the first entry, check that anonymous editing is turned on for LEL_Farm_Directory in ArcGIS Online (see setup note).";
-                confirmBtn.disabled = false;
-                confirmBtn.textContent = "Save";
-              });
-          });
-        }
-
-        // New-farm capture, added 2026-09-09 for the Onboarding Roadmap.
-        // Unlike wireAddForm() above (which only fills in contact details
-        // for a farm name already discovered via lick block usage), this
-        // creates a brand-new LEL_Farm_Directory row from scratch, so a
-        // prospect can be tracked here before it has any real trial
-        // activity at all. Wired once, outside render(), since the button
-        // is static markup that render() never rebuilds.
-        function wireNewFarmForm() {
-          var openBtn = document.getElementById("fd-newfarm-btn");
-          var panel = document.getElementById("fd-newfarm-panel");
-          var nameInput = document.getElementById("fd-newfarm-name");
-          var speciesSel = document.getElementById("fd-newfarm-species");
-          var headInput = document.getElementById("fd-newfarm-head");
-          var stageSel = document.getElementById("fd-newfarm-stage");
-          var quarterInput = document.getElementById("fd-newfarm-quarter");
-          var contactInput = document.getElementById("fd-newfarm-contact");
-          var errorEl = document.getElementById("fd-newfarm-error");
-          var saveBtn = document.getElementById("fd-newfarm-save");
-          var cancelBtn = document.getElementById("fd-newfarm-cancel");
-
-          openBtn.addEventListener("click", function () {
-            errorEl.textContent = "";
-            panel.style.display = "block";
-            openBtn.style.display = "none";
-            nameInput.focus();
-          });
-          cancelBtn.addEventListener("click", function () {
-            panel.style.display = "none";
-            openBtn.style.display = "inline-block";
-            errorEl.textContent = "";
-          });
-          saveBtn.addEventListener("click", function () {
-            var name = nameInput.value.trim();
-            if (!name) {
-              errorEl.textContent = "Enter a farm name.";
-              return;
-            }
-            if (currentAllFarms.indexOf(name) !== -1) {
-              errorEl.textContent =
-                "A farm called “" +
-                name +
-                "” already exists. Find it below to edit it instead.";
-              return;
-            }
-            saveBtn.disabled = true;
-            saveBtn.textContent = "Saving…";
-            errorEl.textContent = "";
-            addDirectoryRow({
-              trial_site: name,
-              species: speciesSel.value || null,
-              committed_head_count: headInput.value
-                ? parseInt(headInput.value, 10)
-                : null,
-              pipeline_stage: stageSel.value || "Prospect",
-              target_go_live_quarter: quarterInput.value
-                ? quarterInput.value.slice(0, 10)
-                : null,
-              contact_name: contactInput.value || null,
-              contact_phone: null,
-              contact_email: null,
-              address: null,
-              notes: null,
-              last_visit_date: null,
-              next_visit_due: null,
-            })
-              .then(function () {
-                nameInput.value = "";
-                headInput.value = "";
-                quarterInput.value = "";
-                contactInput.value = "";
-                stageSel.value = "Prospect";
-                panel.style.display = "none";
-                openBtn.style.display = "inline-block";
-                saveBtn.disabled = false;
-                saveBtn.textContent = "Save";
-                return loadAll();
-              })
-              .catch(function (err) {
-                errorEl.textContent =
-                  "Could not save: " +
-                  err.message +
-                  ". If this is the first entry, check that anonymous editing is turned on for LEL_Farm_Directory in ArcGIS Online (see setup note).";
-                saveBtn.disabled = false;
-                saveBtn.textContent = "Save";
-              });
-          });
-        }
-
-        wireNewFarmForm();
         loadAll();
       })();
     </script>

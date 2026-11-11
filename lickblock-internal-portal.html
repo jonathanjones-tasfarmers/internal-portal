@@ -311,13 +311,10 @@
   // CONFIG
   // ============================================================
   var USAGE_HISTORY_URL = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lick_Block_Usage_History/FeatureServer/0/query";
-  var ORDERS_URL         = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lick_Block_Orders/FeatureServer/0/query";
-  // Write endpoint for the "Ordered…" button (added 2026-09-01). Requires
-  // LEL_Lick_Block_Orders to have anonymous public editing turned on in
-  // ArcGIS Online — see the setup note further down (search ORDERS_ADD_URL
-  // usage) — since this page, like the rest of the portal, deliberately
-  // has no login of its own.
-  var ORDERS_ADD_URL    = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lick_Block_Orders/FeatureServer/0/addFeatures";
+  var ORDERS_URL         = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lick_Block_Orders_view/FeatureServer/0/query";
+  // 2026-11-11: orders are logged by signed-in staff in ArcGIS Online (LEL_Lick_Block_Orders is private;
+  // this page reads the read-only public view). The page no longer writes anything.
+  var ORDERS_LOG_URL    = "https://indie520d1a051c0.maps.arcgis.com/home/item.html?id=3085c3903604435088e10e35002d2696#data";
   // NEW table — Jono creates this once (see setup guide), then updates
   // this URL to match its real REST endpoint. Left as a best-guess based
   // on the service name AGOL will generate from the item title
@@ -401,25 +398,6 @@
     }).then(function(data){ return data.features.map(function(f){ return f.attributes; }); }).catch(function(err){
       console.error('Orders fetch failed:', err);
       return [];
-    });
-  }
-
-  // Writes one new row to LEL_Lick_Block_Orders — the "Ordered…" button's
-  // whole job. Deliberately does NOT touch/require expected_delivery_date
-  // to exist for the rest of the page to work — if that field hasn't been
-  // added to the table yet (see setup note), the write itself will just
-  // come back with an "invalid field" error, surfaced to the user via
-  // submitOrderForm()'s catch, rather than breaking anything already on
-  // the page.
-  function addOrder(attributes){
-    var body = new URLSearchParams({ f: "json", features: JSON.stringify([{ attributes: attributes }]) });
-    return fetch(ORDERS_ADD_URL, { method: "POST", body: body }).then(function(res){ return res.json(); }).then(function(data){
-      if (data.error) throw new Error(data.error.message || "Write failed");
-      var result = (data.addResults || [])[0];
-      if (!result || !result.success) {
-        throw new Error((result && result.error && result.error.description) || "ArcGIS Online rejected the write: the response gave no further detail.");
-      }
-      return result;
     });
   }
 
@@ -593,19 +571,7 @@
   // below) can find them without any other bookkeeping.
   function orderFormMarkup(prefix, colorClass){
     return '<p class="lbp-order-pending" id="' + prefix + '-pending" style="display:none;"></p>' +
-      '<button type="button" class="lbp-order-btn' + (colorClass ? ' ' + colorClass : '') + '" id="' + prefix + '-orderbtn">Ordered&hellip;</button>' +
-      '<div class="lbp-order-form" id="' + prefix + '-form" style="display:none;">' +
-      '  <label class="lbp-order-label">Blocks ordered<input type="number" min="1" step="1" class="lbp-order-input" id="' + prefix + '-blocks" placeholder="e.g. 200"></label>' +
-      '  <label class="lbp-order-label">Order date<input type="date" class="lbp-order-input" id="' + prefix + '-orderdate"></label>' +
-      '  <label class="lbp-order-label">Expected delivery<input type="date" class="lbp-order-input" id="' + prefix + '-deliverydate"></label>' +
-      '  <label class="lbp-order-label">Notes (optional)<input type="text" class="lbp-order-input" id="' + prefix + '-notes" placeholder="PO / invoice reference"></label>' +
-      '  <p class="lbp-order-error" id="' + prefix + '-error"></p>' +
-      '  <div class="lbp-order-actions">' +
-      '    <button type="button" class="lbp-order-confirm" id="' + prefix + '-confirm">Confirm order</button>' +
-      '    <button type="button" class="lbp-order-cancel" id="' + prefix + '-cancel">Cancel</button>' +
-      '  </div>' +
-      '  <p class="lbp-order-hint">This updates on-hand stock and the reorder warning straight away. Add the pallet breakdown from the invoice in ArcGIS Online anytime if you want that recorded too.</p>' +
-      '</div>';
+      '<a class="lbp-order-btn' + (colorClass ? ' ' + colorClass : '') + '" id="' + prefix + '-orderbtn" href="' + ORDERS_LOG_URL + '" target="_blank" rel="noopener" style="text-decoration:none;display:inline-block;">Log an order in ArcGIS&hellip;</a>';
   }
 
   // Wires one treatment's Ordered button + form. Called once per (farm,
@@ -614,57 +580,7 @@
   // markup first, then wire it" order pass 2 already follows for charts
   // and reorder stats (see the big comment above renderFarmSections).
   function wireOrderForm(prefix, farm, treatment){
-    var btn = document.getElementById(prefix + '-orderbtn');
-    var form = document.getElementById(prefix + '-form');
-    var blocksInput = document.getElementById(prefix + '-blocks');
-    var orderDateInput = document.getElementById(prefix + '-orderdate');
-    var deliveryInput = document.getElementById(prefix + '-deliverydate');
-    var notesInput = document.getElementById(prefix + '-notes');
-    var errorEl = document.getElementById(prefix + '-error');
-    var confirmBtn = document.getElementById(prefix + '-confirm');
-    var cancelBtn = document.getElementById(prefix + '-cancel');
-
-    btn.addEventListener('click', function(){
-      errorEl.textContent = '';
-      orderDateInput.value = toDateInputValue(Date.now());
-      deliveryInput.value = toDateInputValue(Date.now() + REORDER_LEAD_DAYS * 86400000);
-      blocksInput.value = '';
-      notesInput.value = '';
-      form.style.display = 'block';
-      btn.style.display = 'none';
-      blocksInput.focus();
-    });
-
-    cancelBtn.addEventListener('click', function(){
-      form.style.display = 'none';
-      btn.style.display = 'inline-block';
-    });
-
-    confirmBtn.addEventListener('click', function(){
-      var blocks = parseInt(blocksInput.value, 10);
-      if (!blocks || blocks <= 0) { errorEl.textContent = 'Enter how many blocks you ordered.'; return; }
-      if (!orderDateInput.value) { errorEl.textContent = 'Enter the order date.'; return; }
-      if (!deliveryInput.value) { errorEl.textContent = 'Enter an expected delivery date.'; return; }
-
-      confirmBtn.disabled = true;
-      confirmBtn.textContent = 'Saving…';
-      errorEl.textContent = '';
-
-      addOrder({
-        trial_site: farm,
-        treatment: treatment,
-        blocks_ordered: blocks,
-        order_date: Date.parse(orderDateInput.value + 'T00:00:00Z'),
-        expected_delivery_date: Date.parse(deliveryInput.value + 'T00:00:00Z'),
-        notes: notesInput.value ? notesInput.value.slice(0, 255) : null
-      }).then(function(){
-        return loadAll(); // re-renders everything, including this button — the whole page catches up
-      }).catch(function(err){
-        errorEl.textContent = 'Could not save: ' + err.message + '. If this is the very first order logged this way, check that anonymous editing is turned on for LEL_Lick_Block_Orders in ArcGIS Online (see setup note).';
-        confirmBtn.disabled = false;
-        confirmBtn.textContent = 'Confirm order';
-      });
-    });
+    // Nothing to wire: the button is a plain link to the order log in ArcGIS Online (sign-in required).
   }
 
   function renderFarmSections(usageHistory, orders, placements, farms){
