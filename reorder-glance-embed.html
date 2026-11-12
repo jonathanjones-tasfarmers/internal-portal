@@ -139,10 +139,42 @@
       return data;
     });
   }
-  function fetchUsageHistory(){
+  var RETIRED_FARMS = ["Bowood Farm", "Eastbourne Farm"];   // keep in step with RETIRED_FARMS in lel_farms.py
+  var RETIRED_SQL = "(" + RETIRED_FARMS.map(function (f) { return "'" + f + "'"; }).join(",") + ")";
+  // 2026-11-13: a new cohort (e.g. "Bowood Farm - Cohort 2") has no consumption rate until its
+  // second block visit, so supply showed "not enough data". Until then, borrow the previous cohort's
+  // last known blocks/day for the same treatment (scaled by head count) and mark it as an estimate.
+  function baseFarmName(n){ return String(n).replace(/ - Cohort \d+$/, ''); }
+  function fetchPredecessorRates(){
     return q(USAGE_HISTORY_URL, {
-      where: "treatment IN ('seafeed','control')",
-      outFields: "snapshot_date,trial_site,treatment,cumulative_blocks_used,blocks_per_day_current",
+      where: "treatment IN ('seafeed','control') AND blocks_per_day_current > 0 AND trial_site IN " + RETIRED_SQL,
+      outFields: "snapshot_date,trial_site,treatment,blocks_per_day_current,head_count",
+      orderByFields: "snapshot_date DESC", resultRecordCount: "2000", f: "json"
+    }).then(function(d){
+      var m = {};
+      d.features.forEach(function(f){ var a = f.attributes, k = a.trial_site + '|' + a.treatment; if (!m[k]) m[k] = { rate: a.blocks_per_day_current, head: a.head_count }; });
+      return m;
+    }).catch(function(){ return {}; });
+  }
+  function applyProvisionalRates(rows, pred){
+    rows.forEach(function(r){
+      if (r.blocks_per_day_current && r.blocks_per_day_current > 0) return;
+      var base = baseFarmName(r.trial_site);
+      var p = pred[base + '|' + r.treatment];
+      if (base === r.trial_site || !p) return;   // successor cohorts only
+      r.blocks_per_day_current = p.rate * ((r.head_count && p.head) ? r.head_count / p.head : 1);
+      r._provisional = true;
+    });
+    return rows;
+  }
+  function fetchUsageHistory(){
+    return Promise.all([fetchUsageHistoryRaw(), fetchPredecessorRates()]).then(function(x){ return applyProvisionalRates(x[0], x[1]); });
+  }
+
+  function fetchUsageHistoryRaw(){
+    return q(USAGE_HISTORY_URL, {
+      where: "treatment IN ('seafeed','control') AND trial_site NOT IN " + RETIRED_SQL,
+      outFields: "snapshot_date,trial_site,treatment,cumulative_blocks_used,blocks_per_day_current,head_count",
       orderByFields: "snapshot_date ASC", resultRecordCount: "4000", f: "json"
     }).then(function(data){ return data.features.map(function(f){ return f.attributes; }); }).catch(function(err){
       console.error('Usage history fetch failed:', err);
@@ -213,7 +245,7 @@
         row.status = overdue ? 'overdue' : (soon ? 'soon' : 'ok');
         row.note = outOfStock ? 'Out of stock — order now'
           : overdue ? 'Past reorder date — order now'
-          : Math.max(0, Math.round(daysToEmpty)) + ' days of supply left';
+          : Math.max(0, Math.round(daysToEmpty)) + ' days of supply left' + (latest._provisional ? ' (estimate, previous cohort\u2019s rate)' : '');
         rows.push(row);
       });
     });
