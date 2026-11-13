@@ -406,6 +406,13 @@
     return new Date(ms).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
   }
   function daysSinceEpochMs(ms){ return (Date.now() - ms) / 86400000; }
+  // A finished cohort (e.g. "Eastbourne Farm") whose farm has moved on to a later cohort
+  // ("Eastbourne Farm - Cohort 2") has stopped reporting on purpose, so it must never trip
+  // the "no new weight data" alert. Added 2026-11-13: Eastbourne cohort 1 ended 2026-10-28
+  // and Bowood cohort 1 ended 2026-11-04 (Bowood would have started alerting on 2026-11-19).
+  function isSupersededCohort(farm, allFarms){
+    return allFarms.some(function(other){ return other !== farm && other.indexOf(farm + ' - Cohort') === 0; });
+  }
   function farmColor(farm, allFarms){
     var idx = allFarms.indexOf(farm);
     if (idx === -1) idx = 0;
@@ -656,6 +663,7 @@
     var staleItems = [];
     var now = Date.now();
     allFarms.forEach(function(farm){
+      if (isSupersededCohort(farm, allFarms)) return; // finished cohort: not an alert
       var cur = currentByFarm[farm] || {};
       var readings = [cur.seafeed, cur.control].filter(Boolean);
       if (!readings.length) return;
