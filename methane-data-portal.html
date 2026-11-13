@@ -4,54 +4,54 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!--
-  LEL Methane Data Portal — internal, Jono / Bronte / Tas only.
+  LEL Methane Data Portal: internal, Jono / Bronte / Tas only.
 
   Built 2026-09-08, the 4th Staff Portal tool (after Lick Block Tracker,
   Farm Directory, Weight Data). Same access pattern as the other three:
-  unlisted, unauthenticated (plain fetch(), no login) — the link itself is
+  unlisted, unauthenticated (plain fetch(), no login): the link itself is
   the access control, don't publish it anywhere public. noindex/nofollow
   below so it never turns up in search.
 
-  PURPOSE — Jono asked for "a final page for methane data" and to use
+  PURPOSE: Jono asked for "a final page for methane data" and to use
   initiative on content. This reads the SAME feature layers the public
   Data page (page-5-data.html) already uses for its "Total CO2e abated"
   and abatement-rate figures, but built for staff: per-farm detail (not
   just the trial aggregate), a visible methodology note, and no framing
   restrictions the public page has to carry (e.g. de-identification,
-  "illustrative not ACCU-grade" disclaimers) — this is an internal
+  "illustrative not ACCU-grade" disclaimers): this is an internal
   reference view, not a funder/public-facing one.
 
-  DATA SOURCES — all pre-existing, read-only here, nothing new to create
+  DATA SOURCES: all pre-existing, read-only here, nothing new to create
   in ArcGIS Online for this page (unlike Farm Directory / Lick Block
   Tracker, which needed new tables):
-    - LEL_Emissions_Data_view — one row per (farm, treatment) per day,
+    - LEL_Emissions_Data_view: one row per (farm, treatment) per day,
       written by 03. Emissions_Live_Pipeline_v2.py. Per-row fields used:
       record_date, farm_name, treatment, intake_g_per_hd_day,
       abatement_rate, baseline_ch4_g_per_hd_day, methane_abated_g_per_hd_day,
       is_backfilled. Also carries an "All Farms (Trial Aggregate)"
-      farm_name row per treatment per day — the pipeline's own
+      farm_name row per treatment per day: the pipeline's own
       head-count-weighted rollup, read directly here rather than
       re-derived, so this page can never disagree with the aggregate the
       public Data page shows.
-    - LEL_Economics_Data — read for cumulative_ch4_abated_kg_per_head +
+    - LEL_Economics_Data: read for cumulative_ch4_abated_kg_per_head +
       representative_head_count per (farm, treatment), written by
       04. Economics_Pipeline.py. Used for the "cumulative CO2e abated"
-      figures — cumulative sums live here, not in the daily Emissions
+      figures: cumulative sums live here, not in the daily Emissions
       table (see that pipeline's own comments for why).
-    - LEL_Industry_Benchmarks — single source for the AR5 100-year
+    - LEL_Industry_Benchmarks: single source for the AR5 100-year
       methane GWP factor (metric_name='METHANE_GWP100_AR5'), same lookup
       page-5-data.html already does. Falls back to 28 (the hardcoded
       value already in use everywhere else on this site) if the fetch
       fails or the row isn't there.
-    - LEL_Model_Assumptions_Public — the same live "how we calculate
+    - LEL_Model_Assumptions_Public: the same live "how we calculate
       baseline methane" snapshot the public Data page's explainer panel
       reads, reused here for the methodology note so this page can never
       silently drift from what the pipeline is actually using. Degrades
       to a static fallback paragraph (hardcoded Charmley citation) if
-      this table isn't populated yet — same non-fatal pattern the Python
+      this table isn't populated yet: same non-fatal pattern the Python
       pipeline itself uses.
 
-  Farms are NOT hardcoded — the farm list is whatever distinct farm_name
+  Farms are NOT hardcoded: the farm list is whatever distinct farm_name
   values show up in LEL_Emissions_Data_view (excluding the aggregate
   label), so a new farm appears automatically once it has emissions data,
   no code change needed here. FARM_COLORS below is the SAME array/order
@@ -75,8 +75,8 @@
     --tf-red:#c0392b;
     --tf-white:#ffffff;
     --tf-warning:#c98a2e;
-    --surface-page:#ffffff; /* was #faf9f6 (cream) — switched to plain white 2026-09-08, per Jono's request */
-    --surface-sunken:#ffffff; /* was var(--tf-slate-100) (light slate tint) — switched to plain white 2026-09-08; elements that relied on this tint alone for definition picked up a companion border in the same pass, see each rule below */
+    --surface-page:#ffffff; /* was #faf9f6 (cream): switched to plain white 2026-09-08, per Jono's request */
+    --surface-sunken:#ffffff; /* was var(--tf-slate-100) (light slate tint): switched to plain white 2026-09-08; elements that relied on this tint alone for definition picked up a companion border in the same pass, see each rule below */
     --surface-card:var(--tf-white);
     --text-heading:var(--tf-navy-900);
     --text-body:oklch(from var(--tf-navy-900) calc(l + 0.06) calc(c - 0.005) h);
@@ -93,7 +93,7 @@
   .mt-page { max-width: 1320px; margin: 0 auto; padding: 0 32px 64px; box-sizing: border-box; }
   @media (max-width: 720px) { .mt-page { padding: 0 16px 48px; } }
 
-  /* Hero — same pattern as Farm Directory/Weight Data/Lick Block Tracker,
+  /* Hero: same pattern as Farm Directory/Weight Data/Lick Block Tracker,
      built with the widened 40px bottom margin + hero icon badge from the
      start (per the 2026-09-08 visual review applied to the other three). */
   .mt-hero { max-width: 1320px; margin: 0 auto; padding: 40px 32px 28px; box-sizing: border-box; border-bottom: 1px solid var(--border-subtle); margin-bottom: 40px; }
@@ -111,11 +111,11 @@
 
   .mt-section-label { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; margin: 0 0 14px 2px; }
 
-  /* KPI band — trial-wide headline figures. Top-bordered mint accent
+  /* KPI band: trial-wide headline figures. Top-bordered mint accent
      (not the left-border style Lick Block's KPI cards use) to match the
      newer top-border card language used across Farm Directory/Weight
      Data/Lick Block Tracker's farm cards. One accent colour (mint) per
-     the dashboard-design conventions — these are all "good news" figures
+     the dashboard-design conventions: these are all "good news" figures
      about SeaFeed's effect, so no red/amber semantic colouring needed
      here the way a stale-data badge would use it. */
   .mt-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 28px; }
@@ -124,24 +124,24 @@
   .mt-kpi-value { font-family: var(--font-display); font-size: 28px; font-weight: 700; color: var(--text-heading); margin: 0; }
   .mt-kpi-note { font-family: var(--font-display); font-size: 11.5px; color: var(--text-muted); margin: 6px 0 0; line-height: 1.4; }
 
-  /* Methodology panel — plain-language "how this is modelled" note, kept
+  /* Methodology panel: plain-language "how this is modelled" note, kept
      visually quiet (sunken background, no shadow/border-accent) since
      it's reference text, not a figure to draw the eye to. */
   .mt-method-panel { background: var(--surface-sunken); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 16px 20px; margin-bottom: 8px; }
   .mt-method-title { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: var(--text-heading); margin: 0 0 6px; }
   .mt-method-text { font-size: 12.5px; color: var(--text-muted); margin: 0; line-height: 1.6; }
 
-  /* Leaderboard — added 2026-09-08, per Jono's request, mirrors Weight
+  /* Leaderboard: added 2026-09-08, per Jono's request, mirrors Weight
      Data's ADG leaderboard pattern. Ranks farms by abatement rate %
      (latest SeaFeed reading) rather than raw CH4 abated or cumulative
-     CO2e — a rate is fair to compare across farms of different herd
+     CO2e: a rate is fair to compare across farms of different herd
      sizes and different trial start dates, where a cumulative figure
      would just reward whichever farm has been running longest. Same
      reasoning as why the Weight Data leaderboard ranks ADG advantage %
      rather than raw kg gained. Unlike ADG advantage, abatement rate
      can't go negative (it's a dose-response % against baseline, floored
      at 0 by the pipeline), so there's no red/mint split here like Weight
-     Data's leaderboard has — every ranked row uses the one accent colour. */
+     Data's leaderboard has: every ranked row uses the one accent colour. */
   .mt-leaderboard { margin-bottom: 28px; }
   .mt-leaderboard-list { background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; }
   .mt-lb-row { display: flex; align-items: center; gap: 14px; padding: 12px 18px; border-bottom: 1px solid var(--border-subtle); }
@@ -250,7 +250,7 @@
   var STALE_AFTER_DAYS = 14; // matches every other page on this site
   var FARM_COLORS = ['#2e6f9e', '#8659a3', '#2e8f8f', '#a3762e', '#5c6bc0']; // same order/palette as Farm Directory/Weight Data/Lick Block Tracker
   var MINT = '#3aa989', SLATE = '#a9b8c4';
-  var DEFAULT_GWP = 28; // AR5 100-year methane GWP — same fallback page-5-data.html uses if the benchmarks lookup fails
+  var DEFAULT_GWP = 28; // AR5 100-year methane GWP: same fallback page-5-data.html uses if the benchmarks lookup fails
 
   var FALLBACK_METHOD_TEXT = "Baseline enteric methane is modelled from each animal's liveweight using Charmley et al. (2016)'s universal equation for forage-fed cattle (CH4 g/day = 20.7 x dry matter intake), with intake estimated at 2.5% of bodyweight per Sea Forest's guidance. The abatement rate applied against that baseline scales with each farm's measured SeaFeed intake, within Sea Forest's stated dose-response range. CO2e figures use the AR5 100-year methane global warming potential factor.";
 
@@ -268,6 +268,12 @@
     return new Date(ms).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
   }
   function daysSinceEpochMs(ms){ return (Date.now() - ms) / 86400000; }
+  // A finished cohort (e.g. "Eastbourne Farm") whose farm has moved on to a later cohort
+  // ("Eastbourne Farm - Cohort 2") has stopped reporting on purpose, so it must never trip
+  // the "no new emissions data" alert. Added 2026-11-13, same rule as the Weight Data page.
+  function isSupersededCohort(farm, allFarms){
+    return allFarms.some(function(other){ return other !== farm && other.indexOf(farm + ' - Cohort') === 0; });
+  }
   function farmColor(farm, allFarms){
     var idx = allFarms.indexOf(farm);
     if (idx === -1) idx = 0;
@@ -275,7 +281,7 @@
   }
 
   // ============================================================
-  // FETCH — batched queries covering every farm at once, grouped
+  // FETCH: batched queries covering every farm at once, grouped
   // client-side (same pattern as Farm Directory / Weight Data).
   // ============================================================
   function fetchGwp(){
@@ -299,7 +305,7 @@
     }).catch(function(){ return FALLBACK_METHOD_TEXT; });
   }
 
-  // Full daily history, every farm + the pipeline's own aggregate rows —
+  // Full daily history, every farm + the pipeline's own aggregate rows:
   // used both for the trial KPI band (aggregate rows) and each farm's
   // trend chart (per-farm rows).
   function fetchEmissionsHistory(){
@@ -308,7 +314,7 @@
       outFields: "farm_name,treatment,record_date,intake_g_per_hd_day,abatement_rate,baseline_ch4_g_per_hd_day,methane_abated_g_per_hd_day",
       orderByFields: "record_date ASC", resultRecordCount: "5000", f: "json"
     }).then(function(data){
-      var byFarm = {}; // { farm: [ {..attrs..}, ... ] } — includes AGGREGATE_LABEL as one of the "farms"
+      var byFarm = {}; // { farm: [ {..attrs..}, ... ] }: includes AGGREGATE_LABEL as one of the "farms"
       data.features.forEach(function(f){
         var a = f.attributes, farm = a.farm_name;
         if (!farm) return;
@@ -320,7 +326,7 @@
   }
 
   // Latest cumulative CH4/head + head count per (farm, treatment), for
-  // the "cumulative CO2e abated" figures — the daily Emissions table only
+  // the "cumulative CO2e abated" figures: the daily Emissions table only
   // has the DAILY rate, cumulative totals live in Economics.
   function fetchEconLatest(){
     return q(ECON_URL, {
@@ -363,7 +369,7 @@
 
     renderKpis(gwp, historyByFarm, econByFarm, farms);
 
-    // Latest SeaFeed reading per farm — computed once, shared by the farm
+    // Latest SeaFeed reading per farm: computed once, shared by the farm
     // cards and the leaderboard below, so the two can never disagree with
     // each other (same "single source of truth" convention as
     // computeAdgPct() on the Weight Data page).
@@ -378,7 +384,7 @@
       var color = farmColor(farm, farms);
       var latest = latestByFarm[farm];
       var econ = (econByFarm[farm] && econByFarm[farm].seafeed) || null;
-      var isStale = latest && daysSinceEpochMs(latest.record_date) > STALE_AFTER_DAYS;
+      var isStale = latest && !isSupersededCohort(farm, farms) && daysSinceEpochMs(latest.record_date) > STALE_AFTER_DAYS;
       if (isStale) staleItems.push(farm + ': last reading ' + fmtDate(latest.record_date) + ' (' + Math.floor(daysSinceEpochMs(latest.record_date)) + ' days ago)');
       return cardHtml('mt-' + idx, farm, color, latest, econ, isStale);
     }).join('');
@@ -402,9 +408,9 @@
   }
 
   // ------------------------------------------------------------
-  // KPI BAND — trial-wide figures. Abatement rate + intake come straight
+  // KPI BAND: trial-wide figures. Abatement rate + intake come straight
   // from the pipeline's own "All Farms (Trial Aggregate)" row (its
-  // head-count-weighted rollup, not re-derived here — see the file
+  // head-count-weighted rollup, not re-derived here: see the file
   // header comment for why). Cumulative CO2e is summed per-farm from
   // Economics, same approach page-5-data.html's "Total CO2e abated"
   // stat uses.
@@ -442,7 +448,7 @@
   }
 
   // ------------------------------------------------------------
-  // LEADERBOARD — ranks farms by abatement rate % (latest SeaFeed
+  // LEADERBOARD: ranks farms by abatement rate % (latest SeaFeed
   // reading, same figure shown on each card below, deliberately not a
   // separate computation, see latestByFarm in render()). Farms with no
   // reading yet are listed separately, unranked, rather than silently
@@ -505,8 +511,8 @@
   }
 
   // ------------------------------------------------------------
-  // CHART — baseline CH4 (what this mob would emit without SeaFeed, slate
-  // dashed) vs CH4 abated (mint, the actual cut) — same lineChart()
+  // CHART: baseline CH4 (what this mob would emit without SeaFeed, slate
+  // dashed) vs CH4 abated (mint, the actual cut): same lineChart()
   // conventions as Weight Data / farmer-portal-template.html, spanGaps so
   // a missing day doesn't visually break the line.
   // ------------------------------------------------------------
