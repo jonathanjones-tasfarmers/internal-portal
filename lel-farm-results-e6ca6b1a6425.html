@@ -20,7 +20,6 @@ header h1{font-size:24px;letter-spacing:.2px}
 header p{color:var(--muted);font-size:13px;margin-top:2px}
 .mock{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:12px}
 .mock label{display:flex;align-items:center;gap:6px;cursor:pointer}
-.badge{background:var(--amber);color:#1a1200;font-weight:700;font-size:11px;padding:3px 8px;border-radius:99px;letter-spacing:.5px}
 .layout{display:grid;grid-template-columns:230px 1fr;min-height:calc(100vh - 80px)}
 aside{background:var(--panel2);border-right:1px solid var(--line);padding:20px 16px}
 aside h3{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);margin:0 0 8px 6px}
@@ -80,7 +79,6 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--di
     <p id="hsub"></p>
   </div>
   <div class="mock">
-    <span class="badge" id="badge">MOCKUP v2</span>
     <div class="view" id="aud"><button data-a="g" class="on">Governance</button><button data-a="p">Government</button></div>
     
   </div>
@@ -546,7 +544,6 @@ function render(){
   const s=S(), d=D[F];
   document.getElementById('h1').textContent=(aud=='g'?s.govFull:s.pub)+': KleenGrow™ Trial Results';
   document.getElementById('hsub').textContent='Low Emissions Livestock Project. '+(aud=='g'?'Governance Committee view':'Summary for State Government')+'. Data to 17 November 2026';
-  document.getElementById('badge').textContent='MOCKUP v2'+(aud=='p'?' · GOVERNMENT':'');
   // farm select
   const sel=document.getElementById('farm');
   sel.innerHTML=['bw','eb','trt'].map(k=>`<option value="${k}" ${k==F?'selected':''}>${aud=='g'?CFG[k].govFull:CFG[k].pub}</option>`).join('');
