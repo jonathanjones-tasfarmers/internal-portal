@@ -1,0 +1,751 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LEL Farm Results Experience</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#07141f; --panel:#0d2438; --panel2:#0a1c2c; --line:#1b3a52;
+  --text:#e9f0f5; --muted:#a9b8c4; --dim:#5b6b78;
+  --green:#3aa989; --green-hi:#5fd3ad; --coral:#e8735a; --amber:#e3b04b; --white:#ffffff;
+  --r:12px; --gap:16px; --pad:20px;
+}
+*{box-sizing:border-box;margin:0}
+body{font-family:Tahoma,Verdana,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.45}
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 28px;background:var(--panel2);border-bottom:1px solid var(--line)}
+header h1{font-size:24px;letter-spacing:.2px}
+header p{color:var(--muted);font-size:13px;margin-top:2px}
+.mock{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:12px}
+.mock label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.badge{background:var(--amber);color:#1a1200;font-weight:700;font-size:11px;padding:3px 8px;border-radius:99px;letter-spacing:.5px}
+.layout{display:grid;grid-template-columns:230px 1fr;min-height:calc(100vh - 80px)}
+aside{background:var(--panel2);border-right:1px solid var(--line);padding:20px 16px}
+aside h3{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);margin:0 0 8px 6px}
+select{width:100%;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px 10px;font-size:14px;margin-bottom:22px}
+nav button{display:block;width:100%;text-align:left;background:none;border:0;color:var(--muted);padding:10px 12px;border-radius:8px;font:inherit;cursor:pointer;margin-bottom:2px}
+nav button:hover{background:var(--panel)}
+nav button.on{background:var(--panel);color:var(--white);box-shadow:inset 3px 0 0 var(--green)}
+.side-foot{margin-top:26px;padding:12px;border:1px dashed var(--line);border-radius:8px;color:var(--dim);font-size:12px}
+main{padding:24px 28px 48px;max-width:1500px}
+.page{display:none}.page.on{display:block}
+.page > h2{font-size:20px;margin-bottom:2px}
+.page > .sub{color:var(--muted);margin-bottom:var(--gap)}
+.grid{display:grid;gap:var(--gap);margin-bottom:var(--gap)}
+.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}.g2{grid-template-columns:repeat(2,1fr)}
+.g21{grid-template-columns:2fr 1fr}.g12{grid-template-columns:1fr 2fr}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:var(--pad);position:relative}
+.card h4{font-size:13px;font-weight:600;color:var(--muted);margin-bottom:10px}
+.kpi{text-align:center;padding:26px 16px}
+.kpi .t{color:var(--white);font-size:15px}
+.kpi .v{color:var(--green);font-size:40px;font-weight:700;margin:6px 0 2px;letter-spacing:-.5px}
+.kpi .v small{font-size:18px;font-weight:600}
+.kpi .v.ctl{color:var(--white)}.kpi .v.bad{color:var(--coral)}
+.kpi .d{color:var(--white);font-size:13px}
+.kpi .n{color:var(--muted);font-size:12px;margin-top:8px}
+.chart{height:290px;position:relative}
+.chip{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;letter-spacing:.4px}.chip.done{background:var(--green);color:#04130d}.chip.live{background:var(--amber);color:#1a1200}
+.seg{display:flex;gap:6px;margin-bottom:22px}.seg button{flex:1;background:var(--panel);color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:8px 4px;font:inherit;font-size:12px;cursor:pointer}.seg button.on{border-color:var(--green);color:var(--white);background:#0f3a33}
+.status{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px 18px;margin-bottom:var(--gap);font-size:13px;color:var(--muted)}.status b{color:var(--white)}
+ul.tick{list-style:none;padding:0}ul.tick li{padding:7px 0;border-bottom:1px solid var(--line);font-size:13px;display:flex;gap:10px}ul.tick li:last-child{border:0}ul.tick span{flex:0 0 18px;font-weight:700}.y{color:var(--green-hi)}.n{color:var(--coral)}.p{color:var(--amber)}
+.note{color:var(--muted);font-size:12px;margin-top:10px}
+.pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--line);color:var(--muted);margin-right:6px}
+.pill.g{border-color:var(--green);color:var(--green-hi)}.pill.a{border-color:var(--amber);color:var(--amber)}.pill.c{border-color:var(--coral);color:var(--coral)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:9px 10px;text-align:right;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--muted);font-weight:600;font-size:12px}
+td.pos{color:var(--green-hi)}td.neg{color:var(--coral)}
+.callout{border-left:3px solid var(--amber);background:#1a2a2a;padding:12px 14px;border-radius:0 8px 8px 0;color:var(--text);font-size:13px;margin-bottom:var(--gap)}
+.callout b{color:var(--amber)}
+.ph{display:flex;align-items:center;justify-content:center;text-align:center;color:var(--dim);border:1px dashed var(--line);border-radius:8px;min-height:120px;padding:14px;font-size:13px}
+.legend{display:flex;gap:16px;font-size:12px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+/* build notes overlay */
+body:not(.notes) [data-src]::after{display:none}
+body.notes [data-src]{outline:1px dashed var(--amber);outline-offset:-1px}
+body.notes [data-src]::after{content:attr(data-src);position:absolute;left:8px;bottom:6px;right:8px;font-size:10px;line-height:1.3;color:#1a1200;background:var(--amber);padding:2px 6px;border-radius:4px;z-index:3;pointer-events:none}
+.map{height:420px;border-radius:8px;overflow:hidden;background:#0a1d12;border:1px solid var(--line)}
+@media(max-width:900px){.layout{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid var(--line)}
+ .g3,.g4,.g2,.g21,.g12{grid-template-columns:1fr}main{padding:16px}header{flex-direction:column;align-items:flex-start}}
+.view{display:flex;gap:4px}.view button{background:var(--panel);color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:5px 10px;font:inherit;font-size:12px;cursor:pointer}.view button.on{border-color:var(--green);color:var(--white);background:#0f3a33}
+body.pub .g-only{display:none!important}body:not(.pub) .p-only{display:none!important}
+.chip.pend{background:var(--panel2);color:var(--muted);border:1px solid var(--line)}table.ms td,table.ms th{text-align:left;vertical-align:top}table.ms td:nth-child(3){max-width:330px}
+h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);margin:8px 0 10px}.src{color:var(--dim);font-size:11px;margin-top:18px;line-height:1.5}
+</style>
+</head>
+<body>
+<body>
+<body>
+<header>
+  <div>
+    <h1 id="h1"></h1>
+    <p id="hsub"></p>
+  </div>
+  <div class="mock">
+    <span class="badge" id="badge">MOCKUP v2</span>
+    <div class="view" id="aud"><button data-a="g" class="on">Governance</button><button data-a="p">Government</button></div>
+    <label class="g-only"><input type="checkbox" id="nt"> Show build notes</label>
+  </div>
+</header>
+<div class="layout">
+<aside>
+  <h3>Choose a farm</h3>
+  <select id="farm"></select>
+  <h3>Choose a cohort</h3>
+  <div class="seg" id="seg"><button data-c="1" class="on">Cohort 1</button><button data-c="2">Cohort 2</button></div>
+  <h3>Pages</h3>
+  <nav id="nav">
+    <button data-p="p1" class="on">The answer</button>
+    <button data-p="p2">Growth and weight</button>
+    <button data-p="p3">Methane and intake</button>
+    <button data-p="p4g" class="g-only">Cost and return</button>
+    <button data-p="p4p" class="p-only">Cost and delivery</button>
+    <button data-p="p5">Lick block and lab results</button>
+    <button data-p="p6">Pasture and paddocks</button>
+    <button data-p="p7g" class="g-only">Project and next steps</button>
+    <button data-p="p7p" class="p-only">Project progress</button>
+    <button data-p="p8">Sources and method</button>
+  </nav>
+  <div class="side-foot g-only">Experience Builder: Sidebar layout, Views Navigation for pages. Farm and cohort are Select or Filter widgets on the farm_name field (for example Bowood Farm, Bowood Farm - Cohort 2). The Governance / Government switch in the header is a mockup device: in production these would be two Experiences or one with a sign-in gate.</div>
+  <div class="side-foot p-only">Government view shows no farm names or farm-level dollar figures.</div>
+</aside>
+<main>
+<div class="status" id="status"></div>
+
+<!-- P1 -->
+<section class="page on" id="p1">
+  <h2>The answer</h2>
+  <p class="sub" id="verdict"></p>
+  <h3 class="sec">Emissions outcome (modelled)</h3>
+  <div class="grid g4">
+    <div class="card kpi" data-src="Text + Card · LEL_Emissions_Data_view · latest abatement_rate, treatment = seafeed (shown as KleenGrow)"><div class="t">Modelled Methane Abatement</div><div class="v" data-f="ab_v"></div><div class="d" data-f="ab_d"></div><div class="n" data-f="ab_n"></div></div>
+    <div class="card kpi" data-src="Text + Card · intake_g_per_hd_day against the 90 g budget dose and 150 g lower recommended dose"><div class="t">Intake Against Dose</div><div class="v" data-f="dose_v"></div><div class="d" data-f="dose_d"></div><div class="n" data-f="dose_n"></div></div>
+    <div class="card kpi" data-src="Text + Card · blocks put out per 100 head per week = intake_g x 0.0412 (17 kg block)"><div class="t">Blocks Put Out</div><div class="v" data-f="blk_v"></div><div class="d" data-f="blk_d"></div><div class="n" data-f="blk_n"></div></div>
+    <div class="card kpi" data-src="Text + Card · cumulative_ch4_abated_kg_per_head x head x 28 (GWP100 AR5)"><div class="t">CO₂e Abated, Whole Mob</div><div class="v" data-f="co2_v"></div><div class="d" data-f="co2_d"></div><div class="n" data-f="co2_n"></div></div>
+  </div>
+  <h3 class="sec">Growth and cost checks</h3>
+  <div class="grid g4">
+    <div class="card kpi" data-src="Text + Card · Expression, matched window; band overlap counted from rolling_adg_ci_lower/upper"><div class="t" data-f="adg_t"></div><div class="v ctl" data-f="adg_v"></div><div class="d" data-f="adg_d"></div><div class="n" data-f="adg_n"></div></div>
+    <div class="card kpi" data-src="Text + Card · LEL_Economics_Data · cost_per_head_day_aud (Government: as % of budget rate)"><div class="t" data-f="co_t"></div><div class="v" data-f="co_v"></div><div class="d" data-f="co_d"></div><div class="n" data-f="co_n"></div></div>
+    <div class="card kpi" data-src="Text + Card · economic analysis workbook (load as table)"><div class="t">Extra Gain: Needed vs Achieved</div><div class="v ctl" data-f="g_v"></div><div class="d" data-f="g_d"></div><div class="n" data-f="g_n"></div></div>
+    <div class="card kpi" data-src="Text + Card · economic analysis workbook (Government: matched days)"><div class="t" data-f="n_t"></div><div class="v" data-f="n_v"></div><div class="d" data-f="n_d"></div><div class="n" data-f="n_n"></div></div>
+  </div>
+  <div class="grid g21">
+    <div class="card"><h4 id="tltitle"></h4><div class="chart" data-src="Chart widget · line · both farm_name values on one chart · rolling_adg"><canvas id="c_tl"></canvas></div><p class="note" id="tlnote"></p></div>
+    <div class="card"><h4>Modelled methane abatement over time (%)</h4><div class="chart" data-src="Chart widget · line · abatement_rate by record_date, treatment = seafeed (shown as KleenGrow), farm_name = selected cohort"><canvas id="c_ab1"></canvas></div><p class="note">Modelled from block intake, not measured on the animal. See Methane and intake for the dose and blocks put out.</p></div>
+  </div>
+</section>
+
+<!-- P2 -->
+<section class="page" id="p2">
+  <h2>Growth and weight</h2>
+  <p class="sub" id="gsub"></p>
+  <div class="grid g4">
+    <div class="card kpi" data-src="Text + Card · seafeed ADG, matched or rolling window"><div class="t" data-f="pt1"></div><div class="v" data-f="pv1"></div><div class="d" data-f="pd1"></div></div>
+    <div class="card kpi" data-src="Text + Card · control ADG"><div class="t" data-f="pt2"></div><div class="v ctl" data-f="pv2"></div><div class="d" data-f="pd2"></div></div>
+    <div class="card kpi" data-src="Text + Card · seafeed"><div class="t" data-f="pt3"></div><div class="v" data-f="pv3"></div><div class="d" data-f="pd3"></div></div>
+    <div class="card kpi" data-src="Text + Card · control"><div class="t" data-f="pt4"></div><div class="v ctl" data-f="pv4"></div><div class="d" data-f="pd4"></div></div>
+  </div>
+  <div class="grid g2">
+    <div class="card"><h4>Rolling 14-day weight (kg)</h4><div class="chart" data-src="Chart widget · line · rolling_weight_14d"><canvas id="c_w"></canvas></div><p class="note" id="wnote"></p></div>
+    <div class="card"><h4>Rolling 14-day ADG with 95% band (g/day)</h4><div class="chart" data-src="Chart widget · line + range · rolling_adg, rolling_adg_ci_lower, rolling_adg_ci_upper"><canvas id="c_adg"></canvas></div><p class="note">Shaded bands are the 95% confidence range. Where bands overlap, the mobs cannot be told apart.</p></div>
+  </div>
+  <div class="grid g21">
+    <div class="card"><h4>KleenGrow minus control: weight difference (kg)</h4><div class="chart" data-src="Chart widget · line · expression difference"><canvas id="c_diff"></canvas></div></div>
+    <div class="card" id="p2tbl"></div>
+  </div>
+</section>
+
+<!-- P3 -->
+<section class="page" id="p3">
+  <h2>Methane and intake</h2>
+  <p class="sub" id="msub"></p>
+  <div class="grid g4">
+    <div class="card kpi" data-src="Text + Card · abatement_rate"><div class="t">Abatement Rate</div><div class="v" data-f="ab_v"></div><div class="d">Modelled, KleenGrow Mob</div></div>
+    <div class="card kpi" data-src="Text + Card · methane_abated_g_per_hd_day"><div class="t">CH₄ Abated</div><div class="v" data-f="m_g"></div><div class="d">Per Head / Day</div></div>
+    <div class="card kpi" data-src="Text + Card · intake_g_per_hd_day"><div class="t">KleenGrow Intake</div><div class="v" data-f="in_v"></div><div class="d">Per Head / Day</div></div>
+    <div class="card kpi" data-src="Text + Card · model dose assumptions"><div class="t">Model Assumed</div><div class="v ctl">90 <small>g</small></div><div class="d">Budget Dose (Lower Recommended Dose 150 g)</div></div>
+  </div>
+  <div class="grid g2">
+    <div class="card"><h4 id="inttitle">Block intake per head (g/day)</h4><div class="chart" data-src="Chart widget · line · intake_g_per_hd_day"><canvas id="c_int"></canvas></div></div>
+    <div class="card"><h4 id="abttitle">Modelled methane abatement (%)</h4><div class="chart" data-src="Chart widget · line · abatement_rate"><canvas id="c_abt"></canvas></div></div>
+  </div>
+  <div class="grid g2">
+    <div class="card"><h4>Blocks put out against what the dose needs</h4><div class="chart" data-src="Chart widget · column · blocks per 100 head per week: put out (intake x 0.0412) against 90 g and 150 g doses (17 kg blocks)"><canvas id="c_blk"></canvas></div><p class="note">A dose of 90 g needs about 3.7 blocks per 100 head per week and 150 g needs about 6.2. Blocks put out is the supply side of intake.</p></div>
+    <div class="card"><h4>Feeding set-up</h4><p class="note" style="font-size:13px;margin:0" id="feedtxt"></p></div>
+  </div>
+  <div class="grid g2">
+    <div class="card"><h4>Measured methane (AgScent)</h4><div class="ph" data-src="Future widget · AgScent_Methane_Import (script 16)">Placeholder: measured methane, KleenGrow vs control. Not yet bound to a layer for <span class="fn"></span>. This is the figure that would turn modelled abatement into evidence.</div></div>
+    <div class="card"><h4>Reading this page</h4><p class="note" style="font-size:13px;margin:0" id="p3read"></p></div>
+  </div>
+</section>
+
+<!-- P4 gov -->
+<section class="page g-only" id="p4g">
+  <h2>Cost and return</h2>
+  <p class="sub" id="csub_g"></p>
+  <div class="grid g4">
+    <div class="card kpi" data-src="Text + Card · cost_per_head_day_aud"><div class="t">KleenGrow Cost</div><div class="v" data-f="co_v"></div><div class="d">Per Head / Day</div></div>
+    <div class="card kpi" data-src="Text + Card · cost_per_head_day_aud, control"><div class="t">Standard Block Cost</div><div class="v ctl" data-f="cc_v"></div><div class="d">Per Head / Day</div></div>
+    <div class="card kpi" data-src="Text + Card · cost_per_head_aud"><div class="t">Cost So Far, KleenGrow</div><div class="v" data-f="cph_v"></div><div class="d">Per Head</div></div>
+    <div class="card kpi" data-src="Text + Card · economic workbook"><div class="t">Net vs Standard Block</div><div class="v" data-f="nv_v"></div><div class="d">Per Head, Full Cost</div></div>
+  </div>
+  <div class="grid g2">
+    <div class="card"><h4>Cumulative cost per head ($)</h4><div class="chart" data-src="Chart widget · line · cost_per_head_aud by calculation_date"><canvas id="c_cost"></canvas></div></div>
+    <div class="card"><h4>Net position per head ($), Cohort 1: full cost first</h4><div class="chart" data-src="Chart widget · column · values from economic workbook table"><canvas id="c_net"></canvas></div></div>
+  </div>
+  <div class="grid g2">
+    <div class="card" id="p4econ" data-src="Table widget · economic workbook loaded as a hosted table (new layer needed)"></div>
+    <div class="card" id="p4cross"></div>
+  </div>
+</section>
+
+<!-- P4 pub -->
+<section class="page p-only" id="p4p">
+  <h2>Cost and delivery</h2>
+  <p class="sub" id="csub_p"></p>
+  <div class="grid g4">
+    <div class="card kpi" data-src="Text + Card · cost_per_head_day_aud as % of budget rate"><div class="t">Cost Against Budget</div><div class="v" data-f="co_v"></div><div class="d" data-f="co_d"></div></div>
+    <div class="card kpi" data-src="Text + Card · intake_g_per_hd_day / model dose"><div class="t">Intake Against Model</div><div class="v" data-f="iv_v"></div><div class="d">Of the 90 g/Day Budget Assumption</div></div>
+    <div class="card kpi" data-src="Text + Card · economic workbook (kg only)"><div class="t">Extra Gain: Needed vs Achieved</div><div class="v" data-f="g_v"></div><div class="d" data-f="g_d"></div></div>
+    <div class="card kpi" data-src="Text + Card"><div class="t">Matched Days Compared</div><div class="v" data-f="n_v"></div><div class="d" data-f="n_d"></div></div>
+  </div>
+  <div class="grid g2">
+    <div class="card"><h4>Block intake per head against the model dose (g/day)</h4><div class="chart" data-src="Chart widget · column · intake values + fixed model dose reference"><canvas id="c_dose"></canvas></div><p class="note" id="dosenote">Blocks put out supplied about half of the budget dose at the two completed cohorts (59% and 47%). The records cannot show whether cattle would have eaten more if more had been put out.</p></div>
+    <div class="card"><h4>KleenGrow cost as a share of the project budget rate (%)</h4><div class="chart" data-src="Chart widget · column · cost_per_head_day_aud / 0.329"><canvas id="c_bud"></canvas></div><p class="note" id="budnote">Cost came in 41% to 54% under the project's planning rate at both farms with a completed cohort.</p></div>
+  </div>
+  <div class="card"><h4>Completed cohorts side by side</h4>
+    <table><tr><th></th><th>Farm 1</th><th>Farm 2</th></tr>
+    <tr><td>Days compared</td><td>123</td><td>62</td></tr>
+    <tr><td>Extra gain, KleenGrow vs standard (kg/head)</td><td>+0.3</td><td>+4.6</td></tr>
+    <tr><td>Extra gain needed to cover the full KleenGrow cost (kg/head)</td><td>6.8</td><td>2.4</td></tr>
+    <tr><td>Block intake (g/head/day)</td><td>53</td><td>41</td></tr>
+    <tr><td>Cost against budget rate</td><td>59%</td><td>46%</td></tr></table>
+    <p class="note">The Farm 2 gain rests on a single day's reading and is fragile. Neither farm yet supports a conclusion on economic viability.</p></div>
+</section>
+
+<!-- P5 -->
+<section class="page" id="p5">
+  <h2>Lick block and lab results</h2>
+  <p class="sub">What was put out, what the laboratory found in the blocks, and the residue and animal-health position.</p>
+  <div class="grid g3">
+    <div class="card kpi" data-src="Text + Card · LEL_Lick_Block_Data_Public (https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lick_Block_Data_Public/FeatureServer/0) · SUM total_blocks_placed where trial_site IN (farm values below) AND treatment = seafeed"><div class="t">Blocks Put Out</div><div class="v" data-f="pb_v"></div><div class="d" data-f="pb_d"></div><div class="n" data-f="pb_n"></div></div>
+    <div class="card kpi" data-src="Text + Card · LEL_Lick_Block_Data_Public · COUNT where trial_site IN (farm values) AND treatment = seafeed AND total_intervals_logged > 0; head_count for head per point"><div class="t">Feeding Points In Use</div><div class="v" data-f="pf_v"></div><div class="d" data-f="pf_d"></div><div class="n" data-f="pf_n"></div></div>
+    <div class="card kpi" data-src="Not available yet: needs a last-visit field on the lick block data layer (script 02). LEL_Lick_Block_Data_Public has no visit date."><div class="t">Last Restock</div><div class="v" data-f="pr_v"></div><div class="d" data-f="pr_d"></div><div class="n" data-f="pr_n"></div></div>
+  </div>
+  <h3 class="sec">Bromoform in the blocks (AST laboratory, mg/kg wet matter basis)</h3>
+  <div class="grid g4">
+    <div class="card kpi" data-src="Text + Card · LEL_Lickblock_Sampling_Public (https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lickblock_Sampling_Public/FeatureServer/0) · AVERAGE result_value where farm_name = selected AND treatment = seafeed"><div class="t">KleenGrow Bromoform</div><div class="v" data-f="bk_v"></div><div class="d" data-f="bk_d"></div><div class="n" data-f="bk_n"></div></div>
+    <div class="card kpi" data-src="Text + Card · LEL_Lickblock_Sampling_Public · AVERAGE result_value where farm_name = selected AND treatment = control"><div class="t">Control Block Bromoform</div><div class="v ctl" data-f="bc_v"></div><div class="d" data-f="bc_d"></div><div class="n" data-f="bc_n"></div></div>
+    <div class="card kpi" data-src="Text + Card · LEL_Lickblock_Sampling_Public · AVERAGE result_value by stage (start, end) for the same pallet. Pallet code is hidden: pair by farm_name, treatment and days_in_storage"><div class="t">Change In Storage</div><div class="v ctl" data-f="bs_v"></div><div class="d" data-f="bs_d"></div><div class="n" data-f="bs_n"></div></div>
+    <div class="card kpi" data-src="Text + Card · Expression: intake_g_per_hd_day (LEL_Emissions_Data_view) x AVERAGE result_value (LEL_Lickblock_Sampling_Public), divided by 1000"><div class="t">Bromoform Delivered (Indicative)</div><div class="v" data-f="bd_v"></div><div class="d" data-f="bd_d"></div><div class="n" data-f="bd_n"></div></div>
+  </div>
+  <div class="grid g2">
+    <div class="card"><h4>Result by sample group (mg/kg)</h4><div class="chart" data-src="Chart widget · column · LEL_Lickblock_Sampling_Public · category sample_label, split by position (outer, inner), farm_name = selected"><canvas id="c_bro"></canvas></div><p class="note" id="bronote"></p></div>
+    <div class="card"><h4>KleenGrow result against days in storage (all farms)</h4><div class="chart" data-src="Chart widget · scatter · LEL_Lickblock_Sampling_Public · x days_in_storage, y result_value, treatment = seafeed, all farms"><canvas id="c_sto"></canvas></div><p class="note">Eight samples with a recorded storage start; correlation -0.73, but pallets, farms and sampling dates differ, so storage loss is suggestive, not shown. One pallet (storage start not recorded) is left out. Specification range to be added by Sea Forest for comparison.</p></div>
+  </div>
+  <div class="grid g3">
+    <div class="card"><h4>Uptake over time</h4><p class="note" style="font-size:13px;margin:0" id="upt"></p><p class="note" style="margin-top:10px">Palatability or substitution lowering intake below target is a rated risk in the project risk register. Intake is the trial's uptake measure.</p></div>
+    <div class="card"><h4>Residues and market access</h4><ul class="tick">
+      <li><span class="p">!</span>No bromoform residue results from the beef trial are loaded on this page yet</li>
+      <li><span class="p">!</span>Milk: no jurisdiction has an MRL for bromoform; Australia is not listed in FSANZ Schedule 20 (briefing note, Sept 2025)</li>
+      <li><span class="y">✓</span>2025 dairy trial: milk residue testing was carried out at three farms (Year 1 residue data); results are held in the project files</li>
+      <li><span class="p">?</span>MRL position for beef to be confirmed by Sea Forest and TIA</li></ul></div>
+    <div class="card"><h4>Animal health and welfare</h4><ul class="tick">
+      <li><span class="y">✓</span>2025 dairy trial: no adverse animal-health findings (Progress Report 5)</li>
+      <li><span class="p">!</span>Beef trial: health and feed intake are monitored under the project SOPs; no ill-health or withdrawal records are loaded on this page yet</li>
+      <li><span class="p">?</span>Add withdrawal counts per cohort once the records are loaded</li></ul></div>
+  </div>
+  <div class="callout g-only"><b>Sharing note.</b> The sampling tables and lick block layers are private. This page reads public views of them (script 28 in the Proposed Fixes folder creates them).</div>
+</section>
+
+<!-- P6 -->
+<section class="page" id="p6">
+  <h2>Pasture and paddocks</h2>
+  <p class="sub" id="p6sub"></p>
+  <div id="p6c"></div>
+</section>
+
+<!-- P7 gov -->
+<section class="page g-only" id="p7g">
+  <h2>Project and next steps</h2>
+  <p class="sub">Where each farm and cohort stands, and what the committee is asked to decide.</p>
+  <div class="card" style="margin-bottom:var(--gap)"><h4>Farms and cohorts</h4><table id="reg_g" data-src="Table widget · cohort register (new hosted table to maintain by hand)"></table></div>
+  <div class="grid g2">
+    <div class="card"><h4>For the committee to note</h4><ul class="tick" id="notes_g"></ul></div>
+    <div class="card"><h4>Decisions and open questions</h4><ul class="tick" id="dec_g"></ul></div>
+  </div>
+  <div class="card" style="margin-top:var(--gap)" data-src="Table widget · milestone table (hand-maintained hosted table, source: Project Plan Deed Variation 28 Jul 2026 and Progress Report 5)"><h4>Milestones against the Grant Deed</h4><table class="ms"></table><p class="note">Status as at 17 November 2026: Milestones 3 and 4 accepted by the Grantor (acceptance dates to be added). The Deed allows milestones to complete about eight weeks after the dates shown (clause 4.1(d)). The Grant Deed refers to the product as KleenGrow; the public website uses KleenGrow.</p></div>
+</section>
+
+<!-- P7 pub -->
+<section class="page p-only" id="p7p">
+  <h2>Project progress</h2>
+  <p class="sub">What the trial has delivered so far, and what is still to come.</p>
+  <div class="grid g4">
+    <div class="card kpi"><div class="t">Farms Reporting</div><div class="v">2</div><div class="d">Of 3 Onboarded</div></div>
+    <div class="card kpi"><div class="t">Completed Cohorts</div><div class="v">2</div><div class="d">One Per Farm</div></div>
+    <div class="card kpi"><div class="t">Cohorts In Progress</div><div class="v ctl">2</div><div class="d">Started 28 Oct and 4 Nov</div></div>
+    <div class="card kpi"><div class="t">Cattle Compared</div><div class="v">700+</div><div class="d">KleenGrow and Standard Combined</div></div>
+  </div>
+  <div class="card" style="margin-bottom:var(--gap)"><h4>Farms and cohorts</h4><table id="reg_p"></table></div>
+  <div class="grid g2">
+    <div class="card"><h4>Key messages so far</h4><ul class="tick">
+      <li><span class="y">→</span>Neither farm shows a consistent growth benefit from KleenGrow</li>
+      <li><span class="y">→</span>KleenGrow cost 41% to 54% less than budgeted</li>
+      <li><span class="y">→</span>Block intake is about half the dose the methane model assumes, so modelled abatement is small</li>
+      <li><span class="p">→</span>Results are early and indicative: mobs are not randomised and no full finishing period exists yet</li></ul></div>
+    <div class="card"><h4>What comes next</h4><ul class="tick">
+      <li><span class="p">→</span>Cohort 2 at both farms builds to a 30-day matched window</li>
+      <li><span class="p">→</span>Farm 3 OptiWeigh installation and first data</li>
+      <li><span class="p">→</span>Measured methane to test the modelled abatement</li>
+      <li><span class="p">→</span>A full finishing period before economic conclusions</li></ul></div>
+  </div>
+  <div class="card" style="margin-top:var(--gap)"><h4>Milestones against the Grant Deed</h4><table class="ms"></table><p class="note">Status as at 17 November 2026: Milestones 3 and 4 accepted by the Grantor (acceptance dates to be added). The Deed allows milestones to complete about eight weeks after the dates shown (clause 4.1(d)). The Grant Deed refers to the product as KleenGrow; the public website uses KleenGrow.</p></div>
+</section>
+
+<!-- P8 -->
+<section class="page" id="p8">
+  <h2>Sources and method</h2>
+  <p class="sub">Where each figure comes from, and how it is calculated.</p>
+  <div class="card" style="margin-bottom:var(--gap)"><h4>Product name</h4><p class="note" style="font-size:13px;margin:0">KleenGrow™ is the Sea Forest product fed in the lick-block trial. It is called SeaFeed™ in the Grant Deed and in earlier project reports. Both names refer to the same product.</p></div>
+  <div class="card" style="margin-bottom:var(--gap)"><h4>Data sources</h4>
+    <table class="ms">
+    <tr><th>Content</th><th>Source</th><th>Access</th><th>Updates</th></tr>
+    <tr><td>Weight and ADG</td><td>OptiWeigh walk-over liveweight monitoring (OptiWeigh_Cattle_Weights). 14-day rolling ADG is a per-animal regression slope averaged across animals, with a 95% interval; 30-day and 90-day ADG are OptiWeigh's own windows.</td><td><span class="chip done">PUBLIC</span></td><td>Daily</td></tr>
+    <tr><td>Intake and blocks put out</td><td>Lick block visit records entered by the farms (Survey123). Intake = mass of blocks put out ÷ (head × days to the next visit), so blocks are assumed used up by the next visit.</td><td><span class="chip pend">PUBLIC VIEW</span></td><td>Daily</td></tr>
+    <tr><td>Methane abatement</td><td>Modelled. Baseline methane from Charmley et al. (2016): 20.7 g CH₄ per kg dry matter intake, with intake at 2.5% of liveweight (Sea Forest's 2 to 3% guidance). Abatement scales with block intake: 0.2 percentage points per g/day up to the manufacturer's recommended lower dose (150 g/day), then across the recommended band, and is held at the top of the band. It is not extrapolated to the "up to 80%" headline claim. Measured methane (AgScent) is not yet included.</td><td><span class="chip done">PUBLIC</span></td><td>Daily</td></tr>
+    <tr><td>CO₂e abated and illustrative value</td><td>Cumulative modelled CH₄ abated per head × head count × 28 (GWP100, AR5). Value uses a $32.50/t CO₂e reference price (midpoint of the $30 to $35/t ACCU range in EY's Australian Carbon Market Outlook 2026, as used in Progress Report 5). No carbon credits have been generated or sold.</td><td><span class="chip done">PUBLIC</span></td><td>Daily</td></tr>
+    <tr><td>Cost and net return</td><td>Block cost from the project cost model (LEL_Economics_Data). Value of extra gain at $4.85/kg liveweight (MLA National Heavy Steer Indicator, 29 Oct 2026), less the full KleenGrow cost (no subsidy), over the matched days, because the project asks whether KleenGrow is feasible for producers without support. The farmer's 60.23% share under the project co-contribution is shown as a secondary figure. Abatement value is shown separately and is not in the net return.</td><td><span class="chip done">PUBLIC</span></td><td>By hand</td></tr>
+    <tr><td>Bromoform in blocks</td><td>AST laboratory results (mg/kg, wet matter basis; analyte confirmed as bromoform on 16 Nov 2026), loaded into LEL_Lickblock_Sampling.</td><td><span class="chip pend">PUBLIC VIEW</span></td><td>By hand</td></tr>
+    <tr><td>Pasture quality</td><td>Forage Lab Australia NIR results (crude protein, aNDF, metabolisable energy), loaded into LEL_Pasture_Quality. Satellite greenness is Sentinel-2 NDVI; weather is Open-Meteo regional data.</td><td><span class="chip pend">PUBLIC VIEW</span></td><td>By hand</td></tr>
+    <tr><td>Paddocks and unit locations</td><td>Paddock_Boundaries, LEL_Unit_Location_Daily, LEL_Unit_Moves (OptiWeigh GPS is the unit's position, not the mob's).</td><td><span class="chip c">PRIVATE</span></td><td>Daily</td></tr>
+    </table></div>
+  <div class="card g-only" style="margin-bottom:var(--gap)"><h4>Experience Builder data sources (public views created 17 Nov 2026)</h4>
+    <table class="ms">
+    <tr><th>View</th><th>URL</th><th>Fields</th><th>Filter values</th></tr>
+    <tr><td>LEL_Lickblock_Sampling_Public<br><span class="note">14 rows</span></td><td style="word-break:break-all">https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lickblock_Sampling_Public/FeatureServer/0</td><td>lab_sample_id, farm_name, sampling_date, treatment, position, stage, days_in_storage, days_to_lab, result_value, result_qualifier, result_unit, result_basis, analyte, lab, sample_label</td><td>farm_name: Bowood Farm, Eastbourne Farm, TRT Pastoral. treatment: seafeed, control. stage: start, end</td></tr>
+    <tr><td>LEL_Pasture_Quality_Public<br><span class="note">2 rows</span></td><td style="word-break:break-all">https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Pasture_Quality_Public/FeatureServer/0</td><td>sample_date, farm_name, treatment, crude_protein_pct_dm, andf_pct_dm, me_mj_per_kg, lab, date_reported, sample_date_label</td><td>farm_name: Bowood Farm. treatment: seafeed, control</td></tr>
+    <tr><td>LEL_Lick_Block_Data_Public<br><span class="note">47 rows</span></td><td style="word-break:break-all">https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lick_Block_Data_Public/FeatureServer/0</td><td>trial_site, treatment, location_type, total_blocks_placed, total_intervals_logged, interval_days, average_consumption_per_day, head_count</td><td>trial_site mixes slugs and names: bowood_farm, Bowood Farm - Cohort 2, eastbourne_farm, Eastbourne Farm - Cohort 2, trt_pastoral. Use total_intervals_logged &gt; 0 for rates.</td></tr>
+    </table>
+    <p class="note">Views are public and carry farm names. Hidden: cost, asset ids, pallet codes, mob and paddock ids, report files, notes and import fields. The private source layers are unchanged. The public layers for weights, emissions and economics are listed above in the data sources table.</p></div>
+  <div class="grid g2">
+    <div class="card"><h4>How comparisons are made</h4><ul class="tick">
+      <li><span class="y">✓</span>KleenGrow and control mobs are compared over the same dates and the same number of days</li>
+      <li><span class="y">✓</span>Daily ADG swings by hundreds of g/day, so the page counts the days on which the two mobs' 95% bands separate, not just the difference in means</li>
+      <li><span class="p">!</span>Mobs are not randomised: start weights, paddocks and start dates differ</li>
+      <li><span class="p">!</span>Intake is a supply measure: the records cannot show whether cattle would have eaten more if more blocks had been put out</li></ul></div>
+    <div class="card"><h4>What is modelled and what is measured</h4><ul class="tick">
+      <li><span class="y">✓</span>Measured: liveweight, ADG, blocks put out, bromoform in the blocks, pasture quality</li>
+      <li><span class="p">!</span>Modelled: methane abatement, CO₂e abated and its illustrative value</li>
+      <li><span class="n">✗</span>Not yet measured: methane at the animal (AgScent), residues in beef, animal-health event counts</li></ul></div>
+  </div>
+</section>
+
+</main></div>
+
+<script>
+const D = {"bw": {"ser1": {"seafeed": {"2026-05-12": [196.94, null, null, null], "2026-05-13": [195.56, null, null, null], "2026-05-14": [194.69, null, null, null], "2026-05-15": [194.28, null, null, null], "2026-05-16": [194.32, null, null, null], "2026-05-17": [194.53, null, null, null], "2026-05-18": [195.19, null, null, null], "2026-05-19": [195.22, null, null, null], "2026-05-20": [195.79, null, null, null], "2026-05-21": [196.24, null, null, null], "2026-05-22": [196.59, null, null, null], "2026-05-23": [196.9, null, null, null], "2026-05-24": [197.42, null, null, null], "2026-05-25": [198.25, null, null, null], "2026-05-26": [198.97, 545.2, 371.5, 718.9], "2026-05-27": [200.11, 529.2, 361.4, 697], "2026-05-28": [201.26, 472.4, 302.9, 641.9], "2026-05-29": [202.21, 466.1, 299, 633.2], "2026-05-30": [203.13, 486.6, 335.4, 637.8], "2026-05-31": [204.26, 459.8, 298.8, 620.8], "2026-06-01": [205.13, 439, 273.3, 604.7], "2026-06-02": [206.47, 461, 296.5, 625.5], "2026-06-04": [207.49, 431, 271.1, 590.9], "2026-06-05": [208.86, 668.3, 496.4, 840.2], "2026-06-06": [210.23, 672.9, 514.6, 831.2], "2026-06-07": [211.51, 706.7, 533.4, 880], "2026-06-08": [212.51, 787.3, 625.4, 949.2], "2026-06-09": [213.21, 901.2, 733.7, 1068.7], "2026-06-10": [213.98, 847.3, 684.6, 1010], "2026-06-11": [214.62, 868.2, 697.6, 1038.8], "2026-06-12": [215.5, 778.3, 591, 965.6], "2026-06-13": [216.44, 686.6, 501.7, 871.5], "2026-06-14": [217.11, 575, 393.8, 756.2], "2026-06-15": [217.53, 515.4, 351.3, 679.5], "2026-06-16": [217.3, 497.2, 342, 652.4], "2026-06-17": [217.83, 495.1, 341.8, 648.4], "2026-06-19": [219.47, 671, 491.8, 850.2], "2026-06-29": [219.78, 728.1, 464.1, 992.1], "2026-06-30": [220.28, 824.5, 492.7, 1156.3], "2026-07-01": [221.2, 893.1, 534.4, 1251.8], "2026-07-02": [222.05, 855, 494.4, 1215.6], "2026-07-20": [223.4, 381.4, -73.8, 836.6], "2026-07-21": [224.85, 529.2, 321.5, 736.9], "2026-07-22": [225.96, 617.4, 463, 771.8], "2026-07-24": [227.22, 505.1, 432.4, 577.8], "2026-07-25": [228.85, null, null, null], "2026-07-26": [230.4, null, null, null], "2026-07-27": [231.97, -745.4, -1366.7, -124.1], "2026-07-28": [234.37, null, null, null], "2026-07-29": [235.68, -137.6, -386.6, 111.4], "2026-07-30": [236.3, null, null, null], "2026-07-31": [237.29, null, null, null], "2026-08-01": [238.45, 204.6, -13.4, 422.6], "2026-08-02": [239.31, 312.9, 108, 517.8], "2026-08-03": [240.54, 522.2, 333.9, 710.5], "2026-08-04": [241.36, 752.5, 572.2, 932.8], "2026-08-05": [242.4, 922, 751.1, 1092.9], "2026-08-06": [243.95, 943.1, 773.4, 1112.8], "2026-08-07": [245.33, null, null, null], "2026-08-08": [246.31, null, null, null], "2026-08-09": [247.96, 1220, 1043.4, 1396.6], "2026-08-10": [249.51, 1287.6, 1117.5, 1457.7], "2026-08-11": [251.18, 1247.9, 1080.4, 1415.4], "2026-08-12": [253.17, 1235.4, 1047.9, 1422.9], "2026-08-13": [254.65, null, null, null], "2026-08-14": [256.58, 1160.3, 971.5, 1349.1], "2026-08-15": [258.18, 1227.1, 1060.5, 1393.7], "2026-08-16": [260.09, null, null, null], "2026-08-17": [261.25, null, null, null], "2026-08-18": [262.34, 1141.4, 976.6, 1306.2], "2026-09-04": [262.57, 1147.5, 906, 1389], "2026-09-05": [263.48, 1147.5, 906, 1389], "2026-09-06": [264.38, 1147.5, 906, 1389], "2026-09-07": [265.94, 1147.5, 906, 1389], "2026-09-08": [266.99, 1162.6, 870.3, 1454.9], "2026-09-09": [268.26, 1186.2, 880, 1492.4], "2026-09-10": [269.61, 1208.4, 862, 1554.8], "2026-09-11": [270.43, 1259.8, 908.1, 1611.5], "2026-09-12": [271.45, 1380.7, 1049.9, 1711.5], "2026-09-13": [272.13, 1380.7, 1049.9, 1711.5], "2026-09-14": [272.54, null, null, null], "2026-09-15": [273.21, 1380.7, 1049.9, 1711.5], "2026-09-16": [274.1, 1347.7, 1090.3, 1605.1], "2026-09-17": [275.76, null, null, null], "2026-09-18": [278.52, 1270.7, 1013.9, 1527.5], "2026-09-19": [281.09, 1396.4, 1176.7, 1616.1], "2026-09-20": [282.44, 1466.8, 1257, 1676.6], "2026-09-21": [283.6, 1515, 1314.3, 1715.7], "2026-09-22": [284.94, 1547.9, 1357, 1738.8], "2026-09-23": [286.28, 1601, 1414, 1788], "2026-09-24": [288.46, 1683.9, 1492.1, 1875.7], "2026-09-25": [290.1, 1570.8, 1384, 1757.6], "2026-09-26": [291.69, 1472.4, 1300, 1644.8], "2026-09-27": [293.14, 1452.2, 1278.2, 1626.2], "2026-09-28": [295.46, 1507, 1341.4, 1672.6], "2026-09-29": [297.58, 1535.7, 1364.2, 1707.2], "2026-09-30": [300.31, 1615.6, 1430.8, 1800.4], "2026-10-01": [301.51, 1668.1, 1492.4, 1843.8], "2026-10-02": [302.35, 1694.4, 1528.5, 1860.3], "2026-10-03": [303.59, 1711.2, 1547.5, 1874.9], "2026-10-04": [305.56, 1717.6, 1562.1, 1873.1], "2026-10-05": [307.17, 1681, 1526.4, 1835.6], "2026-10-06": [308.42, 1610, 1468.9, 1751.1], "2026-10-07": [310.1, 1622, 1481.1, 1762.9], "2026-10-08": [310.35, 1573.6, 1438.9, 1708.3], "2026-10-09": [311.28, 1389.6, 1242.1, 1537.1], "2026-10-10": [312.75, 1316.5, 1175.4, 1457.6], "2026-10-11": [314.49, 1253.5, 1101.6, 1405.4], "2026-10-12": [316.86, 1265.4, 1104.9, 1425.9], "2026-10-13": [317.82, 1259.4, 1102.6, 1416.2], "2026-10-14": [318.96, 1302.3, 1141.3, 1463.3], "2026-10-15": [320.11, 1359.3, 1193.3, 1525.3], "2026-10-16": [322, 1426.8, 1266, 1587.6], "2026-10-17": [323.85, 1405.5, 1244.7, 1566.3], "2026-10-18": [325.1, 1444.9, 1281.1, 1608.7], "2026-10-19": [327.14, 1516.8, 1337.8, 1695.8], "2026-10-20": [328.75, 1558.6, 1381.5, 1735.7], "2026-10-21": [329.63, 1539, 1370.9, 1707.1], "2026-10-22": [330.57, 1477.3, 1305.4, 1649.2], "2026-10-23": [331.79, 1317.9, 1132.9, 1502.9], "2026-10-24": [331.82, 1156.7, 964.9, 1348.5], "2026-10-25": [333.08, 913.3, 707.8, 1118.8], "2026-10-26": [333.32, 886.9, 680.4, 1093.4], "2026-10-28": [335.7, 841.2, 646.5, 1035.9], "2026-10-29": [336.86, 928.4, 739.2, 1117.6], "2026-10-30": [338.9, 1005.4, 823.3, 1187.5], "2026-10-31": [340.18, 1186.6, 997.3, 1375.9], "2026-11-01": [341.61, 1380.9, 1203.5, 1558.3], "2026-11-02": [343.51, 1648.8, 1456.1, 1841.5], "2026-11-03": [344.94, 1781, 1579.7, 1982.3], "2026-11-04": [346.69, 1858.7, 1671.7, 2045.7]}, "control": {"2026-06-15": [211.52, null, null, null], "2026-06-16": [213.78, null, null, null], "2026-06-17": [214.87, null, null, null], "2026-06-18": [215.64, null, null, null], "2026-06-19": [215.92, null, null, null], "2026-06-20": [216.53, null, null, null], "2026-06-21": [217.12, null, null, null], "2026-06-22": [218.12, 1000, 164.4, 1835.6], "2026-06-23": [219.09, 1095.8, 701.7, 1489.9], "2026-06-24": [219.72, 1191.1, 847, 1535.2], "2026-06-25": [220.37, 1216.3, 915.6, 1517], "2026-06-26": [220.95, 1204.1, 1006.9, 1401.3], "2026-06-27": [221.36, 1186.6, 1025.5, 1347.7], "2026-06-28": [221.49, 1085, 884.7, 1285.3], "2026-06-29": [222.47, 1045, 870.5, 1219.5], "2026-06-30": [223.32, 1041.1, 870, 1212.2], "2026-07-01": [224.3, 1018, 845.5, 1190.5], "2026-07-02": [225.76, 1048.1, 873.2, 1223], "2026-07-03": [227.47, 1123.7, 941.5, 1305.9], "2026-07-04": [228.54, 1103.5, 942.4, 1264.6], "2026-07-05": [229.46, 1008, 869, 1147], "2026-07-06": [230.03, 920.9, 773.7, 1068.1], "2026-07-07": [230.38, 844.9, 691.7, 998.1], "2026-07-08": [230.88, 776.6, 633.2, 920], "2026-07-09": [231.54, 669.1, 523.6, 814.6], "2026-07-10": [232.02, 558.5, 385, 732], "2026-07-11": [232.83, 508.4, 338.9, 677.9], "2026-07-12": [233.86, 512.1, 361.1, 663.1], "2026-07-13": [234.88, 524.1, 368.5, 679.7], "2026-07-14": [235.8, 534.2, 383, 685.4], "2026-07-17": [236.59, 564.2, 416.2, 712.2], "2026-07-18": [236.62, 486.9, 334.8, 639], "2026-07-19": [236.33, 478.5, 326.7, 630.3], "2026-07-20": [236.81, 433.1, 284.5, 581.7], "2026-07-21": [237.25, 334.3, 165.6, 503], "2026-07-22": [237.44, 357.9, 196.3, 519.5], "2026-07-23": [237.77, 357.2, 195.4, 519], "2026-07-24": [238.79, null, null, null], "2026-07-25": [239.46, 339, 191.8, 486.2], "2026-07-26": [240.17, 363.3, 224.6, 502], "2026-07-27": [240.48, 439.4, 282.6, 596.2], "2026-07-28": [240.81, 415.1, 254.1, 576.1], "2026-07-30": [241.11, null, null, null], "2026-07-31": [241.27, null, null, null], "2026-08-01": [241.75, 626.7, 416.7, 836.7], "2026-08-02": [242.58, 606.3, 414, 798.6], "2026-08-03": [243.69, 599.5, 415.8, 783.2], "2026-08-04": [244.58, 728.8, 511.5, 946.1], "2026-08-05": [245.54, 719.8, 473.4, 966.2], "2026-08-06": [246.92, 639.1, 422.8, 855.4], "2026-08-07": [248.31, null, null, null], "2026-08-08": [248.86, null, null, null], "2026-08-09": [249.74, 1013.2, 824.1, 1202.3], "2026-08-10": [250.63, 1002.7, 834.3, 1171.1], "2026-08-11": [251.76, 883.1, 716.4, 1049.8], "2026-08-12": [253.05, 870.8, 722.6, 1019], "2026-08-13": [254.15, null, null, null], "2026-08-14": [255.38, 787.3, 655.5, 919.1], "2026-08-15": [256.35, 827, 705.9, 948.1], "2026-08-16": [257.45, null, null, null], "2026-08-17": [258.3, null, null, null], "2026-08-18": [259.06, 900.5, 768.2, 1032.8], "2026-08-19": [260.43, 912.1, 780.5, 1043.7], "2026-09-17": [264.68, null, null, null], "2026-09-18": [268.22, 909.8, 759.4, 1060.2], "2026-09-19": [307.21, 959.8, 662.5, 1257.1], "2026-09-20": [306.93, 816.6, 367, 1266.2], "2026-09-21": [306.77, 816.6, 367, 1266.2], "2026-09-22": [306.12, 449.9, 54.9, 844.9], "2026-09-23": [305.75, 442.4, 74.7, 810.1], "2026-09-24": [306.07, 402.7, -279.3, 1084.7], "2026-09-25": [306.69, 429.8, 142.7, 716.9], "2026-09-26": [307.06, 450, 207.7, 692.3], "2026-09-27": [307.1, 646.8, 396, 897.6], "2026-09-28": [308.06, 691.3, 470.9, 911.7], "2026-09-29": [308.75, 854.1, 656.8, 1051.4], "2026-09-30": [309.64, 1068.1, 871.8, 1264.4], "2026-10-01": [310.46, 1231.7, 1056, 1407.4], "2026-10-02": [312.02, 1363, 1205.5, 1520.5], "2026-10-03": [313.69, 1406.4, 1256.4, 1556.4], "2026-10-04": [314.79, 1510, 1356.4, 1663.6], "2026-10-05": [316.21, 1574, 1423.6, 1724.4], "2026-10-06": [318.12, 1630.4, 1486.6, 1774.2], "2026-10-07": [319.94, 1601.8, 1457.6, 1746], "2026-10-08": [321.55, 1642.3, 1492.4, 1792.2], "2026-10-09": [323.23, 1625.9, 1478, 1773.8], "2026-10-10": [324.73, 1649.3, 1498.6, 1800], "2026-10-11": [326.69, 1570.8, 1411.5, 1730.1], "2026-10-12": [327.9, 1537.2, 1390.6, 1683.8], "2026-10-13": [328.97, 1418.3, 1261.9, 1574.7], "2026-10-14": [330.66, 1551.5, 1395.6, 1707.4], "2026-10-15": [332.26, 1636.3, 1496.9, 1775.7], "2026-10-16": [333.96, 1703.5, 1552, 1855], "2026-10-17": [335.61, 1789.3, 1624.8, 1953.8], "2026-10-18": [337.85, 1808.5, 1640.4, 1976.6], "2026-10-19": [340, 1872.9, 1705.3, 2040.5], "2026-10-20": [341.99, 1936, 1745.5, 2126.5], "2026-10-21": [344.11, 1985.1, 1797.5, 2172.7], "2026-10-22": [346.38, 2022.9, 1832.7, 2213.1], "2026-10-23": [348.44, 2101.9, 1902.4, 2301.4], "2026-10-24": [350.81, 2065.8, 1875.1, 2256.5], "2026-10-25": [353, 1992.6, 1794.9, 2190.3], "2026-10-26": [354.75, 1864.6, 1666.1, 2063.1], "2026-10-27": [357.02, 1672.9, 1474.1, 1871.7], "2026-10-28": [358.55, 1522.6, 1330.6, 1714.6], "2026-10-29": [359.65, 1452.3, 1258.6, 1646], "2026-10-30": [361.05, 1368.9, 1160.7, 1577.1], "2026-10-31": [362.53, 1328.5, 1127.9, 1529.1], "2026-11-01": [363.96, 1251.3, 1061.1, 1441.5], "2026-11-02": [364.73, 1222.7, 1028.5, 1416.9], "2026-11-03": [366.12, 1258, 1059, 1457], "2026-11-04": [367.17, 1182.7, 1001.9, 1363.5]}}, "ser2": {"control": {"2026-11-04": [364.33, null, null, null], "2026-11-05": [366.95, null, null, null], "2026-11-06": [365.77, null, null, null], "2026-11-07": [364.29, null, null, null], "2026-11-08": [364.04, null, null, null], "2026-11-09": [366.86, null, null, null], "2026-11-10": [367.85, null, null, null], "2026-11-11": [368.99, 97.5, -826.7, 1021.7], "2026-11-12": [370.92, 1325.9, 715.3, 1936.5], "2026-11-13": [371.82, 985.4, 532, 1438.8], "2026-11-14": [372.53, 1318.8, 985.4, 1652.2], "2026-11-15": [372.89, 1442.4, 1143, 1741.8], "2026-11-16": [372.9, 1413.9, 1153.7, 1674.1], "2026-11-17": [372.26, 1433.1, 1174, 1692.2]}, "seafeed": {"2026-11-04": [386.44, null, null, null], "2026-11-05": [382.32, null, null, null], "2026-11-06": [381.29, null, null, null], "2026-11-07": [380.98, null, null, null], "2026-11-08": [382.16, null, null, null], "2026-11-09": [383.07, null, null, null], "2026-11-10": [384.58, null, null, null], "2026-11-11": [385.61, 1602.7, 816.7, 2388.7], "2026-11-12": [386.84, 1955.4, 1490.2, 2420.6], "2026-11-13": [387.36, 1959.4, 1623, 2295.8], "2026-11-14": [388.43, 1936.9, 1648.3, 2225.5], "2026-11-15": [388.99, 1859.4, 1596.7, 2122.1], "2026-11-16": [389.9, 1844, 1611.7, 2076.3], "2026-11-17": [390.79, 1809.3, 1576.1, 2042.5]}}, "em1": {"2026-05-11": [0, 0, null], "2026-05-12": [1.5, 7.4, 1.53], "2026-05-13": [3, 14.9, 3.03], "2026-05-14": [3, 14.9, 3.01], "2026-05-15": [3, 14.9, 3.02], "2026-05-16": [3, 14.9, 3.03], "2026-05-17": [3, 14.9, 3.04], "2026-05-18": [3, 14.9, 3.05], "2026-05-19": [9, 44.8, 9.13], "2026-05-20": [15.8, 79, 16.08], "2026-05-21": [12.7, 63.7, 12.96], "2026-05-22": [10.2, 51.1, 10.42], "2026-05-23": [10.2, 51.1, 10.46], "2026-05-24": [13.7, 68.3, 14.17], "2026-05-25": [14.5, 72.5, 15.16], "2026-05-26": [11.6, 57.8, 12.19], "2026-05-27": [9.2, 45.8, 9.71], "2026-05-28": [9.2, 45.8, 9.73], "2026-05-29": [9.2, 45.8, 9.78], "2026-05-30": [8.8, 44, 9.39], "2026-05-31": [8.5, 42.5, 9.14], "2026-06-01": [8.5, 42.5, 9.17], "2026-06-02": [8.5, 42.5, 9.25], "2026-06-03": [8.5, 42.5, 9.25], "2026-06-04": [11.6, 57.8, 12.63], "2026-06-05": [14.2, 70.8, 15.55], "2026-06-06": [14.2, 70.8, 15.59], "2026-06-07": [18, 90, 19.84], "2026-06-08": [21.2, 106.2, 23.52], "2026-06-09": [16.1, 80.3, 17.94], "2026-06-10": [11.8, 59, 13.21], "2026-06-11": [9, 44.8, 10.09], "2026-06-12": [4.1, 20.5, 4.62], "2026-06-13": [4.1, 20.5, 4.63], "2026-06-14": [4.1, 20.5, 4.63], "2026-06-15": [4.1, 20.5, 4.6], "2026-06-16": [4.1, 20.5, 4.59], "2026-06-17": [10.3, 51.4, 11.61], "2026-06-18": [15.9, 79.6, 17.92], "2026-06-19": [15.3, 76.7, 17.41], "2026-06-20": [14.5, 72.6, 16.5], "2026-06-21": [14.5, 72.6, 16.5], "2026-06-22": [15.5, 77.5, 17.64], "2026-06-23": [16.8, 84.2, 19.12], "2026-06-24": [13.4, 67, 15.25], "2026-06-25": [8.6, 43, 9.79], "2026-06-26": [8.6, 43, 9.79], "2026-06-27": [8.6, 43, 9.79], "2026-06-28": [8.6, 43, 9.79], "2026-06-29": [11.7, 58.4, 13.37], "2026-06-30": [15.3, 76.7, 17.54], "2026-07-01": [15.3, 76.7, 17.66], "2026-07-02": [15.3, 76.7, 17.85], "2026-07-03": [14.2, 71, 16.56], "2026-07-04": [12.8, 64, 14.93], "2026-07-05": [12.8, 64, 14.93], "2026-07-06": [12.8, 64, 14.93], "2026-07-07": [12.8, 64, 14.93], "2026-07-08": [11.5, 57.3, 13.41], "2026-07-09": [9.8, 49.2, 11.43], "2026-07-10": [9.8, 49.2, 11.43], "2026-07-11": [9.8, 49.2, 11.43], "2026-07-12": [9.8, 49.2, 11.43], "2026-07-13": [9.8, 49.2, 11.43], "2026-07-14": [11, 55, 12.83], "2026-07-16": [12, 59.9, 14], "2026-07-17": [12, 59.9, 14], "2026-07-18": [12.7, 63.6, 14.81], "2026-07-19": [13.3, 66.7, 15.51], "2026-07-20": [13.3, 66.7, 15.64], "2026-07-21": [13.3, 66.7, 15.83], "2026-07-22": [13.3, 66.7, 16.06], "2026-07-23": [12.8, 63.8, 15.46], "2026-07-24": [12.4, 62.1, 15.13], "2026-07-27": [12.4, 61.8, 15.11], "2026-07-28": [12.2, 61.2, 14.87], "2026-07-29": [11.2, 56.1, 13.7], "2026-07-30": [9.1, 45.4, 11.13], "2026-08-01": [9.1, 45.4, 11.19], "2026-08-02": [9.1, 45.4, 11.31], "2026-08-03": [9.1, 45.4, 11.27], "2026-08-04": [9.1, 45.4, 11.3], "2026-08-05": [9.1, 45.4, 11.36], "2026-08-06": [9.8, 49, 12.36], "2026-08-07": [11.3, 56.5, 14.25], "2026-08-08": [11.3, 56.5, 14.25], "2026-08-09": [11.3, 56.5, 14.51], "2026-08-10": [11.3, 56.5, 14.63], "2026-08-11": [9.8, 48.9, 12.75], "2026-08-12": [7.5, 37.4, 9.83], "2026-08-13": [7.5, 37.4, 9.83], "2026-08-14": [7.5, 37.4, 9.98], "2026-08-15": [7.5, 37.4, 10], "2026-08-16": [7.5, 37.4, 10], "2026-08-17": [7.5, 37.4, 10], "2026-08-18": [7.5, 37.4, 10.12], "2026-08-19": [7.5, 37.4, 10.12], "2026-08-20": [7.5, 37.4, 10.12], "2026-08-21": [15.5, 77.5, 20.92], "2026-08-22": [22.3, 111.4, 30.1], "2026-08-23": [22.3, 111.4, 30.1], "2026-08-24": [19.9, 99.4, 26.86], "2026-08-25": [17.9, 89.3, 24.16], "2026-08-26": [17.9, 89.3, 24.16], "2026-08-27": [15.4, 76.8, 20.78], "2026-08-28": [13.2, 66.2, 17.81], "2026-08-29": [13.2, 66.2, 17.81], "2026-08-30": [13.2, 66.2, 17.81], "2026-08-31": [13.2, 66.2, 17.81], "2026-09-01": [10.5, 52.5, 14.17], "2026-09-02": [8.8, 43.8, 11.88], "2026-09-03": [8.8, 43.8, 11.88], "2026-09-04": [8.8, 43.8, 11.88], "2026-09-05": [8.8, 43.8, 11.93], "2026-09-06": [8.8, 43.8, 11.96], "2026-09-07": [9.1, 45.5, 12.51], "2026-09-08": [9.3, 46.7, 12.77], "2026-09-09": [9.3, 46.7, 12.8], "2026-09-10": [9.3, 46.7, 12.72], "2026-09-11": [9.3, 46.7, 12.72], "2026-09-12": [9.3, 46.7, 12.73], "2026-09-13": [9.3, 46.7, 12.73], "2026-09-14": [9.2, 46, 12.59], "2026-09-15": [9.1, 45.5, 12.62], "2026-09-16": [9.1, 45.5, 12.62], "2026-09-17": [9.1, 45.5, 12.49], "2026-09-18": [9.1, 45.5, 12.78], "2026-09-19": [9.1, 45.5, 13.24], "2026-09-20": [9.1, 45.5, 13.3], "2026-09-21": [9.1, 45.5, 13.35], "2026-09-22": [9.1, 45.6, 13.41], "2026-09-23": [9.1, 45.6, 13.47], "2026-09-24": [9.1, 45.6, 13.6], "2026-09-25": [9.1, 45.6, 13.68], "2026-09-26": [9.1, 45.6, 13.74], "2026-09-27": [9.1, 45.6, 13.8], "2026-09-28": [9.1, 45.6, 13.91], "2026-09-29": [9.1, 45.7, 14.02], "2026-09-30": [9.1, 45.7, 14.01], "2026-10-01": [9.1, 45.7, 14.14], "2026-10-02": [9.1, 45.7, 14.24], "2026-10-03": [9.1, 45.7, 14.29], "2026-10-04": [8.8, 43.8, 13.91], "2026-10-05": [10, 50.1, 15.88], "2026-10-06": [10.6, 53.2, 16.91], "2026-10-07": [10.6, 53.2, 17.02], "2026-10-08": [10.6, 53.2, 17.04], "2026-10-09": [10.6, 53.2, 17.07], "2026-10-10": [10.6, 53.2, 17.09], "2026-10-11": [10.6, 53.2, 17.23], "2026-10-12": [11.5, 57.6, 18.84], "2026-10-13": [12.1, 60.7, 19.84], "2026-10-14": [12.1, 60.7, 19.94], "2026-10-15": [12.1, 60.7, 20.06], "2026-10-16": [12.1, 60.7, 20.13], "2026-10-17": [12.1, 60.7, 20.26], "2026-10-18": [12.1, 60.7, 20.35], "2026-10-19": [11.2, 55.9, 18.97], "2026-10-20": [10.6, 53.1, 18.03], "2026-10-21": [10.6, 53.1, 18.07], "2026-10-22": [10.6, 53.1, 18.09], "2026-10-23": [10.6, 53.1, 18.15], "2026-10-24": [10.6, 53.1, 18.16], "2026-10-25": [10.6, 53.1, 18.27], "2026-10-26": [10.6, 53.1, 18.28], "2026-10-27": [10.6, 53.1, 18.27], "2026-10-28": [10.6, 53.1, 18.35], "2026-10-29": [10.6, 53.1, 18.49], "2026-10-30": [10.6, 53.1, 18.56], "2026-10-31": [10.6, 53.1, 18.65], "2026-11-01": [10.6, 53.1, 18.69], "2026-11-02": [10.6, 53.1, 18.85], "2026-11-03": [10.6, 53.1, 18.92], "2026-11-04": [10.6, 53.2, 19]}, "em2": {"2026-11-17": [12.8, 63.9]}, "ctl2": [0, 67.5], "cost1": {"seafeed": {"2026-05-13": [null, 0.39], "2026-05-14": [null, 0.39], "2026-05-15": [null, 0.39], "2026-05-16": [null, 0.39], "2026-05-17": [null, 0.39], "2026-05-18": [null, 0.39], "2026-05-19": [null, 1.17], "2026-05-20": [null, 1.17], "2026-05-21": [null, 1.56], "2026-05-22": [null, 1.56], "2026-05-23": [null, 1.56], "2026-05-24": [null, 2.33], "2026-05-25": [null, 2.33], "2026-05-26": [null, 2.72], "2026-05-27": [null, 2.72], "2026-05-28": [null, 2.72], "2026-05-29": [null, 2.72], "2026-05-30": [null, 3.5], "2026-05-31": [null, 3.5], "2026-06-01": [null, 3.5], "2026-06-02": [null, 3.5], "2026-06-03": [null, 3.5], "2026-06-04": [null, 4.28], "2026-06-05": [null, 4.28], "2026-06-06": [null, 4.28], "2026-06-07": [null, 5.06], "2026-06-08": [null, 5.06], "2026-06-09": [null, 5.83], "2026-06-10": [null, 6.22], "2026-06-11": [null, 6.22], "2026-06-12": [null, 6.22], "2026-06-13": [null, 6.22], "2026-06-14": [null, 6.22], "2026-06-15": [null, 6.22], "2026-06-16": [null, 6.22], "2026-06-17": [null, 7], "2026-06-18": [null, 7], "2026-06-19": [null, 7.78], "2026-06-20": [null, 7.78], "2026-06-21": [null, 7.78], "2026-06-22": [null, 8.56], "2026-06-23": [null, 8.56], "2026-06-24": [null, 8.94], "2026-06-25": [null, 8.94], "2026-06-26": [null, 8.94], "2026-06-27": [null, 8.94], "2026-06-28": [null, 8.94], "2026-06-29": [null, 10.11], "2026-06-30": [null, 10.11], "2026-07-01": [null, 10.11], "2026-07-02": [null, 10.11], "2026-07-03": [null, 11.28], "2026-07-04": [null, 11.28], "2026-07-05": [null, 11.28], "2026-07-06": [null, 11.28], "2026-07-07": [null, 11.28], "2026-07-08": [null, 12.44], "2026-07-09": [null, 12.44], "2026-07-10": [null, 12.44], "2026-07-11": [null, 12.44], "2026-07-12": [null, 12.44], "2026-07-13": [null, 12.44], "2026-07-14": [null, 13.22], "2026-07-15": [null, 13.22], "2026-07-16": [null, 13.22], "2026-07-17": [null, 13.22], "2026-07-18": [null, 14.39], "2026-07-19": [null, 14.39], "2026-07-20": [null, 14.39], "2026-07-21": [null, 14.39], "2026-07-22": [null, 12.44], "2026-07-23": [null, 12.44], "2026-07-24": [null, 15.56], "2026-07-27": [null, 15.56], "2026-07-28": [null, 15.56], "2026-07-29": [null, 15.56], "2026-07-30": [null, 15.56], "2026-08-01": [null, 19.44], "2026-08-02": [null, 15.56], "2026-08-03": [null, 15.56], "2026-08-04": [null, 19.44], "2026-08-05": [null, 15.56], "2026-08-06": [null, 15.56], "2026-08-07": [null, 18.28], "2026-08-08": [null, 19.44], "2026-08-09": [null, 19.44], "2026-08-10": [null, 18.28], "2026-08-11": [null, 18.28], "2026-08-12": [null, 18.28], "2026-08-13": [null, 19.44], "2026-08-14": [null, 19.44], "2026-08-15": [null, 19.44], "2026-08-16": [null, 19.44], "2026-08-17": [null, 19.44], "2026-08-18": [null, 19.44], "2026-08-19": [null, 19.44], "2026-08-20": [null, 19.44], "2026-08-21": [null, 19.44], "2026-08-22": [null, 19.44], "2026-08-23": [null, 19.44], "2026-08-24": [null, 19.44], "2026-08-25": [null, 19.44], "2026-08-26": [null, 19.44], "2026-08-27": [null, 19.44], "2026-08-28": [null, 19.44], "2026-08-29": [null, 19.44], "2026-08-30": [null, 19.44], "2026-08-31": [null, 19.44], "2026-09-01": [null, 22.94], "2026-09-02": [null, 22.94], "2026-09-03": [null, 22.94], "2026-09-04": [null, 22.94], "2026-09-05": [null, 22.94], "2026-09-06": [null, 22.94], "2026-09-07": [null, 22.94], "2026-09-08": [null, 22.94], "2026-09-09": [null, 22.94], "2026-09-10": [null, 22.94], "2026-09-11": [null, 22.94], "2026-09-12": [null, 22.94], "2026-09-13": [null, 22.94], "2026-09-14": [null, 22.94], "2026-09-15": [null, 22.94], "2026-09-16": [null, 22.94], "2026-09-17": [null, 22.94], "2026-09-18": [null, 22.94], "2026-09-19": [null, 22.94], "2026-09-20": [null, 22.94], "2026-09-21": [null, 22.94], "2026-09-22": [null, 22.94], "2026-09-23": [null, 22.94], "2026-09-24": [null, 22.94], "2026-09-25": [null, 22.94], "2026-09-26": [null, 22.94], "2026-09-27": [null, 22.94], "2026-09-28": [null, 22.94], "2026-09-29": [null, 22.94], "2026-09-30": [null, 22.94], "2026-10-01": [null, 22.94], "2026-10-02": [null, 22.94], "2026-10-03": [null, 22.94], "2026-10-04": [null, 22.94], "2026-10-05": [0.1582, 22.94], "2026-10-06": [0.1571, 22.94], "2026-10-07": [0.1561, 22.94], "2026-10-08": [0.155, 22.94], "2026-10-09": [0.154, 22.94], "2026-10-10": [0.153, 22.94], "2026-10-11": [0.1519, 22.94], "2026-10-12": [0.1509, 22.94], "2026-10-13": [0.15, 22.94], "2026-10-14": [0.149, 22.94], "2026-10-15": [0.148, 22.94], "2026-10-16": [0.1471, 22.94], "2026-10-17": [0.1461, 22.94], "2026-10-18": [0.1452, 22.94], "2026-10-19": [0.1443, 22.94], "2026-10-20": [0.1434, 22.94], "2026-10-21": [0.1425, 22.94], "2026-10-22": [0.1416, 22.94], "2026-10-23": [0.1408, 22.94], "2026-10-24": [0.1399, 22.94], "2026-10-25": [0.1391, 22.94], "2026-10-26": [0.1382, 22.94], "2026-10-27": [0.1979, 33.05], "2026-10-28": [0.1968, 33.05], "2026-10-29": [0.1956, 33.05], "2026-10-30": [0.1944, 33.05], "2026-10-31": [0.1933, 33.05], "2026-11-01": [0.1922, 33.05], "2026-11-02": [null, 33.05], "2026-11-03": [0.19, 33.05], "2026-11-04": [0.1889, 33.05]}, "control": {"2026-06-16": [null, 2.38], "2026-06-17": [null, 2.38], "2026-06-18": [null, 2.38], "2026-06-19": [null, 2.38], "2026-06-20": [null, 2.38], "2026-06-21": [null, 2.38], "2026-06-22": [null, 2.38], "2026-06-23": [null, 2.38], "2026-06-24": [null, 2.91], "2026-06-25": [null, 2.91], "2026-06-26": [null, 2.91], "2026-06-27": [null, 2.91], "2026-06-28": [null, 2.91], "2026-06-29": [null, 2.91], "2026-06-30": [null, 2.91], "2026-07-01": [null, 2.91], "2026-07-02": [null, 2.91], "2026-07-03": [null, 3.63], "2026-07-04": [null, 3.63], "2026-07-05": [null, 3.63], "2026-07-06": [null, 3.63], "2026-07-07": [null, 3.63], "2026-07-08": [null, 4.38], "2026-07-09": [null, 4.38], "2026-07-10": [null, 4.38], "2026-07-11": [null, 4.38], "2026-07-12": [null, 4.38], "2026-07-13": [null, 4.38], "2026-07-14": [null, 4.38], "2026-07-15": [null, 4.38], "2026-07-16": [null, 4.38], "2026-07-17": [null, 5.29], "2026-07-18": [null, 5.29], "2026-07-19": [null, 5.29], "2026-07-20": [null, 5.29], "2026-07-21": [null, 5.29], "2026-07-22": [null, 4.38], "2026-07-23": [null, 4.38], "2026-07-24": [null, 5.82], "2026-07-27": [null, 5.82], "2026-07-28": [null, 5.82], "2026-07-29": [null, 5.82], "2026-07-30": [null, 5.82], "2026-08-01": [null, 8], "2026-08-02": [null, 5.82], "2026-08-03": [null, 5.82], "2026-08-04": [null, 8], "2026-08-05": [null, 5.82], "2026-08-06": [null, 5.82], "2026-08-07": [null, 7.27], "2026-08-08": [null, 8], "2026-08-09": [null, 8], "2026-08-10": [null, 7.27], "2026-08-11": [null, 7.27], "2026-08-12": [null, 7.27], "2026-08-13": [null, 8], "2026-08-14": [null, 8], "2026-08-15": [null, 8], "2026-08-16": [null, 8], "2026-08-17": [null, 8], "2026-08-18": [null, 8], "2026-08-19": [null, 8], "2026-08-20": [null, 8], "2026-08-21": [null, 8], "2026-08-22": [null, 8], "2026-08-23": [null, 8], "2026-08-24": [null, 8], "2026-08-25": [null, 8], "2026-08-26": [null, 8], "2026-08-27": [null, 8], "2026-08-28": [null, 8], "2026-08-29": [null, 8], "2026-08-30": [null, 8], "2026-08-31": [null, 8], "2026-09-01": [null, 10.57], "2026-09-02": [null, 10.57], "2026-09-03": [null, 10.57], "2026-09-04": [null, 10.57], "2026-09-05": [null, 10.57], "2026-09-06": [null, 10.57], "2026-09-07": [null, 10.57], "2026-09-08": [null, 10.57], "2026-09-09": [null, 10.57], "2026-09-10": [null, 10.57], "2026-09-11": [null, 10.57], "2026-09-12": [null, 10.57], "2026-09-13": [null, 10.57], "2026-09-14": [null, 10.57], "2026-09-15": [null, 10.57], "2026-09-16": [null, 10.57], "2026-09-17": [null, 10.57], "2026-09-18": [null, 10.57], "2026-09-19": [null, 10.57], "2026-09-20": [null, 10.57], "2026-09-21": [null, 10.57], "2026-09-22": [null, 10.57], "2026-09-23": [null, 10.57], "2026-09-24": [null, 10.57], "2026-09-25": [null, 10.57], "2026-09-26": [null, 10.57], "2026-09-27": [null, 10.57], "2026-09-28": [null, 10.57], "2026-09-29": [null, 10.57], "2026-09-30": [null, 10.57], "2026-10-01": [null, 10.57], "2026-10-02": [null, 10.57], "2026-10-03": [null, 10.57], "2026-10-04": [null, 10.57], "2026-10-05": [0.0953, 10.57], "2026-10-06": [0.0944, 10.57], "2026-10-07": [0.0936, 10.57], "2026-10-08": [0.0928, 10.57], "2026-10-09": [0.092, 10.57], "2026-10-10": [0.0912, 10.57], "2026-10-11": [0.0904, 10.57], "2026-10-12": [0.0896, 10.57], "2026-10-13": [0.0889, 10.57], "2026-10-14": [0.0881, 10.57], "2026-10-15": [0.0874, 10.57], "2026-10-16": [0.0867, 10.57], "2026-10-17": [0.086, 10.57], "2026-10-18": [0.0853, 10.57], "2026-10-19": [0.0846, 10.57], "2026-10-20": [0.0839, 10.57], "2026-10-21": [0.0833, 10.57], "2026-10-22": [0.0826, 10.57], "2026-10-23": [0.082, 10.57], "2026-10-24": [0.0813, 10.57], "2026-10-25": [0.0807, 10.57], "2026-10-26": [0.0801, 10.57], "2026-10-27": [0.1312, 17.45], "2026-10-28": [0.1302, 17.45], "2026-10-29": [0.1293, 17.45], "2026-10-30": [0.1283, 17.45], "2026-10-31": [0.1274, 17.45], "2026-11-01": [0.1264, 17.45], "2026-11-02": [null, 17.45], "2026-11-03": [0.1246, 17.45], "2026-11-04": [0.1237, 17.45]}}, "cost2": {"seafeed": {"2026-11-06": [1.17], "2026-11-07": [1.17], "2026-11-08": [1.17], "2026-11-09": [1.17], "2026-11-10": [1.17], "2026-11-11": [1.17], "2026-11-12": [1.17], "2026-11-13": [1.17], "2026-11-14": [1.17], "2026-11-15": [1.17], "2026-11-16": [1.17], "2026-11-17": [2.72]}, "control": {"2026-11-06": [0.79], "2026-11-07": [0.79], "2026-11-08": [0.79], "2026-11-09": [0.79], "2026-11-10": [0.79], "2026-11-11": [0.79], "2026-11-12": [0.79], "2026-11-13": [0.79], "2026-11-14": [0.79], "2026-11-15": [0.79], "2026-11-16": [0.79], "2026-11-17": [1.85]}}}, "eb": {"ser1": {"seafeed": {"2026-08-14": [300.67, null, null, null, null, null, null, 9], "2026-08-15": [308.56, null, null, null, null, null, null, 55], "2026-08-16": [309.61, null, null, null, null, null, null, 167], "2026-08-17": [310.43, null, null, null, null, null, null, 216], "2026-08-18": [310.9, null, null, null, null, null, null, 54], "2026-08-19": [310.87, null, null, null, null, null, null, 49], "2026-08-20": [310.65, null, null, null, null, null, null, 10], "2026-08-21": [310.1, 157.8, -256.1, 571.7, null, null, null, 87], "2026-08-22": [310.19, 157.8, -256.1, 571.7, null, null, null, 114], "2026-08-23": [310.21, 157.8, -256.1, 571.7, null, null, null, 113], "2026-08-24": [309.91, 157.8, -256.1, 571.7, null, null, null, 17], "2026-08-25": [309.9, 206.6, -134.3, 547.5, null, null, null, 14], "2026-08-26": [310.05, 481.9, 79.9, 883.9, null, null, null, 20], "2026-08-27": [310.22, 808.1, 468.3, 1147.9, null, null, null, 175], "2026-08-28": [311.07, 808.1, 468.3, 1147.9, null, null, null, 40], "2026-08-29": [310.94, 1221, 976.6, 1465.4, null, null, null, 131], "2026-08-30": [311.26, 1221, 976.6, 1465.4, null, null, null, 113], "2026-08-31": [311.64, 1221, 976.6, 1465.4, null, null, null, 15], "2026-09-01": [311.65, 1287.8, 1054.8, 1520.8, null, null, null, 20], "2026-09-02": [312, 1211.2, 1005.1, 1417.3, null, null, null, 15], "2026-09-03": [312.58, 1187.2, 978.4, 1396, null, null, null, 17], "2026-09-04": [313.55, 1156.4, 951.7, 1361.1, null, null, null, 17], "2026-09-05": [312.85, 1047, 801.9, 1292.1, null, null, null, 16], "2026-09-06": [313.89, 1047, 801.9, 1292.1, null, null, null, 133], "2026-09-07": [315.5, 1047, 801.9, 1292.1, null, null, null, 31], "2026-09-08": [316.71, 1008.5, 788.6, 1228.4, null, null, null, 43], "2026-09-09": [318.07, 962, 753.4, 1170.6, null, null, null, 22], "2026-09-10": [319.38, 930, 729.5, 1130.5, null, null, null, 95], "2026-09-11": [320.66, 890.6, 690.4, 1090.8, null, null, null, 161], "2026-09-12": [321.84, 884.6, 700.3, 1068.9, null, null, null, 158], "2026-09-13": [323.08, 884.6, 700.3, 1068.9, null, null, null, 194], "2026-09-14": [324.06, null, null, null, null, null, null, 608], "2026-09-15": [325.44, 884.6, 700.3, 1068.9, null, null, null, 48], "2026-09-16": [326.61, 688.4, 495.2, 881.6, null, null, null, 146], "2026-09-17": [327.75, null, null, null, null, null, null, 570], "2026-09-18": [328.85, 659.5, 459.8, 859.2, null, null, null, 23], "2026-09-19": [334.17, 908.2, 660.4, 1156, null, null, null, 162], "2026-09-20": [335.43, 1010.5, 769.5, 1251.5, null, null, null, 154], "2026-09-21": [336.15, 1154.4, 928.7, 1380.1, null, null, null, 155], "2026-09-22": [337.71, 1344.1, 1113.9, 1574.3, null, null, null, 149], "2026-09-23": [338.89, 1534.9, 1323.9, 1745.9, null, null, null, 152], "2026-09-24": [340.82, 1591.8, 1401.5, 1782.1, null, null, null, 162], "2026-09-25": [342.63, 1725.8, 1544.8, 1906.8, null, null, null, 144], "2026-09-26": [343.9, 1724.9, 1526.9, 1922.9, null, null, null, 205], "2026-09-27": [345.35, 1796.6, 1603.4, 1989.8, null, null, null, 124], "2026-09-28": [347.85, 1760.7, 1555.1, 1966.3, null, null, null, 93], "2026-09-29": [349.52, 1698.6, 1490.9, 1906.3, null, null, null, 96], "2026-10-03": [353.92, 1395.8, 1185.8, 1605.8, null, null, null, 135], "2026-10-04": [354.75, 1265.8, 1069.5, 1462.1, null, null, null, 155], "2026-10-05": [356.27, 1190.2, 991.9, 1388.5, 1052.2, 1413.7, 1224.8, 201], "2026-10-06": [358.31, 1123.6, 935.2, 1312, 846.2, 1412.7, 1222.7, 154], "2026-10-07": [358.9, 1063.5, 872.2, 1254.8, 874.1, 1360.3, 1224.3, 129], "2026-10-08": [359.43, 964.7, 785.2, 1144.2, 786.9, 1345.1, 1206.3, 124], "2026-10-09": [360.64, 962.6, 791.6, 1133.6, 818.8, 1359.2, 1211.1, 39], "2026-10-10": [361.83, 921.5, 758.1, 1084.9, 497.6, 1348.6, 1218.6, 99], "2026-10-11": [361.9, 776.4, 581.3, 971.5, 721.2, 1324.3, 1201.2, 79], "2026-10-12": [361.83, 783.7, 590.7, 976.7, 967.5, 1293.4, 1198.9, 49], "2026-10-13": [363.34, 791.7, 588, 995.4, 638, 1249.7, 1193.4, 105], "2026-10-14": [363.71, 674.4, 440.6, 908.2, 793.2, 1169.6, 1185.7, 141], "2026-10-15": [364.09, 547.7, 306.7, 788.7, 542.1, 995.4, 1172.1, 135], "2026-10-16": [364.36, 491.9, 254.1, 729.7, 406.8, 886.2, 1154.3, 103], "2026-10-17": [365.03, 459.7, 223.9, 695.5, 460.7, 842.9, 1146.9, 58], "2026-10-18": [366.16, 494.8, 253.6, 736, 549.5, 793.4, 1142.8, 94], "2026-10-19": [366.51, 529.9, 288, 771.8, 631.7, 823.5, 1143.2, 77], "2026-10-20": [366.4, 620.1, 419.4, 820.8, 811.9, 830.2, 1126.6, 106], "2026-10-21": [367.46, 630.7, 430.2, 831.2, 830.2, 797.8, 1121.3, 15], "2026-10-22": [368.03, 648.9, 447.6, 850.2, 1001.6, 767.9, 1121.3, 22], "2026-10-26": [371.47, 667.7, 465, 870.4, null, null, null, 60], "2026-10-27": [373.16, 700.5, 496.9, 904.1, 993.4, 796.7, 1110, 102], "2026-10-28": [375.07, 679.6, 473.2, 886, null, null, null, 29]}, "control": {"2026-08-21": [318.75, null, null, null, null, null, null, 8], "2026-08-22": [316.84, null, null, null, null, null, null, 100], "2026-08-23": [317.38, null, null, null, null, null, null, 112], "2026-08-24": [318.38, null, null, null, null, null, null, 120], "2026-08-25": [319.34, null, null, null, null, null, null, 106], "2026-08-26": [320.23, null, null, null, null, null, null, 118], "2026-08-27": [321.07, null, null, null, null, null, null, 96], "2026-08-28": [322.19, 256.3, -912, 1424.6, null, null, null, 73], "2026-08-29": [323.3, 1943.6, 1335.1, 2552.1, null, null, null, 108], "2026-08-30": [324.12, 1851.9, 1395, 2308.8, null, null, null, 135], "2026-08-31": [324.92, 1429.8, 998.5, 1861.1, null, null, null, 113], "2026-09-01": [325.72, 1248.7, 756.6, 1740.8, null, null, null, 73], "2026-09-02": [326.23, 1179, 719.7, 1638.3, null, null, null, 72], "2026-09-03": [326.5, 1156.1, 735.9, 1576.3, null, null, null, 68], "2026-09-04": [327.67, 1156.1, 735.9, 1576.3, null, null, null, 32], "2026-09-05": [328.78, 773, 449.1, 1096.9, null, null, null, 84], "2026-09-06": [329.91, 773, 449.1, 1096.9, null, null, null, 132], "2026-09-07": [330.74, 823.7, 521.7, 1125.7, null, null, null, 105], "2026-09-08": [331.84, 823.7, 521.7, 1125.7, null, null, null, 25], "2026-09-09": [332.82, 753.6, 513.9, 993.3, null, null, null, 24], "2026-09-10": [334.07, 733.4, 527.2, 939.6, null, null, null, 76], "2026-09-11": [335.19, 948.6, 739.6, 1157.6, null, null, null, 136], "2026-09-12": [336.25, 1253.7, 1061.4, 1446, null, null, null, 148], "2026-09-13": [337.47, 1253.7, 1061.4, 1446, null, null, null, 122], "2026-09-14": [338.46, null, null, null, null, null, null, 387], "2026-09-15": [339.12, 1253.7, 1061.4, 1446, null, null, null, 44], "2026-09-16": [340.09, 1229, 1036.4, 1421.6, null, null, null, 126], "2026-09-17": [341.33, null, null, null, null, null, null, 432], "2026-09-18": [342.6, 1127.1, 928.7, 1325.5, null, null, null, 28], "2026-09-19": [347.73, 1209, 998.3, 1419.7, null, null, null, 129], "2026-09-20": [349.5, 1194, 977.7, 1410.3, null, null, null, 129], "2026-09-21": [350.5, 1217.3, 1009, 1425.6, null, null, null, 98], "2026-09-22": [351.21, 1165.1, 951.1, 1379.1, null, null, null, 100], "2026-09-23": [353, 1246.2, 1033.9, 1458.5, null, null, null, 75], "2026-09-24": [353.84, 1263.8, 1057.9, 1469.7, null, null, null, 112], "2026-09-25": [354.68, 1400.7, 1190.9, 1610.5, null, null, null, 180], "2026-09-26": [355.12, 1210.8, 1005.3, 1416.3, null, null, null, 157], "2026-09-27": [355.76, 1261.2, 1058.3, 1464.1, null, null, null, 98], "2026-09-28": [357.99, 1255.9, 1056, 1455.8, null, null, null, 78], "2026-09-29": [359.9, 1209.5, 1017.4, 1401.6, null, null, null, 80], "2026-09-30": [361.4, 1196.6, 1006.2, 1387, null, null, null, 49], "2026-10-01": [362.92, 1098.1, 913.8, 1282.4, null, null, null, 124], "2026-10-02": [362.63, 779.8, 570.6, 989, 404.1, 1198, 1248, 161], "2026-10-03": [362.53, 684.1, 492, 876.2, null, null, null, 128], "2026-10-04": [363.12, 585.3, 387.1, 783.5, null, null, null, 121], "2026-10-05": [363.75, 558, 359.5, 756.5, 293.9, 952, 1103.9, 99], "2026-10-06": [365.6, 494.9, 290.7, 699.1, 128.3, 840.3, 1099.1, 93], "2026-10-07": [366.39, 511.8, 312.4, 711.2, 545.1, 924.8, 1108.8, 85], "2026-10-08": [367.67, 704.4, 515.7, 893.1, 845.7, 928.8, 1113.4, 162], "2026-10-09": [368.74, 923.5, 708.3, 1138.7, 1446.5, 962.1, 1124.6, 170], "2026-10-10": [371, 1032.3, 817, 1247.6, 1315.1, 966.4, 1127.3, 42], "2026-10-11": [372.97, 1270.2, 1047.7, 1492.7, 1521.1, 1016.5, 1139.5, 132], "2026-10-12": [374.04, 1439.7, 1228.4, 1651, 1968.7, 1095.9, 1152.1, 179], "2026-10-13": [375.19, 1551.3, 1349.7, 1752.9, 2057.3, 1191.3, 1173.2, 171], "2026-10-14": [375.9, 1561.1, 1350.1, 1772.1, 2177.4, 1190.4, 1183.6, 87], "2026-10-15": [376.16, 1589.9, 1385.7, 1794.1, 2161.5, 1127.9, 1181.9, 136], "2026-10-16": [377.24, 1457.5, 1265.8, 1649.2, 1820.7, 1101.5, 1165.4, 117], "2026-10-17": [379.08, 1535.5, 1348.5, 1722.5, 1194.5, 1069.1, 1146.9, 78], "2026-10-18": [380.56, 1385.3, 1187.8, 1582.8, 992.1, 1111.2, 1156.1, 101], "2026-10-19": [382.45, 1324.5, 1130.4, 1518.6, 673.2, 1163.9, 1156.2, 56], "2026-10-20": [382.98, 1108.7, 928.4, 1289, 614.6, 1207.5, 1160, 64], "2026-10-21": [383.89, 1102.2, 906.6, 1297.8, 467.5, 1198.9, 1152.6, 110], "2026-10-22": [385.25, 1067, 876.8, 1257.2, 896.5, 1226, 1166.5, 97], "2026-10-23": [386.56, 985.9, 798.8, 1173, 921, 1288.8, 1169.4, 90], "2026-10-26": [386.19, 991.2, 803.6, 1178.8, null, null, null, 17], "2026-10-27": [386.48, 962.5, 779.5, 1145.5, 1490.5, 1232.5, 1156.8, 85], "2026-10-28": [386.62, 952.2, 769.6, 1134.8, null, null, null, 19]}}, "ser2": {"control": {"2026-10-28": [394.19, null, null, null, null, null, null, 48], "2026-10-29": [391, null, null, null, null, null, null, 66], "2026-10-30": [389.26, null, null, null, 116, 801.6, 1121.4, 29], "2026-10-31": [388.15, null, null, null, 185.7, 796.9, 1122.8, 26], "2026-11-01": [390.22, null, null, null, null, null, null, 76], "2026-11-02": [390.57, null, null, null, null, null, null, 95], "2026-11-03": [391.41, null, null, null, 443.1, 667.2, 1074.6, 105], "2026-11-04": [393.26, 403.2, -93.3, 899.7, 993.6, 684.1, 1081.8, 63], "2026-11-05": [394.68, 880.4, 431.5, 1329.3, 1549.4, 726.7, 1086.8, 63], "2026-11-06": [396.14, 1195.2, 820.9, 1569.5, 2080.2, 858.2, 1100.9, 70], "2026-11-07": [397.01, 1321.3, 989.4, 1653.2, 1975.4, 925, 1104, 73], "2026-11-08": [398.47, 1562.5, 1230.5, 1894.5, 2049.5, 997.8, 1103.6, 41], "2026-11-09": [398.39, 1726.1, 1401.9, 2050.3, 2115.8, 1044.8, 1099.4, 46], "2026-11-10": [398.39, 1688.8, 1378.8, 1998.8, 2043.9, 1080.6, 1101, 42], "2026-11-11": [398.57, 1657.8, 1362.5, 1953.1, 2025.5, 1101.4, 1087.2, 56], "2026-11-12": [399.78, 1595.9, 1310.2, 1881.6, 1706.7, 1110.9, 1089.9, 63], "2026-11-13": [401.51, 1370, 1057.1, 1682.9, 1370.3, 1088.6, 1089.2, 106], "2026-11-14": [403.85, 1300.5, 1031.6, 1569.4, 1145.3, 1153.9, 1097.8, 104], "2026-11-15": [404.58, 1273.4, 1031.2, 1515.6, 1066.1, 1162.9, 1104.1, 93], "2026-11-16": [406.2, 1251.5, 1015.2, 1487.8, 817.1, 1184.9, 1118.2, 55], "2026-11-17": [406.96, 1215.3, 974.6, 1456, 585.5, 1231.1, 1115.8, 15]}, "seafeed": {"2026-10-28": [394.31, null, null, null, null, null, null, 94], "2026-10-29": [392.64, null, null, null, null, null, null, 90], "2026-10-30": [389.76, null, null, null, 500.5, 1033.3, 1130, 55], "2026-10-31": [389.83, null, null, null, null, null, null, 37], "2026-11-01": [391.91, null, null, null, 489, 1002.5, 1114.4, 65], "2026-11-02": [392.15, null, null, null, null, null, null, 96], "2026-11-03": [392.18, null, null, null, 833.5, 979.8, 1125.9, 158], "2026-11-04": [391.52, 458.2, -227.7, 1144.1, 558.6, 965.8, 1130.2, 40], "2026-11-05": [392.12, 420.7, -300, 1141.4, 903.7, 946.9, 1131.7, 13], "2026-11-06": [393.68, 1091.6, 511.9, 1671.3, null, null, null, 53], "2026-11-07": [394.02, 879.8, 424.7, 1334.9, 855, 884.7, 1120.6, 147], "2026-11-08": [394.94, 860.8, 469.7, 1251.9, 915.4, 903.1, 1115, 106], "2026-11-09": [395.96, 854.6, 477.1, 1232.1, 1184, 939.3, 1111.1, 61], "2026-11-10": [396.99, 1013.8, 697.3, 1330.3, 1256.8, 977.7, 1106, 96], "2026-11-11": [398.31, 1162, 876, 1448, 1553.2, 1012.3, 1112.3, 85], "2026-11-12": [399.62, 1296.6, 1024.7, 1568.5, 1801, 1108.1, 1121.4, 117], "2026-11-13": [402.1, 1393.2, 1157.6, 1628.8, 1329.3, 1156.7, 1113.8, 115], "2026-11-14": [403.27, 1324.9, 1087, 1562.8, 1351.9, 1136, 1115.1, 98], "2026-11-15": [404.49, 1434, 1182.3, 1685.7, 1547, 1099.9, 1113, 96], "2026-11-16": [405.62, 1403.7, 1161.4, 1646, 1537.7, 1153.7, 1120.2, 78], "2026-11-17": [406.74, 1330.4, 1079.1, 1581.7, 1378.4, 1193, 1115.6, 20]}}, "em1": {"2026-08-15": [3.8, 18.9, 6.09], "2026-08-16": [3.8, 18.9, 6.09], "2026-08-17": [3.8, 18.9, 6.09], "2026-08-23": [3.2, 16, 5.14], "2026-08-24": [3.2, 16, 5.13], "2026-08-25": [3.2, 16, 5.13], "2026-08-26": [4.3, 21.5, 6.9], "2026-08-27": [4.9, 24.7, 7.89], "2026-08-28": [8.4, 41.8, 13.57], "2026-08-29": [10.2, 51.1, 16.48], "2026-08-30": [10.2, 51.1, 16.52], "2026-08-31": [8.7, 43.7, 14.13], "2026-09-01": [7.8, 39.2, 12.64], "2026-09-02": [7.8, 39.2, 12.64], "2026-09-03": [7.8, 39.2, 12.7], "2026-09-04": [7.8, 39.2, 12.76], "2026-09-05": [7.8, 39.2, 12.72], "2026-09-06": [7.8, 39.2, 12.78], "2026-09-07": [7.8, 39.2, 12.83], "2026-09-08": [8.1, 40.6, 13.37], "2026-09-09": [10.5, 52.4, 17.4], "2026-09-10": [11.5, 57.6, 18.73], "2026-09-11": [11.5, 57.6, 18.73], "2026-09-12": [11.5, 57.6, 18.87], "2026-09-13": [11.5, 57.6, 18.87], "2026-09-14": [11.5, 57.6, 18.87], "2026-09-15": [11.5, 57.6, 19.13], "2026-09-16": [11.5, 57.7, 19.13], "2026-09-17": [11.5, 57.7, 18.83], "2026-09-18": [11.5, 57.7, 19.14], "2026-09-19": [11.5, 57.7, 19.89], "2026-09-20": [11.5, 57.7, 19.96], "2026-09-21": [11.6, 57.8, 20.14], "2026-09-22": [11.7, 58.3, 20.42], "2026-09-23": [11.7, 58.6, 20.5], "2026-09-24": [11.7, 58.6, 20.62], "2026-09-25": [11.7, 58.6, 20.73], "2026-09-26": [11.7, 58.6, 20.82], "2026-09-27": [12.3, 61.3, 21.98], "2026-09-28": [12.7, 63.3, 22.8], "2026-09-29": [12.7, 63.3, 22.99], "2026-09-30": [12.7, 63.3, 22.97], "2026-10-01": [12.7, 63.3, 22.97], "2026-10-02": [13.9, 69.6, 25.14], "2026-10-03": [14.7, 73.3, 26.73], "2026-10-04": [14, 70.2, 25.56], "2026-10-05": [14.7, 73.3, 26.93], "2026-10-06": [14.7, 73.3, 27.02], "2026-10-07": [11.7, 58.4, 21.58], "2026-10-08": [8.5, 42.3, 15.7], "2026-10-09": [8.5, 42.3, 15.75], "2026-10-10": [8.5, 42.3, 15.85], "2026-10-11": [8.5, 42.3, 15.84], "2026-10-12": [8.5, 42.3, 15.9], "2026-10-13": [8.5, 42.3, 15.9], "2026-10-14": [8.5, 42.3, 15.96], "2026-10-15": [8.5, 42.3, 15.95], "2026-10-16": [8.5, 42.3, 16.03], "2026-10-17": [8.5, 42.3, 16.03], "2026-10-18": [8.5, 42.3, 16.09], "2026-10-19": [8.5, 42.3, 16.09], "2026-10-20": [8.5, 42.3, 16.1], "2026-10-21": [8.5, 42.3, 16.16], "2026-10-22": [8.5, 42.3, 16.2], "2026-10-23": [8.5, 42.3, 16.19], "2026-10-24": [8.5, 42.3, 16.19], "2026-10-25": [8.5, 42.3, 16.19], "2026-10-26": [8.5, 42.3, 16.19], "2026-10-27": [8.5, 42.3, 16.31], "2026-10-28": [8.5, 42.3, 16.22], "2026-10-29": [8.5, 42.3, 17.4]}, "em2": {"2026-11-10": [2.8, 13.8, 5.75], "2026-11-11": [2.8, 13.8, 5.76], "2026-11-12": [11.4, 57, 23.58], "2026-11-13": [11.4, 57, 23.71], "2026-11-14": [11.4, 57, 23.73], "2026-11-15": [11.4, 57, 23.8], "2026-11-16": [11.4, 57, 23.92], "2026-11-17": [8.8, 44, 18.52]}, "ctl2": [0, 21.6], "cost1": {"seafeed": {"2026-08-14": [null, 0.58], "2026-08-15": [null, 0.9], "2026-08-16": [null, 0.9], "2026-08-17": [null, 0.9], "2026-08-18": [null, 0.58], "2026-08-19": [null, 0.58], "2026-08-20": [null, 0.58], "2026-08-21": [null, 0.58], "2026-08-22": [null, 0.58], "2026-08-23": [null, 0.9], "2026-08-24": [null, 0.9], "2026-08-25": [null, 0.9], "2026-08-26": [null, 1.24], "2026-08-27": [null, 1.55], "2026-08-28": [null, 1.55], "2026-08-29": [null, 1.55], "2026-08-30": [null, 1.55], "2026-08-31": [null, 1.55], "2026-09-01": [null, 2.67], "2026-09-02": [null, 2.67], "2026-09-03": [null, 2.67], "2026-09-04": [null, 2.67], "2026-09-05": [null, 2.67], "2026-09-06": [null, 2.67], "2026-09-07": [null, 2.67], "2026-09-08": [null, 3.37], "2026-09-09": [null, 4.19], "2026-09-10": [null, 4.19], "2026-09-11": [null, 4.19], "2026-09-12": [null, 4.19], "2026-09-13": [null, 4.19], "2026-09-14": [null, 4.19], "2026-09-15": [null, 5.41], "2026-09-16": [null, 5.41], "2026-09-17": [null, 5.41], "2026-09-18": [null, 5.41], "2026-09-19": [null, 5.41], "2026-09-20": [null, 5.41], "2026-09-21": [null, 5.41], "2026-09-22": [null, 6.95], "2026-09-23": [null, 6.95], "2026-09-24": [null, 6.95], "2026-09-25": [null, 6.95], "2026-09-26": [null, 6.95], "2026-09-27": [null, 6.95], "2026-09-28": [null, 7.85], "2026-09-29": [null, 7.85], "2026-09-30": [null, 7.85], "2026-10-01": [null, 7.85], "2026-10-02": [null, 8.85], "2026-10-03": [null, 9.1], "2026-10-04": [null, 9.1], "2026-10-05": [0.1749, 9.1], "2026-10-06": [0.1717, 9.1], "2026-10-07": [0.1685, 9.1], "2026-10-08": [0.196, 10.78], "2026-10-09": [0.1925, 10.78], "2026-10-10": [0.1891, 10.78], "2026-10-11": [0.1858, 10.78], "2026-10-12": [0.1828, 10.78], "2026-10-13": [0.1797, 10.78], "2026-10-14": [0.1767, 10.78], "2026-10-15": [0.1739, 10.78], "2026-10-16": [0.1712, 10.78], "2026-10-17": [0.1684, 10.78], "2026-10-18": [0.1658, 10.78], "2026-10-19": [0.1633, 10.78], "2026-10-20": [0.1609, 10.78], "2026-10-21": [0.1688, 11.48], "2026-10-22": [0.1664, 11.48], "2026-10-23": [0.164, 11.48], "2026-10-24": [0.1617, 11.48], "2026-10-25": [0.1594, 11.48], "2026-10-26": [0.1573, 11.48], "2026-10-27": [0.1551, 11.48], "2026-10-28": [null, 11.48], "2026-10-29": [0.151, 11.48]}, "control": {"2026-08-14": [null, 0.42], "2026-08-15": [null, 0.63], "2026-08-16": [null, 0.63], "2026-08-17": [null, 0.63], "2026-08-18": [null, 0.42], "2026-08-19": [null, 0.42], "2026-08-20": [null, 0.42], "2026-08-21": [null, 0.42], "2026-08-22": [null, 0.42], "2026-08-23": [null, 0.63], "2026-08-24": [null, 0.63], "2026-08-25": [null, 0.63], "2026-08-26": [null, 0.63], "2026-08-27": [null, 1.21], "2026-08-28": [null, 1.21], "2026-08-29": [null, 1.21], "2026-08-30": [null, 1.21], "2026-08-31": [null, 1.21], "2026-09-01": [null, 1.21], "2026-09-02": [null, 1.21], "2026-09-03": [null, 1.21], "2026-09-04": [null, 1.21], "2026-09-05": [null, 1.81], "2026-09-06": [null, 1.81], "2026-09-07": [null, 1.81], "2026-09-08": [null, 1.81], "2026-09-09": [null, 1.81], "2026-09-10": [null, 2.24], "2026-09-11": [null, 2.24], "2026-09-12": [null, 2.24], "2026-09-13": [null, 2.24], "2026-09-14": [null, 2.24], "2026-09-15": [null, 2.24], "2026-09-16": [null, 3.45], "2026-09-17": [null, 3.45], "2026-09-18": [null, 3.45], "2026-09-19": [null, 3.45], "2026-09-20": [null, 3.45], "2026-09-21": [null, 3.45], "2026-09-22": [null, 3.67], "2026-09-23": [null, 3.67], "2026-09-24": [null, 3.67], "2026-09-25": [null, 3.67], "2026-09-26": [null, 3.67], "2026-09-27": [null, 3.67], "2026-09-28": [null, 4.75], "2026-09-29": [null, 4.75], "2026-09-30": [null, 4.75], "2026-10-01": [null, 4.75], "2026-10-02": [null, 4.75], "2026-10-03": [null, 5.83], "2026-10-04": [null, 5.83], "2026-10-05": [0.1121, 5.83], "2026-10-06": [0.1099, 5.83], "2026-10-07": [0.1079, 5.83], "2026-10-08": [0.1059, 5.83], "2026-10-09": [0.1041, 5.83], "2026-10-10": [0.1022, 5.83], "2026-10-11": [0.1005, 5.83], "2026-10-12": [0.0988, 5.83], "2026-10-13": [0.1128, 6.77], "2026-10-14": [0.111, 6.77], "2026-10-15": [0.1092, 6.77], "2026-10-16": [0.1074, 6.77], "2026-10-17": [0.1057, 6.77], "2026-10-18": [0.1041, 6.77], "2026-10-19": [0.1025, 6.77], "2026-10-20": [0.101, 6.77], "2026-10-21": [0.0995, 6.77], "2026-10-22": [0.0981, 6.77], "2026-10-23": [0.0967, 6.77], "2026-10-24": [0.0953, 6.77], "2026-10-25": [0.094, 6.77], "2026-10-26": [0.0927, 6.77], "2026-10-27": [0.0915, 6.77], "2026-10-28": [null, 7.97], "2026-10-29": [0.1049, 7.97]}}, "cost2": {"seafeed": {"2026-11-04": [1.56], "2026-11-05": [1.56], "2026-11-06": [1.56], "2026-11-07": [1.56], "2026-11-08": [1.56], "2026-11-09": [1.56], "2026-11-10": [2.17], "2026-11-11": [2.17], "2026-11-12": [2.79], "2026-11-13": [2.79], "2026-11-14": [2.79], "2026-11-15": [2.79], "2026-11-16": [2.79], "2026-11-17": [4.29]}, "control": {"2026-11-04": [0.9], "2026-11-05": [0.9], "2026-11-06": [0.9], "2026-11-07": [0.9], "2026-11-08": [0.9], "2026-11-09": [1.12], "2026-11-10": [1.12], "2026-11-11": [1.12], "2026-11-12": [1.12], "2026-11-13": [1.12], "2026-11-14": [1.12], "2026-11-15": [1.12], "2026-11-16": [1.12], "2026-11-17": [1.77]}}}, "trt": {"ser1": {"seafeed": {}, "control": {}}, "ser2": {"seafeed": {}, "control": {}}, "em1": {"2026-10-23": [0, 0, null], "2026-10-24": [0, 0, null], "2026-10-25": [0, 0, null], "2026-10-26": [0, 0, null], "2026-10-27": [1.1, 5.5, null], "2026-10-28": [2.8, 13.9, null], "2026-10-29": [2.8, 13.9, null], "2026-10-30": [2.8, 13.9, null], "2026-10-31": [2.8, 13.9, null], "2026-11-01": [2.8, 13.9, null], "2026-11-02": [2.8, 13.9, null], "2026-11-03": [2.8, 13.9, null], "2026-11-04": [2.8, 13.8, null], "2026-11-05": [2.8, 13.8, null], "2026-11-06": [2.8, 13.8, null], "2026-11-07": [2.8, 13.8, null], "2026-11-08": [2.8, 13.8, null], "2026-11-09": [2.8, 13.8, null], "2026-11-10": [4.5, 22.5, null], "2026-11-11": [5.5, 27.6, null], "2026-11-12": [5.5, 27.6, null], "2026-11-13": [5.5, 27.6, null], "2026-11-14": [5.5, 27.6, null], "2026-11-15": [5.5, 27.6, null], "2026-11-16": [5.5, 27.6, null], "2026-11-17": [2.8, 13.8, null]}, "em2": {}, "ctl2": null, "cost1": {"seafeed": {"2026-10-23": [null, 0.35], "2026-10-24": [null, 0.35], "2026-10-25": [null, 0.35], "2026-10-26": [null, 0.35], "2026-10-27": [null, 0.35], "2026-10-28": [null, 0.35], "2026-10-29": [null, 0.52], "2026-10-30": [null, 0.52], "2026-10-31": [null, 0.52], "2026-11-01": [null, 0.52], "2026-11-02": [null, 0.52], "2026-11-03": [null, 0.52], "2026-11-04": [null, 0.52], "2026-11-05": [null, 0.7], "2026-11-06": [null, 0.7], "2026-11-07": [null, 0.7], "2026-11-08": [null, 0.7], "2026-11-09": [null, 0.7], "2026-11-10": [null, 0.87], "2026-11-11": [null, 0.87], "2026-11-12": [null, 0.87], "2026-11-13": [null, 1.92], "2026-11-14": [null, 1.92], "2026-11-15": [null, 1.92], "2026-11-16": [null, 1.92], "2026-11-17": [null, 1.92]}, "control": {"2026-10-23": [null, 0.21], "2026-10-24": [null, 0.21], "2026-10-25": [null, 0.21], "2026-10-26": [null, 0.21], "2026-10-27": [null, 0.32], "2026-10-28": [null, 0.32], "2026-10-29": [null, 0.32], "2026-10-30": [null, 0.32], "2026-10-31": [null, 0.32], "2026-11-01": [null, 0.32], "2026-11-02": [null, 0.32], "2026-11-03": [null, 0.32], "2026-11-04": [null, 0.32], "2026-11-05": [null, 0.32], "2026-11-06": [null, 0.32], "2026-11-07": [null, 0.32], "2026-11-08": [null, 0.32], "2026-11-09": [null, 0.43], "2026-11-10": [null, 0.43], "2026-11-11": [null, 0.43], "2026-11-12": [null, 0.53], "2026-11-13": [null, 1.17], "2026-11-14": [null, 1.17], "2026-11-15": [null, 1.17], "2026-11-16": [null, 1.17], "2026-11-17": [null, 1.17]}}, "cost2": {"seafeed": {}, "control": {}}}};
+const G='#5fd3ad', W='#ffffff', C='#e8735a', GR='#1b3a52', TX='#a9b8c4', GY='#5b6b78';
+Chart.defaults.color=TX; Chart.defaults.font.family='Tahoma,Verdana,sans-serif';
+const sm=(a,n)=>a.map((_,i)=>{const s=a.slice(Math.max(0,i-n+1),i+1).filter(v=>v!=null);return s.length?s.reduce((x,y)=>x+y,0)/s.length:null});
+const li=(arr)=>arr.map(([c,t])=>`<li><span class="${c}">${{y:'✓',p:'!',n:'✗'}[c]||'→'}</span>${t}</li>`).join('');
+const li2=(arr)=>arr.map(([c,t])=>`<li><span class="${c}">${{q:'?'}[c]||'→'}</span>${t}</li>`).join('');
+
+/* ---------- per-farm content ---------- */
+const CFG={
+bw:{gov:'Bowood',govFull:'Bowood Farm',pub:'Farm 1',idx:1,
+ mark:'2026-11-04',c1end:'2026-11-04',c2from:'2026-11-05',tltitle:'ADG by cohort, 7-day average (g/day). Marker: crossover, 4 Nov',
+ tlnote:"Cohort 2 follows the 4 November crossover. Its mobs are not the same lines as Cohort 1's, so colours show treatment, not continuity.",
+ ev:[['y','Both mobs compared over identical dates and days'],['y','Crossover lets each farm repeat the test'],['p','Mobs not randomised: different start weights, paddocks and start dates'],['p','Daily ADG swings by hundreds of g/day'],['n','No full finishing period yet'],['n','Methane abatement is modelled, not measured']],
+ STAT:{1:'13 May to 3 Nov · 160 head per mob · 123 matched days',2:'From 4 Nov · day 13 · mob composition to confirm'},
+ VER:{g:{1:'The mobs finished level. No growth benefit is visible, and at full cost (no subsidy) KleenGrow returned -$31.55 per head.',2:'Too early to call. Cohort 2 is 13 days in and its figures are building, so read the figures as a status, not a result.'},
+      p:{1:'The mobs finished level. No growth benefit is visible, and KleenGrow cost less than budgeted.',2:'Too early to call. Cohort 2 is 13 days in and its figures are building, so read the figures as a status, not a result.'}},
+ GSUB:{1:'Both mobs gained strongly through spring. Season drives growth far more than treatment.',2:'Cohort 2 has 14 days of data. Treat differences between mobs as unreliable until bands separate and a 30-day window exists.'},
+ MSUB:{1:'Cattle ate about half the block the methane model assumes, so modelled abatement is small.',2:'Cohort 2 has a single day of modelled emissions, so there is no trend yet.'},
+ CSUB:{g:{1:'KleenGrow cost less than budgeted but did not grow extra weight to pay for itself.',2:'Cohort 2 cost data starts on 4 November. Figures here are cumulative spend so far, not a result.'},
+       p:{1:'KleenGrow cost less than budgeted, but cattle ate about half the planned dose and gained no extra weight.',2:'Cohort 2 cost data starts on 4 November and is too early to report.'}},
+ WNOTE:{1:'KleenGrow mob started 13 May, standard mob 16 June, so early weights are not like-for-like.',2:'Cohort 2 starting weights differ between mobs (KleenGrow 386 kg, control 364 kg on 4 Nov).'},
+ p2tbl:`<h4>Matched comparison, Cohort 1 (g/day)</h4>
+  <table><tr><th>Window</th><th>KleenGrow</th><th>Control</th><th>Diff</th></tr>
+  <tr><td>Mean 30-day ADG<br><span class="note">15 Jul to 3 Nov, 54 days</span></td><td>1,166</td><td>1,231</td><td class="neg">-65</td></tr>
+  <tr><td>90-day ADG<br><span class="note">to 3 Nov</span></td><td>1,280</td><td>1,395</td><td class="neg">-115</td></tr>
+  <tr><td>Gain per head<br><span class="note">123 days, 160 head each</span></td><td>126.2 kg</td><td>125.9 kg</td><td>+0.3 kg</td></tr></table>
+  <p class="note" style="margin-top:12px">Cohort 2 has no matched window yet: its 30-day ADG needs about 30 days of data.</p>`,
+ p3read:'Abatement is modelled from block intake, not measured on the animal. Cohort 1 intake of 53 g/day sits well below the 90 g/day budget assumption and the 150 g lower dose, so abatement stays low. Cohort 2 intake is higher, but has one day of data.',
+ p4econ:`<h4>Cohort 1 economics. 123 matched days, $4.85/kg liveweight (MLA NHSI, 29 Oct 2026)</h4>
+  <table><tr><th>Measure</th><th>Full cost (no subsidy)</th><th>Farmer share (60.23%)</th></tr>
+  <tr><td>KleenGrow cost per head</td><td>$33.05</td><td>$19.91</td></tr>
+  <tr><td>Extra gain needed (kg/head)</td><td>6.8</td><td>4.1</td></tr>
+  <tr><td>Extra gain achieved (kg/head)</td><td>0.3</td><td>0.3</td></tr>
+  <tr><td>Net per head</td><td class="neg">-$31.55</td><td class="neg">-$18.40</td></tr>
+  <tr><td>Net, whole KleenGrow mob (160)</td><td class="neg">-$5,048</td><td class="neg">-$2,945</td></tr></table>
+  <p class="note">Negative at every sale price tested ($3.50 to $5.50 per kg), at full cost and at the farmer share. Full cost is the headline because the project asks whether KleenGrow is feasible for producers without a subsidy.</p>`,
+ p4cross:`<h4>Against budget and across farms</h4>
+  <table><tr><th></th><th>Bowood</th><th>Eastbourne</th></tr>
+  <tr><td>KleenGrow cost ($/head/day)</td><td>0.19</td><td>0.15</td></tr>
+  <tr><td>Budget planning rate</td><td>0.329</td><td>0.329</td></tr>
+  <tr><td>Extra gain vs standard (kg)</td><td>+0.3</td><td>+4.6</td></tr>
+  <tr><td>Net per head, full cost</td><td class="neg">-$31.55</td><td class="pos">+$10.61</td></tr>
+  <tr><td>Net per head, farmer share (60.23%)</td><td class="neg">-$18.40</td><td class="pos">+$15.17</td></tr>
+  <tr><td>Days compared</td><td>123</td><td>62</td></tr></table>
+  <p class="note">Eastbourne's gain rests on a single day's reading and is fragile. Neither farm yet supports a conclusion on economic viability.</p>`,
+ net:[[-31.55,-18.40,-14.10],C], dose:[53.2,63.9], bud:[59,46],
+ p6sub:'Context for the growth result: season and pasture explain much of the gain in both mobs.',
+ p6g:`<div class="grid g12">
+    <div class="card"><h4>Paddock map</h4>
+      <div class="map" data-src="Map widget · web map 'Bowood paddock heat maps (private)' · Paddock_Boundaries + LEL_Unit_Location_Daily">
+        <svg viewBox="0 0 400 300" width="100%" height="100%" preserveAspectRatio="xMidYMid slice"><rect width="400" height="300" fill="#0a1d12"/>
+          <g fill="#17402b" stroke="#2f7f5a" stroke-width="1"><path d="M20 30 L120 20 L135 90 L35 100Z"/><path d="M135 90 L120 20 L215 15 L225 85Z"/><path d="M225 85 L215 15 L310 25 L320 95Z"/><path d="M35 100 L135 90 L150 170 L45 185Z" fill="#1d5a3a"/><path d="M150 170 L135 90 L225 85 L240 165Z" fill="#2a7a4e"/><path d="M240 165 L225 85 L320 95 L335 170Z"/><path d="M45 185 L150 170 L160 255 L55 270Z"/><path d="M160 255 L150 170 L240 165 L250 250Z" fill="#1d5a3a"/><circle cx="300" cy="225" r="42"/><circle cx="365" cy="60" r="28"/></g>
+          <circle cx="190" cy="135" r="6" fill="#5fd3ad" stroke="#fff" stroke-width="1.5"/><circle cx="102" cy="225" r="6" fill="#fff" stroke="#07141f" stroke-width="1.5"/></svg>
+      </div>
+      <div class="legend"><span><i style="background:#5fd3ad"></i>KleenGrow unit</span><span><i style="background:#fff"></i>Control unit</span></div>
+      <p class="note">Schematic only. The real Map widget shows the digitised paddocks (80 of about 91 drawn). Unit GPS is the unit's position, not the whole mob's.</p></div>
+    <div>
+      <div class="grid g2" style="margin-bottom:var(--gap)">
+        <div class="card kpi" data-src="Text + Card · Bowood pasture report"><div class="t">ADG Jun to Aug</div><div class="v ctl">592 <small>g</small></div><div class="d">Per Day</div></div>
+        <div class="card kpi" data-src="Text + Card · Bowood pasture report"><div class="t">ADG Sep to Nov</div><div class="v">1,410 <small>g</small></div><div class="d">Per Day</div></div>
+      </div>
+      <div class="card"><h4>Season context, Cohort 1</h4>
+        <table><tr><th>Measure</th><th>Jun to Aug</th><th>Sep to 3 Nov</th></tr><tr><td>Mean temperature (°C)</td><td>9.4</td><td>12.1</td></tr><tr><td>Rainfall per fortnight (mm)</td><td>49</td><td>32</td></tr><tr><td>Greenness (NDVI)</td><td>0.74</td><td>0.88</td></tr></table>
+        <p class="note">A greener paddock did not mean faster gain between mobs (rank correlation +0.23, 19 readings, not significant). KleenGrow paddocks were slightly less green on 10 of 11 paired scenes, from only 4 pairings.</p></div>
+    </div>
+  </div>
+  <div class="card"><h4>Pasture quality (private table)</h4><div class="ph" data-src="Table widget · LEL_Pasture_Quality_Public (https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Pasture_Quality_Public/FeatureServer/0) · crude_protein_pct_dm, andf_pct_dm, me_mj_per_kg by treatment, farm_name = selected">Placeholder: crude protein, aNDF and metabolisable energy by mob (two {n} samples, 4 Nov).</div></div>`,
+ p6p:`<div class="grid g2">
+    <div class="card"><h4>Season and gain, {n} Cohort 1</h4>
+      <table><tr><th>Measure</th><th>Jun to Aug</th><th>Sep to 3 Nov</th></tr><tr><td>Average daily gain (g/day)</td><td>592</td><td>1,410</td></tr><tr><td>Mean temperature (°C)</td><td>9.4</td><td>12.1</td></tr><tr><td>Rainfall per fortnight (mm)</td><td>49</td><td>32</td></tr><tr><td>Greenness (NDVI)</td><td>0.74</td><td>0.88</td></tr></table>
+      <p class="note">Gain rose with the season in both mobs, so season acts on treatment and control alike.</p></div>
+    <div class="card"><h4>What this means for the trial</h4><p class="note" style="font-size:13px;margin:0">A greener paddock did not mean faster gain between mobs (rank correlation +0.23, 19 readings, not significant). Mobs are not randomised, so feed was not perfectly balanced. The crossover that began on 4 November lets each mob act as its own comparison. Paddock-level maps are held in the farm's private view.</p></div>
+  </div>
+  <div class="card"><h4>Pasture quality (private table)</h4><div class="ph">Placeholder: crude protein, aNDF and metabolisable energy by mob (two {n} samples, 4 Nov).</div></div>`,
+ notes:[['y','Neither farm shows a consistent growth benefit from KleenGrow so far'],['y','Cost came in 41% to 54% under budget'],['y','Block intake is about half the model dose, so modelled abatement is small'],['p','Bowood is negative at every sale price tested; Eastbourne is positive but fragile']],
+ dec:[['q','Raise block intake toward the model dose, or accept low abatement?'],['q','Add measured methane (AgScent) at Bowood to test the model?'],['q','Extend the trial to a full finishing period before reporting economics?'],['q','Confirm farmer agreement before any farm-by-name sharing']],
+ K:{1:{w_sf:['346.7 <small>kg</small>'],w_n:['Control 367.2 kg · 4 Nov'],adg_t:['30-Day ADG, KleenGrow vs Control'],adg_v:['-65 <small>g/day</small>','bad'],adg_d:['-5% · 1,166 vs 1,231'],adg_n:['15 Jul to 3 Nov, 54 matched days'],
+  ab_v:['10.6 <small>%</small>'],ab_d:['19.0 g CH₄ Per Head / Day'],ab_n:['Modelled from 53 g/day intake'],m_g:['19.0 <small>g</small>'],in_v:['53.2 <small>g</small>'],
+  co_v:['$0.19'],co_d:['Per Head / Day'],co_n:['41% under the $0.329 budget'],cc_v:['$0.12'],cph_v:['$33.05'],nv_v:['-$14.10','bad'],iv_v:['59% <small>of model</small>'],
+  g_v:['6.8 vs 0.3 <small>kg</small>','bad'],g_d:['Per Head, Full Cost (No Subsidy)'],g_n:['4.1 kg at the 60.23% farmer share'],n_v:['-$5,048','bad'],n_d:['160 Head, Full Cost, $4.85/kg Liveweight'],n_n:['-$5,048 at full KleenGrow cost'],
+  pt1:['KleenGrow 30-Day ADG'],pv1:['1,166 <small>g/day</small>'],pd1:['Matched, 15 Jul to 3 Nov'],pt2:['Control 30-Day ADG'],pv2:['1,231 <small>g/day</small>'],pd2:['Matched, 15 Jul to 3 Nov'],pt3:['KleenGrow 90-Day ADG'],pv3:['1,280 <small>g/day</small>'],pd3:['To 3 Nov'],pt4:['Control 90-Day ADG'],pv4:['1,395 <small>g/day</small>'],pd4:['To 3 Nov']},
+  2:{w_sf:['390.8 <small>kg</small>'],w_n:['Control 372.3 kg · 17 Nov'],adg_t:['14-Day ADG, KleenGrow vs Control'],adg_v:['+376 <small>g/day</small>'],adg_d:['1,809 vs 1,433 · bands overlap'],adg_n:['Not yet a matched 30-day window'],
+  ab_v:['12.8 <small>%</small>'],ab_d:['Modelled, 1 day of data'],ab_n:['Intake 63.9 g/day'],m_g:['—'],in_v:['63.9 <small>g</small>'],
+  co_v:['—'],co_d:['Needs 14+ days of cost history'],co_n:['Cost so far $2.72 vs $1.85 per head'],cc_v:['—'],cph_v:['$2.72'],nv_v:['—'],iv_v:['71% <small>of model</small>'],
+  g_v:['—'],g_d:['Too early to calculate'],g_n:['Needs a longer matched window'],n_v:['—'],n_d:['Too early to calculate'],n_n:['Updates as data builds'],
+  pt1:['KleenGrow 14-Day ADG'],pv1:['2,240 <small>g/day</small>'],pd1:['OptiWeigh, 17 Nov'],pt2:['Control 14-Day ADG'],pv2:['1,552 <small>g/day</small>'],pd2:['OptiWeigh, 17 Nov'],pt3:['KleenGrow 90-Day ADG'],pv3:['1,649 <small>g/day</small>'],pd3:['OptiWeigh, 17 Nov'],pt4:['Control 90-Day ADG'],pv4:['1,482 <small>g/day</small>'],pd4:['OptiWeigh, 17 Nov']}},
+ KP:{1:{co_v:['59% <small>of budget</small>'],co_d:['KleenGrow Cost Rate'],co_n:['41% under the project planning rate'],g_d:['Per Head to Cover KleenGrow Cost'],g_n:['Achieved 0.3 kg'],n_v:['123 <small>days</small>'],n_d:['160 Head Per Mob'],n_n:['13 May to 3 Nov']},
+  2:{co_n:['Cost data building'],g_d:['Per Head to Cover KleenGrow Cost'],n_v:['13 <small>days</small>'],n_d:['Matched window needs about 30 days']}}
+},
+eb:{gov:'Eastbourne',govFull:'Eastbourne Farm',pub:'Farm 2',idx:2,
+ mark:'2026-10-28',c1end:'2026-10-28',c2from:'2026-10-29',tltitle:'ADG by cohort, 7-day average (g/day). Marker: new cohort, 28 Oct',
+ tlnote:'Cohort 2 began on 28 October with re-drafted mobs (new OptiWeigh sessions). Colours show treatment, not continuity. Cohort 1 ADG is noisy: the KleenGrow lead rests on matched 30-day windows, not on single days.',
+ ev:[['y','Both mobs compared over identical dates and days'],['y','Cohort 2 repeats the test from 28 Oct, with near-identical start weights (394 kg)'],['p','Mobs not randomised: different start weights, paddocks and start dates'],['p','Gain advantage is fragile: it swung between about -2 and +5 kg'],['p','Standard mob 14-day ADG rests on 29 animals'],['n','Only 62 days compared; no 180-day figure yet'],['n','Methane abatement is modelled, not measured']],
+ STAT:{1:'14 Aug to 28 Oct · 206 KleenGrow and 191 standard head · 62 matched days',2:'From 28 Oct · day 20 · re-drafted mobs · head counts to confirm'},
+ VER:{g:{1:"KleenGrow gained 4.6 kg more per head over 62 days, but the advantage is fragile and rests on a single day's reading.",2:'Too early to call. Cohort 2 is 20 days in and its figures are building, so read the figures as a status, not a result.'}},
+ GSUB:{1:'The KleenGrow mob gained slightly more than the standard mob over matched dates, within the range of normal variation.',2:'Cohort 2 has 21 days of data. Treat differences between mobs as unreliable until bands separate and a 30-day window exists.'},
+ MSUB:{1:'Cattle ate less than half the block the methane model assumes, so modelled abatement is small.',2:'Cohort 2 has eight days of modelled emissions, so the trend is short.'},
+ CSUB:{g:{1:'KleenGrow cost less than budgeted and grew enough extra weight to pay for itself, but the gain is fragile.',2:'Cohort 2 cost data starts on 28 October. Figures here are cumulative spend so far, not a result.'},
+       p:{1:'KleenGrow cost less than budgeted and its extra gain exceeded the full-cost break-even (4.6 kg achieved, 2.4 kg needed), but the gain is fragile.',2:'Cohort 2 cost data starts on 28 October and is too early to report.'}},
+ WNOTE:{1:'KleenGrow mob went live 14 August, standard mob 21 August, so early weights are not like-for-like.',2:'Cohort 2 mobs started at near-identical weights (about 394 kg on 28 Oct).'},
+ p2tbl:`<h4>Matched comparison, Cohort 1</h4>
+  <table><tr><th>Measure</th><th>KleenGrow</th><th>Control</th><th>Diff</th></tr>
+  <tr><td>Mean 30-day ADG (g/day)<br><span class="note">4 to 28 Oct, 22 days</span></td><td>1,081</td><td>1,060</td><td class="pos">+21</td></tr>
+  <tr><td>Gain per head (kg)<br><span class="note">62 days compared</span></td><td>77.1</td><td>72.5</td><td class="pos">+4.6</td></tr>
+  <tr><td>Head compared</td><td>206</td><td>191</td><td>–</td></tr></table>
+  <p class="note" style="margin-top:12px">Cohort 2 has no matched window yet: its 30-day ADG needs about 30 days of data.</p>`,
+ p3read:'Abatement is modelled from block intake, not measured on the animal. Cohort 1 intake averaged 41 g/day, well below the 90 g/day budget assumption and the 150 g lower dose, so abatement stays low. Cohort 2 intake is similar at 44 g/day.',
+ p4econ:`<h4>Cohort 1 economics. 62 matched days, $4.85/kg liveweight (MLA NHSI, 29 Oct 2026)</h4>
+  <table><tr><th>Measure</th><th>Full cost (no subsidy)</th><th>Farmer share (60.23%)</th></tr>
+  <tr><td>KleenGrow cost per head</td><td>$11.48</td><td>$6.91</td></tr>
+  <tr><td>Extra gain needed (kg/head)</td><td>2.4</td><td>1.4</td></tr>
+  <tr><td>Extra gain achieved (kg/head)</td><td>4.6</td><td>4.6</td></tr>
+  <tr><td>Net per head</td><td class="pos">+$10.61</td><td class="pos">+$15.17</td></tr>
+  <tr><td>Net, whole KleenGrow mob (206)</td><td class="pos">+$2,185</td><td class="pos">+$3,125</td></tr></table>
+  <p class="note">At full cost (no subsidy), net runs from about +$4 to +$14 per head across $3.50 to $5.50 per kg (+$9 to +$18 at the farmer share). Full cost is the headline because the project asks whether KleenGrow is feasible for producers without a subsidy.</p>`,
+ p4cross:`<h4>Against budget and across farms</h4>
+  <table><tr><th></th><th>Eastbourne</th><th>Bowood</th></tr>
+  <tr><td>KleenGrow cost ($/head/day)</td><td>0.15</td><td>0.19</td></tr>
+  <tr><td>Budget planning rate</td><td>0.329</td><td>0.329</td></tr>
+  <tr><td>Extra gain vs standard (kg)</td><td>+4.6</td><td>+0.3</td></tr>
+  <tr><td>Net per head, full cost</td><td class="pos">+$10.61</td><td class="neg">-$31.55</td></tr>
+  <tr><td>Net per head, farmer share (60.23%)</td><td class="pos">+$15.17</td><td class="neg">-$18.40</td></tr>
+  <tr><td>Days compared</td><td>62</td><td>123</td></tr></table>
+  <p class="note">Eastbourne's gain rests on a single day's reading and is fragile. Neither farm yet supports a conclusion on economic viability.</p>`,
+ net:[[10.61,15.17,18.58],G], dose:[42.3,44.0], bud:[46,59],
+ p6sub:'Context for the growth result. Not yet available for this farm.',
+ p6g:`<div class="grid g2">
+    <div class="card"><h4>Paddock map</h4><div class="ph" data-src="Map widget · future: Eastbourne paddock polygons + LEL_Unit_Location_Daily">Placeholder. No Eastbourne paddock polygons have been drawn yet, so unit locations cannot be tied to paddocks.</div></div>
+    <div class="card"><h4>Season and greenness</h4><div class="ph" data-src="Chart widget · future: NDVI and weather analysis as done for the farm in the Bowood pasture report">Placeholder. The satellite greenness and weather analysis done for Bowood has not been run for Eastbourne.</div></div>
+  </div>
+  <div class="card"><h4>Pasture quality (private table)</h4><div class="ph" data-src="Table widget · LEL_Pasture_Quality_Public (https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Pasture_Quality_Public/FeatureServer/0) · farm_name = Eastbourne Farm (no samples loaded yet)">Placeholder: crude protein, aNDF and metabolisable energy by mob, once Eastbourne samples are loaded (script 26).</div></div>`,
+ p6p:`<div class="grid g2">
+    <div class="card"><h4>Season and greenness</h4><div class="ph">Placeholder. The satellite greenness and weather analysis done for Farm 1 has not been run for {n}.</div></div>
+    <div class="card"><h4>Pasture quality (private table)</h4><div class="ph">Placeholder: crude protein, aNDF and metabolisable energy by mob, once {n} samples are loaded.</div></div>
+  </div>`,
+ notes:[['y','KleenGrow gained 4.6 kg more per head over 62 days, net +$10.61 per head at full cost (no subsidy)'],['p','The advantage is fragile: it moved between about -2 and +5 kg during the trial'],['y','Cost came in 54% under budget ($0.15 against $0.329 per head per day)'],['p','Intake averaged 41 g/day against the 90 g/day the model assumes, so modelled abatement is small (8.5%)']],
+ dec:[['q','Wait for Cohort 2 to reach a 30-day matched window before drawing conclusions?'],['q','Add measured methane (AgScent) to test the modelled abatement?'],['q','Draw Eastbourne paddocks so pasture can be tested as a driver of gain?'],['q','Confirm farmer agreement before any farm-by-name sharing']],
+ K:{1:{w_sf:['375.1 <small>kg</small>'],w_n:['Control 386.6 kg · 28 Oct'],adg_t:['30-Day ADG, KleenGrow vs Control'],adg_v:['+21 <small>g/day</small>'],adg_d:['+2% · 1,081 vs 1,060'],adg_n:['4 to 28 Oct, 22 matched days'],
+  ab_v:['8.5 <small>%</small>'],ab_d:['17.4 g CH₄ Per Head / Day'],ab_n:['Modelled from 42 g/day intake'],m_g:['17.4 <small>g</small>'],in_v:['42.3 <small>g</small>'],
+  co_v:['$0.15'],co_d:['Per Head / Day'],co_n:['54% under the $0.329 budget'],cc_v:['$0.10'],cph_v:['$11.48'],nv_v:['+$18.58'],iv_v:['47% <small>of model</small>'],
+  g_v:['2.4 vs 4.6 <small>kg</small>'],g_d:['Per Head, Full Cost (No Subsidy)'],g_n:['1.4 kg at the 60.23% farmer share'],n_v:['+$2,185'],n_d:['206 Head, Full Cost, $4.85/kg Liveweight'],n_n:['+$2,185 at full KleenGrow cost'],
+  pt1:['KleenGrow 30-Day ADG'],pv1:['1,081 <small>g/day</small>'],pd1:['Matched, 4 to 28 Oct'],pt2:['Control 30-Day ADG'],pv2:['1,060 <small>g/day</small>'],pd2:['Matched, 4 to 28 Oct'],pt3:['KleenGrow Gain Per Head'],pv3:['77.1 <small>kg</small>'],pd3:['Over 62 Days'],pt4:['Standard Gain Per Head'],pv4:['72.5 <small>kg</small>'],pd4:['Over 62 Days']},
+  2:{w_sf:['406.7 <small>kg</small>'],w_n:['Control 407.0 kg · 17 Nov'],adg_t:['14-Day ADG, KleenGrow vs Control'],adg_v:['+115 <small>g/day</small>'],adg_d:['1,330 vs 1,215 · bands overlap'],adg_n:['Not yet a matched 30-day window'],
+  ab_v:['8.8 <small>%</small>'],ab_d:['18.5 g CH₄ Per Head / Day'],ab_n:['Modelled from 44 g/day intake'],m_g:['18.5 <small>g</small>'],in_v:['44.0 <small>g</small>'],
+  co_v:['—'],co_d:['Needs 14+ days of cost history'],co_n:['Cost so far $4.29 vs $1.77 per head'],cc_v:['—'],cph_v:['$4.29'],nv_v:['—'],iv_v:['49% <small>of model</small>'],
+  g_v:['—'],g_d:['Too early to calculate'],g_n:['Needs a longer matched window'],n_v:['—'],n_d:['Too early to calculate'],n_n:['Updates as data builds'],
+  pt1:['KleenGrow 14-Day ADG'],pv1:['1,330 <small>g/day</small>'],pd1:['Rolling, 17 Nov'],pt2:['Control 14-Day ADG'],pv2:['1,215 <small>g/day</small>'],pd2:['Rolling, 17 Nov'],pt3:['KleenGrow 30-Day ADG'],pv3:['1,193 <small>g/day</small>'],pd3:['OptiWeigh, still ramping'],pt4:['Control 30-Day ADG'],pv4:['1,231 <small>g/day</small>'],pd4:['OptiWeigh, still ramping']}},
+ KP:{1:{co_v:['46% <small>of budget</small>'],co_d:['KleenGrow Cost Rate'],co_n:['54% under the project planning rate'],g_d:['Per Head to Cover KleenGrow Cost'],g_n:['Achieved 4.6 kg'],n_v:['62 <small>days</small>'],n_d:['206 KleenGrow, 191 Standard Head'],n_n:['Matched, to 28 Oct']},
+  2:{co_n:['Cost data building'],g_d:['Per Head to Cover KleenGrow Cost'],n_v:['20 <small>days</small>'],n_d:['Matched window needs about 30 days']}}
+}
+,trt:{gov:'TRT Pastoral',govFull:'TRT Pastoral',pub:'Farm 3',idx:3,
+ mark:null,c1end:'9999',c2from:'9999',tltitle:'ADG by cohort (g/day)',tlnote:'',
+ chip:{1:['live','ONBOARDING']},
+ ev:[['n','No growth data yet: OptiWeigh units are not installed'],['n','No matched comparison is possible yet'],['y','Treatment and standard mobs are established (356 and 398 head)'],['p','Intake is provisional: early figures were inflated by one trough\'s single-day interval and were corrected on 17 Nov'],['n','Methane abatement is modelled, not measured']],
+ STAT:{1:'Lick blocks from 11 Oct · 356 KleenGrow and 398 standard head · OptiWeigh not installed',2:''},
+ VER:{g:{1:'Too early to report a result. Lick blocks started on 11 October, but OptiWeigh units are not yet installed, so there is no growth data to compare.',2:''}},
+ GSUB:{1:'No growth data yet. Weight and ADG will appear once OptiWeigh units are installed.',2:''},
+ MSUB:{1:'Modelled abatement and intake come from lick block feed-out records. Read them as provisional.',2:''},
+ CSUB:{g:{1:'Cumulative lick block spend per head only. Cost of gain cannot be calculated without weights.',2:''},p:{1:'Cost against budget cannot be reported yet.',2:''}},
+ WNOTE:{1:'Weights will appear once OptiWeigh units are installed.',2:''},
+ p2tbl:`<h4>Matched comparison</h4><div class="ph">No weight data yet. A matched comparison needs OptiWeigh readings from both mobs, and a 30-day window needs about 30 days of data.</div>`,
+ p3read:'Abatement is modelled from block intake, not measured on the animal. On 17 Nov the history to 16 Nov was rebuilt from the blocks actually put out: an earlier figure of about 54 g/day was mostly a one-day interval from one trough that was never visited again. The rebuilt rows read 0 to 27.6 g/day (27.6 g from 11 Nov assumes the four blocks put out on 10 Nov are eaten over a week). The 17 Nov row uses the last-interval rule and reads 13.8 g until the next visit is logged. All figures sit well below the 90 g/day assumption and are provisional.',
+ p4econ:`<h4>Cost so far, cumulative per head</h4>
+  <table><tr><th>Measure</th><th>KleenGrow</th><th>Standard block</th></tr>
+  <tr><td>Head</td><td>356</td><td>398</td></tr>
+  <tr><td>Cost per head so far</td><td>$1.92</td><td>$1.17</td></tr>
+  <tr><td>Cumulative cost, mob</td><td>$684</td><td>$465</td></tr></table>
+  <p class="note">Net return and break-even gain need weight data, so they are not shown yet.</p>`,
+ p4cross:`<h4>What is needed first</h4><ul class="tick"><li><span class="p">→</span>Install OptiWeigh units on both mobs</li><li><span class="p">→</span>A first matched window needs about 30 days of weights</li><li><span class="p">→</span>New farm data joins the trial-wide figures once the newest unit has been live 21 days</li></ul>`,
+ net:[[0,0,0],G], dose:[13.8], bud:[0], noweights:true,
+ p6sub:'Context for the growth result. Not yet available for this farm.',
+ p6g:`<div class="grid g2"><div class="card"><h4>Paddock map</h4><div class="ph">Placeholder. No paddock polygons have been drawn for this farm yet.</div></div><div class="card"><h4>Season and greenness</h4><div class="ph">Placeholder. Satellite greenness and weather analysis has not been run for this farm.</div></div></div><div class="card"><h4>Pasture quality (private table)</h4><div class="ph">Placeholder: crude protein, aNDF and metabolisable energy by mob, once {n} samples are loaded.</div></div>`,
+ p6p:`<div class="grid g2"><div class="card"><h4>Season and greenness</h4><div class="ph">Placeholder. Satellite greenness and weather analysis has not been run for {n}.</div></div><div class="card"><h4>Pasture quality (private table)</h4><div class="ph">Placeholder: crude protein, aNDF and metabolisable energy by mob, once {n} samples are loaded.</div></div></div>`,
+ notes:[['p','Lick blocks started on 11 Oct; OptiWeigh units are not yet installed'],['p','No growth, ADG or economic result can be reported yet'],['y','Treatment and standard mobs are established: 356 and 398 head'],['p','Intake and modelled abatement are provisional and move in steps with feed-out records']],
+ dec:[['q','Confirm the OptiWeigh installation date for this farm?'],['q','Agree when this farm joins the trial-wide figures?'],['q','Confirm farmer agreement before any farm-by-name sharing']],
+ K:{1:{w_sf:['—'],w_n:['No OptiWeigh yet'],adg_t:['ADG, KleenGrow vs Control'],adg_v:['—'],adg_d:['Awaiting OptiWeigh'],adg_n:['No weight data yet'],
+  ab_v:['2.8 <small>%</small>'],ab_d:['Modelled, 17 Nov'],ab_n:['From 13.8 g/day intake, provisional'],m_g:['—'],in_v:['13.8 <small>g</small>'],
+  co_v:['$1.92'],co_d:['Per Head, Cumulative'],co_n:['Standard block $1.17 per head'],cc_v:['$1.17'],cph_v:['$1.92'],nv_v:['—'],iv_v:['15% <small>of model</small>'],
+  g_v:['—'],g_d:['Needs weight data'],g_n:['Cannot be calculated yet'],n_v:['—'],n_d:['Needs weight data'],n_n:['Cannot be calculated yet'],
+  pt1:['KleenGrow ADG'],pv1:['—'],pd1:['Awaiting OptiWeigh'],pt2:['Control ADG'],pv2:['—'],pd2:['Awaiting OptiWeigh'],pt3:['KleenGrow Weight'],pv3:['—'],pd3:['Awaiting OptiWeigh'],pt4:['Control Weight'],pv4:['—'],pd4:['Awaiting OptiWeigh']}},
+ KP:{1:{co_v:['—'],co_d:['Needs a matched cost rate'],co_n:['Cost rate not yet reportable'],n_v:['—'],n_d:['Needs weight data']}}
+}};
+CFG.eb.VER.p=CFG.eb.VER.g;CFG.trt.VER.p=CFG.trt.VER.g;
+const COMMON={g:{co_t:'KleenGrow Cost',n_t:'Net Return At Full Cost'},p:{co_t:'Cost Against Budget',n_t:'Matched Days Compared'}};
+const REG=[['bw','Cohort 1','13 May (KleenGrow), 16 Jun (standard)','160 / 160','123','done','COMPLETE'],['bw','Cohort 2','4 Nov, crossover','to confirm','13','live','IN PROGRESS'],
+ ['eb','Cohort 1','14 Aug (KleenGrow), 21 Aug (standard)','206 / 191','62','done','COMPLETE'],['eb','Cohort 2','28 Oct, re-drafted mobs','to confirm','20','live','IN PROGRESS'],['trt','Cohort 1','Blocks from 11 Oct','356 / 398','–','live','ONBOARDING']];
+
+/* ---------- state ---------- */
+let F='bw', coh=1, aud='g', charts=[];
+const CH={};document.querySelectorAll('canvas').forEach(c=>CH[c.id]=[c.parentElement,c.parentElement.innerHTML]);
+const NOTE0={dose:document.getElementById('dosenote').textContent,bud:document.getElementById('budnote').textContent};
+const S=()=>CFG[F], nm=()=>aud=='g'?S().gov:S().pub, nmOf=k=>aud=='g'?CFG[k].gov:CFG[k].pub;
+const fill=s=>s.replaceAll('{n}',nm());
+function kv(key){const base=S().K[coh][key];const o=aud=='p'?S().KP[coh][key]:null;return o||base||(COMMON[aud][key]?[COMMON[aud][key]]:null)}
+
+function line(id,labels,sets,yt,o={}){
+  const c=new Chart(document.getElementById(id),{type:'line',data:{labels,datasets:sets.map(s=>({label:s.l,data:s.d,borderColor:s.c,backgroundColor:s.bg||s.c,borderWidth:s.w??2,pointRadius:0,tension:.35,spanGaps:true,fill:s.fill||false,borderDash:s.dash||[],segment:s.seg}))},
+   options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{position:'bottom',display:sets.filter(s=>!s.l.startsWith('_')).length>1,labels:{boxWidth:10,usePointStyle:true,filter:i=>!i.text.startsWith('_')}}},
+    scales:{x:{grid:{display:false},ticks:{maxTicksLimit:7,callback:function(v){return this.getLabelForValue(v).slice(5)}}},y:{grid:{color:GR},border:{display:false},title:{display:true,text:yt}}}},
+   plugins:o.mark?[{id:'m',afterDraw(ch){const i=labels.indexOf(o.mark);if(i<0)return;const x=ch.scales.x.getPixelForValue(i),a=ch.chartArea,g=ch.ctx;g.save();g.setLineDash([5,4]);g.strokeStyle='#e3b04b';g.beginPath();g.moveTo(x,a.top);g.lineTo(x,a.bottom);g.stroke();g.restore()}}]:[]});
+  charts.push(c);
+}
+function bars(id,labels,data,cols,yt){charts.push(new Chart(document.getElementById(id),{type:'bar',data:{labels,datasets:[{data,backgroundColor:cols,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{grid:{color:GR},border:{display:false},title:{display:true,text:yt}}}}}))}
+
+function render(){
+  charts.forEach(c=>c.destroy());charts=[];
+  if(F=='trt')coh=1;
+  document.querySelectorAll('#seg button').forEach(x=>{x.classList.toggle('on',+x.dataset.c==coh);x.style.display=(F=='trt'&&x.dataset.c=='2')?'none':''});
+  Object.values(CH).forEach(([p,h])=>p.innerHTML=h);
+  document.body.classList.toggle('pub',aud=='p');
+  if(aud=='p')document.body.classList.remove('notes');
+  const s=S(), d=D[F];
+  document.getElementById('h1').textContent=(aud=='g'?s.govFull:s.pub)+': KleenGrow™ Trial Results';
+  document.getElementById('hsub').textContent='Low Emissions Livestock Project. '+(aud=='g'?'Governance Committee view':'Summary for State Government')+'. Data to 17 November 2026';
+  document.getElementById('badge').textContent='MOCKUP v2'+(aud=='p'?' · GOVERNMENT':'');
+  // farm select
+  const sel=document.getElementById('farm');
+  sel.innerHTML=['bw','eb','trt'].map(k=>`<option value="${k}" ${k==F?'selected':''}>${aud=='g'?CFG[k].govFull:CFG[k].pub}</option>`).join('');
+  // status & text
+  const chip=s.chip?s.chip[coh]:[coh==1?'done':'live',coh==1?'COMPLETE':'IN PROGRESS'];
+  document.getElementById('status').innerHTML=`<span><span class="chip ${chip[0]}">${chip[1]}</span>&nbsp; <b>${nm()}, Cohort ${coh}</b></span><span>${s.STAT[coh]}</span>`;
+  document.getElementById('verdict').textContent=s.VER[aud][coh];
+  document.getElementById('gsub').textContent=s.GSUB[coh];
+  document.getElementById('msub').textContent=s.MSUB[coh];
+  document.getElementById('csub_g').textContent=s.CSUB.g[coh];document.getElementById('csub_p').textContent=s.CSUB.p[coh];
+  document.getElementById('wnote').textContent=s.WNOTE[coh];
+  document.getElementById('tltitle').textContent=s.tltitle;document.getElementById('tlnote').textContent=s.tlnote;
+  const evEl=document.getElementById('ev');if(evEl)evEl.innerHTML=li(s.ev);
+  document.getElementById('p2tbl').innerHTML=s.p2tbl;
+  document.getElementById('p3read').textContent=s.p3read;
+  document.getElementById('p4econ').innerHTML=s.p4econ;document.getElementById('p4cross').innerHTML=s.p4cross;
+  document.getElementById('p6sub').textContent=s.p6sub;
+  document.getElementById('p6c').innerHTML=fill(aud=='g'?s.p6g:s.p6p);
+  document.querySelectorAll('.fn').forEach(e=>e.textContent=nm());
+  document.getElementById('notes_g').innerHTML=li(s.notes);document.getElementById('dec_g').innerHTML=li2(s.dec);
+  // register: selected farm first
+  const rows=REG.filter(r=>r[0]==F).concat(REG.filter(r=>r[0]!=F));
+  const trow='';
+  const reg=`<tr><th>Farm and cohort</th><th>Start</th><th>Head (KleenGrow / standard)</th><th>Days compared</th><th>Status</th></tr>`+rows.map(r=>`<tr><td>${nmOf(r[0])}, ${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td><span class="chip ${r[5]}">${r[6]}</span></td></tr>`).join('')+trow;
+  document.getElementById('reg_g').innerHTML=reg;document.getElementById('reg_p').innerHTML=reg;
+  // KPIs
+  document.querySelectorAll('[data-f]').forEach(e=>{const v=kv(e.dataset.f);if(!v)return;e.innerHTML=v[0];e.classList.remove('bad');if(v[1])e.classList.add('bad')});
+  // charts
+  const Sr=coh==1?d.ser1:d.ser2, dates=[...new Set([...Object.keys(Sr.seafeed),...Object.keys(Sr.control)])].sort();
+  const pk=(g,i)=>dates.map(x=>Sr[g][x]?Sr[g][x][i]:null);
+  const all=[...new Set([...Object.keys(d.ser1.seafeed),...Object.keys(d.ser1.control),...Object.keys(d.ser2.seafeed)])].sort();
+  const tl=(g,from)=>all.map(x=>x>=from&&d.ser2[g][x]?d.ser2[g][x][1]:null);
+  const c1=g=>{const v=sm(all.map(x=>d.ser1[g][x]?d.ser1[g][x][1]:null),7);return all.map((x,i)=>x<=s.c1end?v[i]:null)};
+  const has=Object.keys(d.ser1.seafeed).length>0;const PH=(id,t)=>{const cv=document.getElementById(id);cv.parentElement.innerHTML=`<div class="ph" style="height:100%">${t}</div>`};
+  if(!has){['c_tl','c_w','c_adg','c_diff'].forEach(i=>PH(i,'No weight data yet: OptiWeigh units are not installed.'))}
+  else{line('c_tl',all,[{l:'KleenGrow, Cohort 1',d:c1('seafeed'),c:G},{l:'Control, Cohort 1',d:c1('control'),c:W},{l:'KleenGrow, Cohort 2',d:tl('seafeed',s.c2from),c:G,dash:[4,3]},{l:'Control, Cohort 2',d:tl('control',s.c2from),c:W,dash:[4,3]}],'g/day',{mark:s.mark});
+  line('c_w',dates,[{l:'KleenGrow',d:pk('seafeed',0),c:G},{l:'Control',d:pk('control',0),c:W}],'kg');
+  const bs=(g,i)=>sm(pk(g,i),coh==1?7:1), z='rgba(0,0,0,0)';
+  line('c_adg',dates,[{l:'_a',d:bs('seafeed',2),c:z,w:0},{l:'_b',d:bs('seafeed',3),c:z,w:0,fill:'-1',bg:'rgba(95,211,173,.18)'},{l:'_c',d:bs('control',2),c:z,w:0},{l:'_d',d:bs('control',3),c:z,w:0,fill:'-1',bg:'rgba(255,255,255,.12)'},{l:'KleenGrow',d:bs('seafeed',1),c:G},{l:'Control',d:bs('control',1),c:W}],'g/day');
+  const md=dates.filter(x=>Sr.seafeed[x]&&Sr.control[x]);
+  line('c_diff',md,[{l:'KleenGrow minus control',d:md.map(x=>+(Sr.seafeed[x][0]-Sr.control[x][0]).toFixed(1)),c:G,seg:{borderColor:c=>'#d7e3ea'}}],'kg');}
+  const E=coh==1?d.em1:d.em2, ed=Object.keys(E).sort();
+  if(ed.length>=3){line('c_int',ed,[{l:'Intake',d:ed.map(x=>E[x][1]),c:G}],'g/head/day');line('c_abt',ed,[{l:'Abatement',d:ed.map(x=>E[x][0]),c:G}],'%');}
+  else{const l=E[ed[0]];bars('c_int',['KleenGrow','Standard block'],[l[1],d.ctl2[1]],[G,W],'g/head/day, 17 Nov');bars('c_abt',['KleenGrow','Standard block'],[l[0],0],[G,W],'% modelled, 17 Nov');}
+  if(aud=='g'){
+    const CS=coh==1?d.cost1:d.cost2,cd=[...new Set([...Object.keys(CS.seafeed),...Object.keys(CS.control)])].sort();
+    const ci=g=>cd.map(x=>CS[g][x]?CS[g][x][coh==1?1:0]:null);
+    line('c_cost',cd,[{l:'KleenGrow',d:ci('seafeed'),c:G},{l:'Standard block',d:ci('control'),c:W}],'$ per head');
+    if(s.noweights)PH('c_net','Net return needs weight data.');else bars('c_net',['Full cost (no subsidy)','Farmer share (60.23%)','Versus standard block'],s.net[0],s.net[0].map(()=>s.net[1]),'$ per head');
+  }else{
+    if(s.dose.length==1)bars('c_dose',['KleenGrow, latest','Model assumed','Model lower dose'],[s.dose[0],90,150],[G,GY,GY],'g/head/day');else bars('c_dose',['KleenGrow, Cohort 1','KleenGrow, Cohort 2','Model assumed','Model lower dose'],[s.dose[0],s.dose[1],90,150],[G,G,GY,GY],'g/head/day');
+    document.getElementById('dosenote').textContent=s.noweights?'Intake is provisional and below the dose the methane model assumes.':NOTE0.dose;
+    document.getElementById('budnote').textContent=s.noweights?'':NOTE0.bud;
+    if(s.noweights)PH('c_bud','Cost against budget cannot be reported yet.');else bars('c_bud',['Farm 1','Farm 2','Budget rate'],[59,46,100],[G,G,GY],'% of budget rate');
+  }
+  renderExtra();
+}
+
+/* ===== v3 overrides: emissions-first, KleenGrow, neutral colour, new panels ===== */
+const kk=(f,c,o)=>Object.assign(CFG[f].K[c],o);
+kk('bw',1,{adg_v:['-65 <small>g/day</small>'],adg_n:['Bands overlapped on 30 of 63 days (KleenGrow above on 18, below on 15)'],g_v:['6.8 vs 0.3 <small>kg</small>'],
+  dose_v:['53 <small>g/day</small>'],dose_d:['59% of the 90 g budget dose'],dose_n:['35% of the 150 g lower recommended dose'],
+  blk_v:['2.2'],blk_d:['Per 100 Head / Week'],blk_n:['Budget dose needs 3.7; 150 g needs 6.2'],
+  co2_v:['10.9 <small>t</small>'],co2_d:['Modelled, 160 Head'],co2_n:['To 4 Nov, GWP100 28'],
+  n_n:['-$31.55 per head. Farmer share (60.23%): -$2,945. Abatement value +$354, illustrative, not a realised credit'],
+  pb_v:['85'],pb_d:['KleenGrow Blocks, Cohort 1'],pb_n:['17 kg blocks, 7 feeding points used'],pf_v:['4'],pf_d:['In Use For 160 Head'],pf_n:['40 head per feeding point'],pr_v:['Closed'],pr_d:['Cohort Ended 4 Nov'],pr_n:['Final export 4 Nov'],
+  bk_v:['485 <small>mg/kg</small>'],bk_d:['Mean Of 6 Samples, 2 Pallets'],bk_n:['Range 199 to 1,140'],bc_v:['—'],bc_d:['No Control Block Sampled'],bc_n:['Other farms\' controls: 12 to 21'],
+  bs_v:['-32 <small>%</small>'],bs_d:['Pallet 1, 9 Jul To 4 Nov'],bs_n:['65 to 183 days in storage'],bd_v:['13.8 <small>mg</small>'],bd_d:['Per Head / Day'],bd_n:['53.2 g × 259 mg/kg (pallet 1 mean)']});
+kk('bw',2,{adg_n:['Bands overlapped on 6 of 7 days'],
+  dose_v:['64 <small>g/day</small>'],dose_d:['71% of the 90 g budget dose'],dose_n:['43% of the 150 g lower recommended dose, 1 day of data'],
+  blk_v:['2.6'],blk_d:['Per 100 Head / Week'],blk_n:['Budget dose needs 3.7; 150 g needs 6.2'],
+  co2_v:['—'],co2_d:['Head Count To Confirm'],co2_n:['Needs the Cohort 2 head count'],
+  pb_v:['—'],pb_d:['Needs Live Log'],pb_n:['Cohort 2 visits not yet summarised'],pf_v:['—'],pf_d:['Needs Live Log'],pf_n:['&nbsp;'],pr_v:['—'],pr_d:['Needs Live Log'],pr_n:['&nbsp;'],
+  bk_v:['938 <small>mg/kg</small>'],bk_d:['New Pallet, 2 Samples, 4 Nov'],bk_n:['Storage start not recorded'],bc_v:['—'],bc_d:['No Control Block Sampled'],bc_n:['&nbsp;'],
+  bs_v:['—'],bs_d:['Needs A Second Sampling'],bs_n:['&nbsp;'],bd_v:['60 <small>mg</small>'],bd_d:['Per Head / Day, Indicative'],bd_n:['63.9 g × 938 mg/kg, pallet may differ']});
+kk('eb',1,{adg_n:['Bands overlapped on 6 of 22 days (KleenGrow above on 4, below on 12); 30-day matched mean +21 g/day'],g_v:['2.4 vs 4.6 <small>kg</small>'],
+  dose_v:['42 <small>g/day</small>'],dose_d:['47% of the 90 g budget dose'],dose_n:['28% of the 150 g lower recommended dose'],
+  blk_v:['1.7'],blk_d:['Per 100 Head / Week'],blk_n:['Budget dose needs 3.7; 150 g needs 6.2'],
+  co2_v:['6.8 <small>t</small>'],co2_d:['Modelled, 206 Head'],co2_n:['To 28 Oct, GWP100 28'],
+  n_n:['+$10.61 per head. Farmer share (60.23%): +$3,125. Abatement value +$222, illustrative, not a realised credit'],
+  pb_v:['38'],pb_d:['KleenGrow Blocks, Cohort 1'],pb_n:['17 kg blocks, 5 feeding points'],pf_v:['5'],pf_d:['In Use For 206 Head'],pf_n:['41 head per feeding point'],pr_v:['Closed'],pr_d:['Cohort Ended 28 Oct'],pr_n:['Final export 29 Oct'],
+  bk_v:['408 <small>mg/kg</small>'],bk_d:['Mean Of 2 Samples, 1 Pallet'],bk_n:['Outer 261, inner 554'],bc_v:['16.5 <small>mg/kg</small>'],bc_d:['Mean Of 2 Samples'],bc_n:['Outer 21, inner 12'],
+  bs_v:['—'],bs_d:['One Sampling So Far'],bs_n:['&nbsp;'],bd_v:['17.2 <small>mg</small>'],bd_d:['Per Head / Day, Indicative'],bd_n:['42.3 g × 408 mg/kg']});
+kk('eb',2,{adg_n:['Bands overlapped on 12 of 14 days'],
+  dose_v:['44 <small>g/day</small>'],dose_d:['49% of the 90 g budget dose'],dose_n:['29% of the 150 g lower recommended dose'],
+  blk_v:['1.8'],blk_d:['Per 100 Head / Week'],blk_n:['Budget dose needs 3.7; 150 g needs 6.2'],
+  co2_v:['—'],co2_d:['Head Count To Confirm'],co2_n:['Needs the Cohort 2 head count'],
+  pb_v:['—'],pb_d:['Needs Live Log'],pb_n:['&nbsp;'],pf_v:['—'],pf_d:['Needs Live Log'],pf_n:['&nbsp;'],pr_v:['—'],pr_d:['Needs Live Log'],pr_n:['&nbsp;'],
+  bk_v:['408 <small>mg/kg</small>'],bk_d:['Cohort 1 Pallet, 2 Samples'],bk_n:['Cohort 2 pallet not yet sampled'],bc_v:['16.5 <small>mg/kg</small>'],bc_d:['Cohort 1 Pallet, 2 Samples'],bc_n:['&nbsp;'],
+  bs_v:['—'],bs_d:['One Sampling So Far'],bs_n:['&nbsp;'],bd_v:['17.9 <small>mg</small>'],bd_d:['Per Head / Day, Indicative'],bd_n:['44.0 g × 408 mg/kg, pallet may differ']});
+kk('trt',1,{adg_v:['—'],
+  dose_v:['14 <small>g/day</small>'],dose_d:['15% of the 90 g budget dose'],dose_n:['9% of the 150 g lower recommended dose, provisional'],
+  blk_v:['0.6'],blk_d:['Per 100 Head / Week'],blk_n:['Budget dose needs 3.7; 150 g needs 6.2'],
+  co2_v:['—'],co2_d:['Needs A Methane Baseline'],co2_n:['No liveweight yet'],
+  pb_v:['11'],pb_d:['KleenGrow Blocks'],pb_n:['17 kg blocks, from 11 Oct'],pf_v:['1'],pf_d:['Trough In Use For 356 Head'],pf_n:['356 head per feeding point; 2 to 4 blocks per visit'],pr_v:['10 Nov'],pr_d:['4 Blocks Put Out'],pr_n:['7 days before 17 Nov'],
+  bk_v:['783 <small>mg/kg</small>'],bk_d:['Mean Of 2 Samples, 1 Pallet'],bk_n:['Outer 896, inner 669'],bc_v:['16 <small>mg/kg</small>'],bc_d:['Mean Of 2 Samples'],bc_n:['Outer 16, inner 16'],
+  bs_v:['—'],bs_d:['One Sampling So Far'],bs_n:['21 days in storage'],bd_v:['10.8 <small>mg</small>'],bd_d:['Per Head / Day, Indicative'],bd_n:['13.8 g × 783 mg/kg, provisional']});
+CFG.trt.K[2]=CFG.trt.K[1];
+
+/* emissions-first verdicts */
+Object.assign(CFG.bw.VER.g,{1:'KleenGrow™ delivered a modelled 10.6% methane abatement at Bowood on a 53 g/day intake, about 59% of the 90 g budget dose. Growth was level with the standard block (the mobs\' ADG bands overlapped on 30 of 63 days, and gain differed by 0.3 kg per head). At full cost (no subsidy) the net return was -$31.55 per head (-$5,048 for the mob), before an illustrative abatement value of about $354 for the mob.'});
+Object.assign(CFG.bw.VER.p,{1:'KleenGrow™ delivered a modelled 10.6% methane abatement at this farm on a 53 g/day intake, about 59% of the 90 g budget dose. Growth was level with the standard block (the mobs\' ADG bands overlapped on 30 of 63 days). Cost came in 41% under the budget rate.'});
+Object.assign(CFG.bw.VER.g,{2:'Too early to call. Cohort 2 is 13 days in: modelled abatement is 12.8% on one day of intake data, and growth and cost figures are still building.'});
+Object.assign(CFG.bw.VER.p,{2:'Too early to call. Cohort 2 is 13 days in: modelled abatement is 12.8% on one day of intake data, and growth and cost figures are still building.'});
+Object.assign(CFG.eb.VER.g,{1:'KleenGrow™ delivered a modelled 8.5% methane abatement at Eastbourne on a 42 g/day intake, 47% of the 90 g budget dose. KleenGrow gained 4.6 kg more per head over 62 days, but the advantage is fragile and rests on a single day\'s reading. At full cost (no subsidy) the net return was +$10.61 per head (+$2,185 for the mob), plus an illustrative abatement value of about $222 for the mob.',2:'Too early to call. Cohort 2 is 20 days in: modelled abatement is 8.8% on 44 g/day, and growth and cost figures are still building.'});
+CFG.eb.VER.p=Object.assign({},CFG.eb.VER.g,{1:'KleenGrow™ delivered a modelled 8.5% methane abatement at this farm on a 42 g/day intake, 47% of the 90 g budget dose. KleenGrow gained 4.6 kg more per head over 62 days, but the advantage is fragile and rests on a single day\'s reading. Cost came in 54% under the budget rate.'});
+Object.assign(CFG.trt.VER.g,{1:'Too early to report a result. Lick blocks started on 11 October and OptiWeigh units are not yet installed, so there is no growth data. Modelled abatement (2.8%) rests on a provisional 14 g/day intake, 15% of the 90 g budget dose.'});
+CFG.trt.VER.p=CFG.trt.VER.g;
+
+/* intake wording: supply, not refusal */
+CFG.bw.MSUB[1]='Modelled abatement follows intake. Intake was below the budget dose because fewer blocks were put out than that dose needs; the records cannot show whether cattle would have eaten more.';
+CFG.eb.MSUB[1]='Modelled abatement follows intake. Intake was below the budget dose because fewer blocks were put out than that dose needs; the records cannot show whether cattle would have eaten more.';
+CFG.trt.MSUB[1]='Modelled abatement follows intake, and this farm put out few blocks for 356 head. Read the figures as provisional.';
+CFG.bw.p3read='Abatement is modelled from block intake, not measured on the animal. Cohort 1 intake was 53 g/day: 59% of the 90 g budget dose and 35% of the 150 g lower recommended dose, which is 2.2 blocks per 100 head per week against 3.7 and 6.2 needed. That is a measure of what was put out. Because blocks are assumed used up by the next visit, the records cannot show whether cattle would have eaten more if more had been put out. Cohort 2 intake is higher (64 g) but has one day of data.';
+CFG.eb.p3read='Abatement is modelled from block intake, not measured on the animal. Cohort 1 intake averaged 41 g/day (42 g on the last day): 47% of the 90 g budget dose and 28% of the 150 g lower recommended dose, which is 1.7 blocks per 100 head per week against 3.7 and 6.2 needed. That is a measure of what was put out; the records cannot show whether cattle would have eaten more if more had been put out. Cohort 2 intake is similar at 44 g/day.';
+CFG.trt.p3read='Abatement is modelled from block intake, not measured on the animal. On 17 Nov the history to 16 Nov was rebuilt from the blocks actually put out: an earlier figure of about 54 g/day was mostly a one-day interval from one trough that was never visited again. The rebuilt rows read 0 to 27.6 g/day (27.6 g from 11 Nov assumes the four blocks put out on 10 Nov are eaten over a week); the 17 Nov row reads 13.8 g until the next visit is logged. This farm has one trough in use for 356 head, against Sea Forest guidance of about 1 block per 20 head.';
+CFG.bw.feed={1:'4 feeding points were in use for 160 head (40 head per point). Sea Forest guidance is about 1 block per 20 head. 85 KleenGrow blocks (17 kg) were put out over the cohort, 9.0 kg per head, which is what the 53 g/day average represents.',2:'Cohort 2 feeding points and blocks are not yet summarised.'};
+CFG.eb.feed={1:'5 feeding points were in use for 206 head (41 head per point). Sea Forest guidance is about 1 block per 20 head. 38 KleenGrow blocks (17 kg) were put out over the cohort, 3.1 kg per head.',2:'Cohort 2 feeding points and blocks are not yet summarised.'};
+CFG.trt.feed={1:'One trough is in use for 356 head (356 head per point), with 2 to 4 blocks put out per visit (27 Oct, 3 Nov and 10 Nov). Sea Forest guidance is about 1 block per 20 head, or about 18 blocks for this mob. A second trough was used only on 11 and 12 Oct.',2:''};
+CFG.bw.blkv={1:2.19,2:2.63};CFG.eb.blkv={1:1.74,2:1.81};CFG.trt.blkv={1:0.57,2:0.57};
+CFG.bw.upt='Average intake was 33 g/day over the first 14 days and 55 g/day over the last 30 (peak 111 g/day), so uptake roughly rose by two-thirds after the first fortnight. Cohort 1 only.';
+CFG.eb.upt='Average intake was 30 g/day over the first 14 days and 49 g/day over the last 30 (peak 73 g/day), a rise of about two-thirds after the first fortnight. Cohort 1 only.';
+CFG.trt.upt='Provisional: 9 g/day over the first 14 days and 15 g/day over the last 30 (peak 28 g/day), on one trough.';
+CFG.bw.CSUB.g[1]='KleenGrow cost less than budgeted. The extra gain (0.3 kg) did not cover the full cost (6.8 kg needed), and the illustrative abatement value (about $354 for the mob, not a realised credit) would not close the gap.';
+CFG.bw.CSUB.p[1]='KleenGrow cost less than budgeted, and the extra gain did not reach the full-cost break-even (0.3 kg achieved, 6.8 kg needed).';
+CFG.eb.CSUB.g[1]='KleenGrow cost less than budgeted and its extra gain covered the full cost (4.6 kg achieved, 2.4 kg needed), before any abatement value (illustrative $222 for the mob), but the gain is fragile.';
+/* lab data by farm: [gov label, public label, outer, inner, kind] */
+CFG.bw.lab=[['BW-01 start, 9 Jul','Pallet 1 start, 9 Jul',320,297,'kg'],['BW-01 end, 4 Nov','Pallet 1 end, 4 Nov',199,219,'kg'],['BW-02 start, 4 Nov','Pallet 2 start, 4 Nov',1140,736,'kg']];
+CFG.eb.lab=[['EB-01 KleenGrow, 20 Oct','KleenGrow, 20 Oct',261,554,'kg'],['EB-01 control, 20 Oct','Control, 20 Oct',21,12,'ctl']];
+CFG.trt.lab=[['WF-01 KleenGrow, 6 Oct','KleenGrow, 6 Oct',896,669,'kg'],['WF-01 control, 6 Oct','Control, 6 Oct',16,16,'ctl']];
+CFG.bw.bronote='Outer and inner samples of the same pallet differ by up to 300 mg/kg. Pallet 2 (started 4 Nov) is about four times pallet 1.';
+CFG.eb.bronote='Outer and inner samples of the same pallet differ by 293 mg/kg. Control blocks read 12 to 21 mg/kg.';
+CFG.trt.bronote='Outer 896 and inner 669 for the same pallet. Control blocks read 16 mg/kg.';
+const STO=[['bw',65,320],['bw',65,297],['bw',183,199],['bw',183,219],['eb',67,261],['eb',67,554],['trt',21,896],['trt',21,669]];
+/* Bowood pasture quality (Forage Lab Australia NIR, 4 Nov) replaces the placeholder */
+const PQ='<div class="card" data-src="Table widget · LEL_Pasture_Quality_Public (https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Pasture_Quality_Public/FeatureServer/0) · crude_protein_pct_dm, andf_pct_dm, me_mj_per_kg by treatment, farm_name = selected"><h4>Pasture quality, 4 Nov (Forage Lab Australia, NIR)</h4><table><tr><th>Mob</th><th>Crude protein (% DM)</th><th>aNDF (% DM)</th><th>ME (MJ/kg)</th></tr><tr><td>KleenGrow mob</td><td>17.2</td><td>48.2</td><td>10.15</td></tr><tr><td>Control mob</td><td>21.9</td><td>46.3</td><td>10.47</td></tr><tr><td>Difference</td><td>-4.7</td><td>+1.9</td><td>-0.32</td></tr></table><p class="note">One sampling, two samples. The KleenGrow mob\'s pasture was lower in crude protein and energy on the day, in line with the pasture report\'s note that feed was not perfectly balanced between the mobs.</p></div>';
+CFG.bw.p6g=CFG.bw.p6g.replace(/<div class="card"><h4>Pasture quality[\s\S]*$/,PQ);
+CFG.bw.p6p=CFG.bw.p6p.replace(/<div class="card"><h4>Pasture quality[\s\S]*$/,PQ);
+
+const SRC={p1:'Sources: OptiWeigh liveweight (ADG and 95% bands), lick block visit records (intake), Sea Forest KleenGrow spec and Charmley et al. 2016 (modelled abatement), MLA National Heavy Steer Indicator 29 Oct 2026 and EY ACM 2026 reference price (values). See Sources and method.',
+ p2:'Sources: OptiWeigh (liveweight, 14-day rolling ADG with 95% band, 30-day and 90-day ADG). Matched dates and days for both mobs.',
+ p3:'Sources: lick block visit records (intake, blocks put out), modelled abatement (Sea Forest KleenGrow spec, Charmley et al. 2016 baseline), Sea Forest guidance of about 1 block per 20 head.',
+ p4g:'Sources: LEL_Economics_Data (cost), economic analysis workbook (net return at full cost and $4.85/kg MLA NHSI; farmer 60.23% share shown as secondary), EY ACM 2026 reference price for illustrative abatement value.',
+ p4p:'Sources: LEL_Economics_Data and the economic analysis workbook; budget planning rate from the project cost model.',
+ p5:'Sources: lick block visit records, AST laboratory bromoform results (mg/kg WMB), Progress Report 5, MRL briefing note (Sept 2025), 2025 dairy residue data.',
+ p6:'Sources: OptiWeigh GPS, Sentinel-2 NDVI, Open-Meteo, Forage Lab Australia NIR (pasture report, 6 Nov draft).',
+ p7g:'Sources: Project Plan (Deed Variation, 28 Jul 2026), Progress Report 5 (30 Sep 2026), cohort register.',p7p:'Sources: Project Plan (Deed Variation, 28 Jul 2026), Progress Report 5 (30 Sep 2026), cohort register.'};
+function addSrc(){for(const [id,t] of Object.entries(SRC)){const el=document.getElementById(id);if(el&&!el.querySelector('.src')){const p=document.createElement('p');p.className='src';p.textContent=t;el.appendChild(p)}}}
+function renderExtra(){
+  const s=S(), d=D[F];
+  addSrc();
+  const f1=document.getElementById('feedtxt');if(f1)f1.textContent=s.feed[coh]||'';
+  const u=document.getElementById('upt');if(u)u.textContent=s.upt;
+  document.getElementById('bronote').textContent=s.bronote;
+  if(document.getElementById('c_ab1')){const E2=coh==1?d.em1:d.em2,e2=Object.keys(E2).sort();if(e2.length>=3)line('c_ab1',e2,[{l:'Abatement',d:e2.map(x=>E2[x][0]),c:G}],'% abatement');else{const l2=E2[e2[0]];bars('c_ab1',['KleenGrow','Standard block'],[l2[0],0],[G,W],'% modelled, latest day');}}
+  if(document.getElementById('c_blk'))bars('c_blk',['Put out','Needed for 90 g','Needed for 150 g'],[s.blkv[coh],3.71,6.18],[G,GY,GY],'blocks per 100 head per week');
+  if(document.getElementById('c_bro')){
+    charts.push(new Chart(document.getElementById('c_bro'),{type:'bar',data:{labels:s.lab.map(g=>aud=='g'?g[0]:g[1]),datasets:[{label:'Outer',data:s.lab.map(g=>g[2]),backgroundColor:s.lab.map(g=>g[4]=='kg'?G:W),borderRadius:4},{label:'Inner',data:s.lab.map(g=>g[3]),backgroundColor:s.lab.map(g=>g[4]=='kg'?'#2f7f6a':'#8fa3b0'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,usePointStyle:true}}},scales:{x:{grid:{display:false}},y:{grid:{color:GR},border:{display:false},title:{display:true,text:'mg/kg bromoform (WMB)'}}}}}));
+  }
+  if(document.getElementById('c_sto')){
+    const ds=['bw','eb','trt'].map(k=>({label:nmOf(k),data:STO.filter(x=>x[0]==k).map(x=>({x:x[1],y:x[2]})),backgroundColor:k==F?G:GY,pointRadius:k==F?6:4}));
+    charts.push(new Chart(document.getElementById('c_sto'),{type:'scatter',data:{datasets:ds},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,usePointStyle:true}}},scales:{x:{grid:{display:false},title:{display:true,text:'days in storage'}},y:{grid:{color:GR},border:{display:false},title:{display:true,text:'mg/kg'},min:0}}}}));
+  }
+}
+
+function showPage(id){document.querySelectorAll('#nav button,.page').forEach(e=>e.classList.remove('on'));document.querySelector(`#nav button[data-p="${id}"]`).classList.add('on');document.getElementById(id).classList.add('on');window.scrollTo(0,0);charts.forEach(c=>c.resize());requestAnimationFrame(()=>charts.forEach(c=>c.resize()))}
+document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>showPage(b.dataset.p));
+document.querySelectorAll('#seg button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#seg button').forEach(x=>x.classList.remove('on'));b.classList.add('on');coh=+b.dataset.c;render()});
+document.querySelectorAll('#aud button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#aud button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  const cur=document.querySelector('.page.on').id;aud=b.dataset.a;
+  render();
+  const map={p4g:'p4p',p4p:'p4g',p7g:'p7p',p7p:'p7g'};
+  if(map[cur]&&((aud=='p'&&cur.endsWith('g'))||(aud=='g'&&cur.endsWith('p'))))showPage(map[cur]);});
+const MS=[['1','Foundation Activities','19 Jun to 27 Sep 2024','Project plan and budget, data protocols, animal ethics approval, historical data, on-farm technical leads','Drawdown 1: $1,500,000','done','COMPLETE','Approved 27 Sep 2024'],
+['2','On-Farm Induction Activities','Oct 2024 to 5 May 2025','Progress Report on feed protocols, animal induction and baseline data; quarterly stakeholder reports','Instalment 2: $600,000','done','COMPLETE','Approved; paid 5 May 2025'],
+['3','On-Farm Activities and Reporting, Phase 1','Jun to Aug 2026','Execution of Variation 1; updated Project Plan, Risk Management Plan and Agreed Budget','Drawdown 2(a) $750,000 and 2(b) $750,000','done','COMPLETE','Accepted by the Grantor'],
+['4','On-Farm Activities and Reporting, Phase 2','Jul to Aug 2026','Continuous grazing trials for beef and sheep; formal Progress Report by 30 Sep 2026','Drawdown 3: $800,000','done','COMPLETE','Progress Report 5 accepted by the Grantor'],
+['5','On-Farm Activities and Reporting, Phase 3','Sep 2026 to 31 Dec 2028','Long-term pasture-based beef and sheep/wool cohorts; bi-annual Progress and Data Reports','Not drawdown-linked','live','IN PROGRESS','Under way following acceptance of Milestone 4'],
+['6','Final Project Report and Publication','Jan to 1 Feb 2029','Final Report, audited Financial Acquittal, producer handbook, economic feasibility calculator, viability report','Drawdown 4: $200,000','pend','DUE 1 FEB 2029','Not started']];
+document.querySelectorAll('table.ms').forEach(t=>t.innerHTML='<tr><th>Milestone</th><th>Period</th><th>Deliverables</th><th>Funding</th><th>Status</th></tr>'+MS.map(m=>`<tr><td>${m[0]}. ${m[1]}</td><td>${m[2]}</td><td>${m[3]}</td><td>${m[4]}</td><td><span class="chip ${m[5]}">${m[6]}</span><br><span class="note">${m[7]}</span></td></tr>`).join(''));
+document.getElementById('farm').onchange=e=>{F=e.target.value;render()};
+document.getElementById('nt').onchange=e=>document.body.classList.toggle('notes',e.target.checked);
+render();
+</script>
+</body></html>
