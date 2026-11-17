@@ -236,7 +236,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--di
   </div>
   <div class="grid g2">
     <div class="card"><h4>Result by sample group (mg/kg)</h4><div class="chart"><canvas id="c_bro"></canvas></div><p class="note" id="bronote"></p></div>
-    <div class="card"><h4>KleenGrow result against days in storage (all farms)</h4><div class="chart"><canvas id="c_sto"></canvas></div><p class="note">Eight samples with a recorded storage start; correlation -0.73, but pallets, farms and sampling dates differ, so storage loss is suggestive, not shown. One pallet (storage start not recorded) is left out. Specification range to be added by Sea Forest for comparison.</p></div>
+    <div class="card"><h4>Bromoform by farm: KleenGrow and control blocks (mg/kg)</h4><div class="chart"><canvas id="c_bfm"></canvas></div><p class="note">Mean of the samples for each farm (two to six samples each). Control blocks were not sampled at one farm. Specification range to be added by Sea Forest for comparison.</p></div>
   </div>
   <div class="grid g3">
     <div class="card"><h4>Uptake over time</h4><p class="note" style="font-size:13px;margin:0" id="upt"></p><p class="note" style="margin-top:10px">Palatability or substitution lowering intake below target is a rated risk in the project risk register. Intake is the trial's uptake measure.</p></div>
@@ -677,7 +677,7 @@ CFG.trt.lab=[['WF-01 KleenGrow, 6 Oct','KleenGrow, 6 Oct',896,669,'kg'],['WF-01 
 CFG.bw.bronote='Outer and inner samples of the same pallet differ by up to 300 mg/kg. Pallet 2 (started 4 Nov) is about four times pallet 1.';
 CFG.eb.bronote='Outer and inner samples of the same pallet differ by 293 mg/kg. Control blocks read 12 to 21 mg/kg.';
 CFG.trt.bronote='Outer 896 and inner 669 for the same pallet. Control blocks read 16 mg/kg.';
-const STO=[['bw',65,320],['bw',65,297],['bw',183,199],['bw',183,219],['eb',67,261],['eb',67,554],['trt',21,896],['trt',21,669]];
+const LABM={bw:[485.2,null],eb:[407.5,16.5],trt:[782.5,16]};
 /* Bowood pasture quality (Forage Lab Australia NIR, 4 Nov) replaces the placeholder */
 const PQ='<div class="card"><h4>Pasture quality, 4 Nov (Forage Lab Australia, NIR)</h4><table><tr><th>Mob</th><th>Crude protein (% DM)</th><th>aNDF (% DM)</th><th>ME (MJ/kg)</th></tr><tr><td>KleenGrow mob</td><td>17.2</td><td>48.2</td><td>10.15</td></tr><tr><td>Control mob</td><td>21.9</td><td>46.3</td><td>10.47</td></tr><tr><td>Difference</td><td>-4.7</td><td>+1.9</td><td>-0.32</td></tr></table><p class="note">One sampling, two samples. The KleenGrow mob\'s pasture was lower in crude protein and energy on the day, in line with the pasture report\'s note that feed was not perfectly balanced between the mobs.</p></div>';
 CFG.bw.p6g=CFG.bw.p6g.replace(/<div class="card"><h4>Pasture quality[\s\S]*$/,PQ);
@@ -703,9 +703,9 @@ function renderExtra(){
   if(document.getElementById('c_bro')){
     charts.push(new Chart(document.getElementById('c_bro'),{type:'bar',data:{labels:s.lab.map(g=>aud=='g'?g[0]:g[1]),datasets:[{label:'Outer',data:s.lab.map(g=>g[2]),backgroundColor:s.lab.map(g=>g[4]=='kg'?G:W),borderRadius:4},{label:'Inner',data:s.lab.map(g=>g[3]),backgroundColor:s.lab.map(g=>g[4]=='kg'?'#2f7f6a':'#8fa3b0'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,usePointStyle:true}}},scales:{x:{grid:{display:false}},y:{grid:{color:GR},border:{display:false},title:{display:true,text:'mg/kg bromoform (WMB)'}}}}}));
   }
-  if(document.getElementById('c_sto')){
-    const ds=['bw','eb','trt'].map(k=>({label:nmOf(k),data:STO.filter(x=>x[0]==k).map(x=>({x:x[1],y:x[2]})),backgroundColor:k==F?G:GY,pointRadius:k==F?6:4}));
-    charts.push(new Chart(document.getElementById('c_sto'),{type:'scatter',data:{datasets:ds},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,usePointStyle:true}}},scales:{x:{grid:{display:false},title:{display:true,text:'days in storage'}},y:{grid:{color:GR},border:{display:false},title:{display:true,text:'mg/kg'},min:0}}}}));
+  if(document.getElementById('c_bfm')){
+    const ks=['bw','eb','trt'];
+    charts.push(new Chart(document.getElementById('c_bfm'),{type:'bar',data:{labels:ks.map(k=>nmOf(k)),datasets:[{label:'KleenGrow',data:ks.map(k=>LABM[k][0]),backgroundColor:ks.map(k=>k==F?G:'#2f7f6a'),borderRadius:4},{label:'Control',data:ks.map(k=>LABM[k][1]),backgroundColor:ks.map(k=>k==F?W:'#8fa3b0'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,usePointStyle:true}}},scales:{x:{grid:{display:false}},y:{grid:{color:GR},border:{display:false},title:{display:true,text:'mg/kg bromoform (WMB)'},min:0}}}}));
   }
 }
 
