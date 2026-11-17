@@ -526,7 +526,7 @@
       var farms = Array.from(new Set(usageHistory.map(function(r){ return r.trial_site; }))).sort();
       ALL_FARMS = farms; // shared with farmColor() so section headings and the placements table agree on which colour is whose
 
-      renderKpiGrid(usageHistory, farms);
+      renderKpiGrid(usageHistory, farms, placements);
       renderFarmSections(usageHistory, orders, placements, farms);
       renderPlacementsTable(placements, farms);
     }).catch(function(err){
@@ -561,7 +561,7 @@
         outFields: "snapshot_date,treatment,cumulative_blocks_used,head_count,avg_consumption_g_per_hd_day",
         orderByFields: "snapshot_date ASC", resultRecordCount: "4000", f: "json" }),
       q(PLACEMENTS_URL, { where: "trial_site = '" + safe + "'",
-        outFields: "placement_time,treatment,asset_id,location_type,quantity_blocks,unit_weight_kg,head_count,interval_days_since_previous,avg_consumption_g_per_hd_day,cost_aud",
+        outFields: "placement_time,trial_site,treatment,asset_id,location_type,quantity_blocks,unit_weight_kg,head_count,interval_days_since_previous,avg_consumption_g_per_hd_day,cost_aud",
         orderByFields: "placement_time DESC", resultRecordCount: "4000", f: "json" })
     ]).then(function(r){
       renderArchive(site, r[0].features.map(function(f){ return f.attributes; }), r[1].features.map(function(f){ return f.attributes; }));
@@ -588,11 +588,12 @@
     function kpi(label, value, note, cls){
       return '<div class="lbp-kpi-card"><p class="lbp-kpi-label">' + label + '</p><p class="lbp-kpi-value' + (cls ? ' ' + cls : '') + '">' + value + '</p><p class="lbp-kpi-note">' + note + '</p></div>';
     }
+    var wsf = wholeCohortRate(placements, site, 'seafeed'), wct = wholeCohortRate(placements, site, 'control');
     var sf = latest.seafeed && latest.seafeed.avg_consumption_g_per_hd_day, ct = latest.control && latest.control.avg_consumption_g_per_hd_day;
     var html = '<div class="lbp-kpi-grid">' +
       kpi('Period', fmtDate(first) , 'to ' + fmtDate(last)) +
-      kpi('SeaFeed g/head/day', sf != null ? fmtNum(sf, 1) : '–', 'Final figure, ' + fmtNum(blocks.seafeed) + ' blocks placed', 'seafeed') +
-      kpi('Control g/head/day', ct != null ? fmtNum(ct, 1) : '–', 'Final figure, ' + fmtNum(blocks.control) + ' blocks placed') +
+      kpi('SeaFeed g/head/day', wsf != null ? fmtNum(wsf, 1) : '–', 'Whole-cohort average' + (sf != null ? '; final interval ' + fmtNum(sf, 1) : '') + '; ' + fmtNum(blocks.seafeed) + ' blocks', 'seafeed') +
+      kpi('Control g/head/day', wct != null ? fmtNum(wct, 1) : '–', 'Whole-cohort average' + (ct != null ? '; final interval ' + fmtNum(ct, 1) : '') + '; ' + fmtNum(blocks.control) + ' blocks') +
       kpi('Cost to farm', '$' + fmtNum(cost, 0), (head ? fmtNum(head) + ' head' : 'Head not recorded')) +
       '</div>' +
       '<div class="lbp-panel lbp-chart-card" style="margin-bottom:16px;"><p class="lbp-section-label">Cumulative blocks used</p><canvas id="lbp-archive-chart"></canvas></div>' +
@@ -627,7 +628,30 @@
   // HEADLINE KPI GRID — latest avg_consumption_g_per_hd_day per
   // (farm, treatment), the single number Jono asked to headline.
   // ------------------------------------------------------------
-  function renderKpiGrid(usageHistory, farms){
+  // WHOLE-COHORT AVERAGE (added 2026-11-17). The headline figure above is a snapshot of each unit's
+  // latest interval, so a short or odd final interval can swing it. This is the average over the whole
+  // cohort: block mass placed before each unit's last visit (the last visit's blocks are still out there),
+  // across all units, divided by head and by the days from the treatment's first to last placement.
+  function wholeCohortRate(placements, site, treatment){
+    if (!placements) return null;
+    var byAsset = {}, first = null, last = null, head = null;
+    placements.forEach(function(p){
+      if (p.trial_site !== site || p.treatment !== treatment || p.placement_time == null) return;
+      (byAsset[p.asset_id] = byAsset[p.asset_id] || []).push(p);
+      if (first == null || p.placement_time < first) first = p.placement_time;
+      if (last == null || p.placement_time > last) { last = p.placement_time; if (p.head_count) head = p.head_count; }
+    });
+    var days = first != null ? (last - first) / 86400000 : 0;
+    if (days < 1 || !head) return null;
+    var kg = 0;
+    Object.keys(byAsset).forEach(function(a){
+      var l = byAsset[a].sort(function(x, y){ return x.placement_time - y.placement_time; });
+      for (var i = 0; i < l.length - 1; i++) kg += (Number(l[i].quantity_blocks) || 0) * (Number(l[i].unit_weight_kg) || 0);
+    });
+    return kg ? kg * 1000 / head / days : null;
+  }
+
+  function renderKpiGrid(usageHistory, farms, placements){
     var latestByKey = {};
     usageHistory.forEach(function(r){
       var key = r.trial_site + '|' + r.treatment;
@@ -646,11 +670,13 @@
       var tint = farmTint(farm);
       ['seafeed', 'control'].forEach(function(treatment){
         var r = latestByKey[farm + '|' + treatment];
+        var wc = wholeCohortRate(placements, farm, treatment);
         var valueClass = treatment === 'seafeed' ? 'lbp-kpi-value seafeed' : 'lbp-kpi-value';
         html += '<div class="lbp-kpi-card" style="border-left-color:' + color + ';background:' + tint + ';">' +
           '<p class="lbp-kpi-label">' + farm + ': ' + treatmentLabel(treatment) + '</p>' +
           '<p class="' + valueClass + '">' + (r ? fmtNum(r.avg_consumption_g_per_hd_day, 0) + ' g' : '–') + '</p>' +
           '<p class="lbp-kpi-note">' + (r ? (r.head_count != null ? r.head_count + ' head · as of ' + fmtDate(r.snapshot_date) : 'as of ' + fmtDate(r.snapshot_date)) : 'No data yet') + '</p>' +
+          (wc != null ? '<p class="lbp-kpi-note" title="Total block mass placed per head per day across the whole cohort, not just the latest interval">Whole cohort: ' + fmtNum(wc, 0) + ' g</p>' : '') +
           '</div>';
       });
     });
