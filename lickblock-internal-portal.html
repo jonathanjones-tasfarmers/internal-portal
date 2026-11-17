@@ -209,6 +209,15 @@
   .lbp-treatment-pill.seafeed { color: var(--tf-seafeed); background: rgba(58,169,137,0.12); }
   .lbp-treatment-pill.control { color: var(--tf-slate-600); background: rgba(169,184,196,0.22); }
 
+
+  /* Archive of finished cohorts (added 2026-11-17). Collapsed by default; data loads on first open. */
+  .lbp-archive > summary { cursor: pointer; list-style: none; font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--text-heading); padding: 4px 0; }
+  .lbp-archive > summary::-webkit-details-marker { display: none; }
+  .lbp-archive > summary::before { content: '\25B8'; display: inline-block; margin-right: 8px; color: var(--text-muted); transition: transform .15s; }
+  .lbp-archive[open] > summary::before { transform: rotate(90deg); }
+  .lbp-archive-sub { font-family: var(--font-display); font-size: 12px; color: var(--text-muted); margin: 4px 0 14px 18px; }
+  .lbp-archive-body { margin-top: 12px; }
+  .lbp-archive-more { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: var(--tf-seafeed); background: none; border: none; cursor: pointer; padding: 10px 0 0; }
   .lbp-footer-note { font-family: var(--font-display); font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 40px; line-height: 1.6; }
 
   /* --- loading skeleton (added 2026-09-03) — shown in #lbp-kpi-grid and
@@ -296,6 +305,18 @@
         <span>items</span>
       </div>
     </div>
+  </div>
+
+  <p class="lbp-section-label" style="margin-top:32px;">Archive</p>
+  <div class="lbp-card">
+    <details class="lbp-archive" id="lbp-archive">
+      <summary>Previous cohorts</summary>
+      <p class="lbp-archive-sub">Finished cohorts, kept for reference. They no longer count toward the figures above.</p>
+      <div class="lbp-filters">
+        <select id="lbp-archive-select" aria-label="Choose a previous cohort"></select>
+      </div>
+      <div class="lbp-archive-body" id="lbp-archive-body"><p class="lbp-table-loading">Open to load.</p></div>
+    </details>
   </div>
 
   <p class="lbp-footer-note">
@@ -514,6 +535,93 @@
     });
   }
   loadAll();
+
+  // ------------------------------------------------------------
+  // ARCHIVE: previous cohorts (added 2026-11-17). Read-only. Loads the retired cohorts' usage
+  // history and placements on first open, one cohort at a time.
+  // ------------------------------------------------------------
+  var archive = { wired: false, chart: null, rows: [], shown: 20 };
+  function archiveLabel(site){ return site + ' – Cohort 1'; }
+  function esc(v){ return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+  function initArchive(){
+    var sel = document.getElementById('lbp-archive-select');
+    RETIRED_FARMS.forEach(function(f){
+      var o = document.createElement('option'); o.value = f; o.textContent = archiveLabel(f); sel.appendChild(o);
+    });
+    var det = document.getElementById('lbp-archive');
+    det.addEventListener('toggle', function(){ if (det.open && !archive.wired) { archive.wired = true; loadArchive(sel.value); } });
+    sel.addEventListener('change', function(){ loadArchive(sel.value); });
+  }
+  function loadArchive(site){
+    var body = document.getElementById('lbp-archive-body');
+    body.innerHTML = '<p class="lbp-table-loading">Loading ' + esc(archiveLabel(site)) + '&hellip;</p>';
+    var safe = site.replace(/'/g, "''");
+    Promise.all([
+      q(USAGE_HISTORY_URL, { where: "treatment IN ('seafeed','control') AND trial_site = '" + safe + "'",
+        outFields: "snapshot_date,treatment,cumulative_blocks_used,head_count,avg_consumption_g_per_hd_day",
+        orderByFields: "snapshot_date ASC", resultRecordCount: "4000", f: "json" }),
+      q(PLACEMENTS_URL, { where: "trial_site = '" + safe + "'",
+        outFields: "placement_time,treatment,asset_id,location_type,quantity_blocks,unit_weight_kg,head_count,interval_days_since_previous,avg_consumption_g_per_hd_day,cost_aud",
+        orderByFields: "placement_time DESC", resultRecordCount: "4000", f: "json" })
+    ]).then(function(r){
+      renderArchive(site, r[0].features.map(function(f){ return f.attributes; }), r[1].features.map(function(f){ return f.attributes; }));
+    }).catch(function(err){
+      console.error('Archive load failed:', err);
+      body.innerHTML = '<p class="lbp-table-empty">Could not load this cohort. Try again shortly.</p>';
+    });
+  }
+  function renderArchive(site, history, placements){
+    var body = document.getElementById('lbp-archive-body');
+    if (!placements.length && !history.length) { body.innerHTML = '<p class="lbp-table-empty">No records for this cohort.</p>'; return; }
+    var times = placements.map(function(p){ return p.placement_time; }).filter(Boolean);
+    var first = times.length ? Math.min.apply(null, times) : null, last = times.length ? Math.max.apply(null, times) : null;
+    var latest = {}, head = null;
+    history.forEach(function(r){
+      if (!latest[r.treatment] || r.snapshot_date > latest[r.treatment].snapshot_date) latest[r.treatment] = r;
+      if (r.head_count) head = r.head_count;
+    });
+    var blocks = { seafeed: 0, control: 0 }, cost = 0;
+    placements.forEach(function(p){
+      if (blocks[p.treatment] != null) blocks[p.treatment] += Number(p.quantity_blocks) || 0;
+      cost += Number(p.cost_aud) || 0;
+    });
+    function kpi(label, value, note, cls){
+      return '<div class="lbp-kpi-card"><p class="lbp-kpi-label">' + label + '</p><p class="lbp-kpi-value' + (cls ? ' ' + cls : '') + '">' + value + '</p><p class="lbp-kpi-note">' + note + '</p></div>';
+    }
+    var sf = latest.seafeed && latest.seafeed.avg_consumption_g_per_hd_day, ct = latest.control && latest.control.avg_consumption_g_per_hd_day;
+    var html = '<div class="lbp-kpi-grid">' +
+      kpi('Period', fmtDate(first) , 'to ' + fmtDate(last)) +
+      kpi('SeaFeed g/head/day', sf != null ? fmtNum(sf, 1) : '–', 'Final figure, ' + fmtNum(blocks.seafeed) + ' blocks placed', 'seafeed') +
+      kpi('Control g/head/day', ct != null ? fmtNum(ct, 1) : '–', 'Final figure, ' + fmtNum(blocks.control) + ' blocks placed') +
+      kpi('Cost to farm', '$' + fmtNum(cost, 0), (head ? fmtNum(head) + ' head' : 'Head not recorded')) +
+      '</div>' +
+      '<div class="lbp-panel lbp-chart-card" style="margin-bottom:16px;"><p class="lbp-section-label">Cumulative blocks used</p><canvas id="lbp-archive-chart"></canvas></div>' +
+      '<div class="lbp-table-wrap"><table class="lbp-table"><thead><tr><th>Date</th><th>Treatment</th><th>Asset</th><th>Type</th><th>Blocks</th><th>Unit Weight</th><th>Head</th><th>Interval (days)</th><th>g/head/day</th><th>Cost</th></tr></thead><tbody id="lbp-archive-rows"></tbody></table></div>' +
+      '<p class="lbp-pagination-note" id="lbp-archive-note"></p><button type="button" class="lbp-archive-more" id="lbp-archive-more" style="display:none;"></button>';
+    body.innerHTML = html;
+
+    if (archive.chart) { archive.chart.destroy(); archive.chart = null; }
+    var cum = buildCumulativeSeries(placements);
+    if (cum.days.length) {
+      archive.chart = lineChart('lbp-archive-chart', cum.days.map(fmtDate), [
+        { label: 'SeaFeed', data: cum.seafeed, borderColor: MINT, backgroundColor: 'transparent' },
+        { label: 'Control', data: cum.control, borderColor: SLATE, backgroundColor: 'transparent' }
+      ]);
+    }
+    archive.rows = placements; archive.shown = 20;
+    drawArchiveRows();
+    document.getElementById('lbp-archive-more').addEventListener('click', function(){ archive.shown = archive.rows.length; drawArchiveRows(); });
+  }
+  function drawArchiveRows(){
+    var rows = archive.rows.slice(0, archive.shown);
+    document.getElementById('lbp-archive-rows').innerHTML = rows.map(function(p){
+      return '<tr><td>' + fmtDate(p.placement_time) + '</td><td><span class="lbp-treatment-pill ' + esc(p.treatment) + '">' + treatmentLabel(p.treatment) + '</span></td><td>' + esc(p.asset_id) + '</td><td>' + esc(p.location_type) + '</td><td>' + fmtNum(p.quantity_blocks) + '</td><td>' + (p.unit_weight_kg != null ? fmtNum(p.unit_weight_kg, 0) + ' kg' : '–') + '</td><td>' + fmtNum(p.head_count) + '</td><td>' + fmtNum(p.interval_days_since_previous, 0) + '</td><td>' + fmtNum(p.avg_consumption_g_per_hd_day, 1) + '</td><td>' + (p.cost_aud != null ? '$' + fmtNum(p.cost_aud, 2) : '–') + '</td></tr>';
+    }).join('');
+    document.getElementById('lbp-archive-note').textContent = 'Showing ' + rows.length + ' of ' + archive.rows.length + ' placements';
+    var more = document.getElementById('lbp-archive-more');
+    if (archive.rows.length > rows.length) { more.style.display = ''; more.textContent = 'Show all ' + archive.rows.length; } else { more.style.display = 'none'; }
+  }
+  initArchive();
 
   // ------------------------------------------------------------
   // HEADLINE KPI GRID — latest avg_consumption_g_per_hd_day per
