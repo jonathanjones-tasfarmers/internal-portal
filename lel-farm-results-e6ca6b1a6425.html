@@ -93,10 +93,9 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--di
   <nav id="nav">
     <button data-p="p1" class="on">The answer</button>
     <button data-p="p2">Growth and weight</button>
-    <button data-p="p3">Methane and intake</button>
+    <button data-p="p3">Methane, blocks and lab results</button>
     <button data-p="p4g" class="g-only">Cost and return</button>
     <button data-p="p4p" class="p-only">Cost and delivery</button>
-    <button data-p="p5">Lick block and lab results</button>
     <button data-p="p6">Pasture and paddocks</button>
     <button data-p="p7g" class="g-only">Project and next steps</button>
     <button data-p="p7p" class="p-only">Project progress</button>
@@ -124,7 +123,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--di
   </div>
   <div class="grid g21">
     <div class="card"><h4 id="tltitle"></h4><div class="chart"><canvas id="c_tl"></canvas></div><p class="note" id="tlnote"></p></div>
-    <div class="card"><h4>Modelled methane abatement over time (%)</h4><div class="chart"><canvas id="c_ab1"></canvas></div><p class="note">Modelled from block intake, not measured on the animal. See Methane and intake for the dose and blocks put out.</p></div>
+    <div class="card"><h4>Modelled methane abatement over time (%)</h4><div class="chart"><canvas id="c_ab1"></canvas></div><p class="note">Modelled from block intake, not measured on the animal. See Methane, blocks and lab results for the dose and blocks put out.</p></div>
   </div>
 </section>
 
@@ -150,8 +149,9 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--di
 
 <!-- P3 -->
 <section class="page" id="p3">
-  <h2>Methane and intake</h2>
+  <h2>Methane, blocks and lab results</h2>
   <p class="sub" id="msub"></p>
+  <h3 class="sec">Modelled methane and intake</h3>
   <div class="grid g4">
     <div class="card kpi"><div class="t">Abatement Rate</div><div class="v" data-f="ab_v"></div><div class="d">Modelled, KleenGrow Mob</div></div>
     <div class="card kpi"><div class="t">CH₄ Abated</div><div class="v" data-f="m_g"></div><div class="d">Per Head / Day</div></div>
@@ -163,8 +163,39 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--di
     <div class="card"><h4 id="abttitle">Modelled methane abatement (%)</h4><div class="chart"><canvas id="c_abt"></canvas></div></div>
   </div>
   <div class="grid g2">
-    <div class="card"><h4>Blocks put out against what the dose needs</h4><div class="chart"><canvas id="c_blk"></canvas></div><p class="note">A dose of 90 g needs about 3.7 blocks per 100 head per week and 150 g needs about 6.2. Blocks put out is the supply side of intake. The feeding set-up is on the Lick block and lab results page.</p></div>
+    <div class="card"><h4>Blocks put out against what the dose needs</h4><div class="chart"><canvas id="c_blk"></canvas></div><p class="note">A dose of 90 g needs about 3.7 blocks per 100 head per week and 150 g needs about 6.2. Blocks put out is the supply side of intake. The feeding set-up is further down this page.</p></div>
     <div class="card"><h4>Reading this page</h4><p class="note" style="font-size:13px;margin:0" id="p3read"></p><p class="note" style="font-size:13px;margin-top:12px"><b>Not yet measured:</b> methane at the animal (AgScent). It is the figure that would turn modelled abatement into evidence.</p></div>
+  </div>
+
+  <h3 class="sec">Blocks put out and feeding set-up</h3>
+  <div class="grid g3">
+    <div class="card kpi"><div class="t">Blocks Put Out</div><div class="v" data-f="pb_v"></div><div class="d" data-f="pb_d"></div><div class="n" data-f="pb_n"></div></div>
+    <div class="card kpi"><div class="t">Feeding Points In Use</div><div class="v" data-f="pf_v"></div><div class="d" data-f="pf_d"></div><div class="n" data-f="pf_n"></div></div>
+    <div class="card kpi"><div class="t">Latest Block Record</div><div class="v" data-f="pr_v"></div><div class="d" data-f="pr_d"></div><div class="n" data-f="pr_n"></div></div>
+  </div>
+  <div class="card" style="margin-bottom:var(--gap)"><h4>Feeding set-up</h4><p class="note" style="font-size:13px;margin:0" id="feedtxt"></p></div>
+  <h3 class="sec">Bromoform in the blocks (AST laboratory, mg/kg wet matter basis)</h3>
+  <div class="grid g4">
+    <div class="card kpi"><div class="t">KleenGrow Bromoform</div><div class="v" data-f="bk_v"></div><div class="d" data-f="bk_d"></div><div class="n" data-f="bk_n"></div></div>
+    <div class="card kpi"><div class="t">Control Block Bromoform</div><div class="v ctl" data-f="bc_v"></div><div class="d" data-f="bc_d"></div><div class="n" data-f="bc_n"></div></div>
+    <div class="card kpi"><div class="t">Change In Storage</div><div class="v ctl" data-f="bs_v"></div><div class="d" data-f="bs_d"></div><div class="n" data-f="bs_n"></div></div>
+    <div class="card kpi"><div class="t">Bromoform Delivered (Indicative)</div><div class="v" data-f="bd_v"></div><div class="d" data-f="bd_d"></div><div class="n" data-f="bd_n"></div></div>
+  </div>
+  <div class="grid g2">
+    <div class="card"><h4>Result by sample group (mg/kg)</h4><div class="chart"><canvas id="c_bro"></canvas></div><p class="note" id="bronote"></p></div>
+    <div class="card"><h4>Bromoform by farm: KleenGrow and control blocks (mg/kg)</h4><div class="chart"><canvas id="c_bfm"></canvas></div><p class="note">Mean of the samples for each farm (two to six samples each). Control blocks were not sampled at one farm. Specification range to be added by Sea Forest for comparison.</p></div>
+  </div>
+  <div class="grid g3">
+    <div class="card"><h4>Uptake over time</h4><p class="note" style="font-size:13px;margin:0" id="upt"></p><p class="note" style="margin-top:10px">Palatability or substitution lowering intake below target is a rated risk in the project risk register. Intake is the trial's uptake measure.</p></div>
+    <div class="card"><h4>Residues and market access</h4><ul class="tick">
+      <li><span class="p">!</span>No bromoform residue results from the beef trial are loaded on this page yet</li>
+      <li><span class="p">!</span>Milk: no jurisdiction has an MRL for bromoform; Australia is not listed in FSANZ Schedule 20 (briefing note, Sept 2025)</li>
+      <li><span class="y">✓</span>2025 dairy trial: milk residue testing was carried out at three farms (Year 1 residue data); results are held in the project files</li>
+      <li><span class="p">?</span>MRL position for beef to be confirmed by Sea Forest and TIA</li></ul></div>
+    <div class="card"><h4>Animal health and welfare</h4><ul class="tick">
+      <li><span class="y">✓</span>2025 dairy trial: no adverse animal-health findings (Progress Report 5)</li>
+      <li><span class="p">!</span>Beef trial: health and feed intake are monitored under the project SOPs; no ill-health or withdrawal records are loaded on this page yet</li>
+      <li><span class="p">?</span>Add withdrawal counts per cohort once the records are loaded</li></ul></div>
   </div>
 </section>
 
@@ -214,40 +245,6 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--di
 </section>
 
 <!-- P5 -->
-<section class="page" id="p5">
-  <h2>Lick block and lab results</h2>
-  <p class="sub">What was put out, what the laboratory found in the blocks, and the residue and animal-health position.</p>
-  <div class="grid g3">
-    <div class="card kpi"><div class="t">Blocks Put Out</div><div class="v" data-f="pb_v"></div><div class="d" data-f="pb_d"></div><div class="n" data-f="pb_n"></div></div>
-    <div class="card kpi"><div class="t">Feeding Points In Use</div><div class="v" data-f="pf_v"></div><div class="d" data-f="pf_d"></div><div class="n" data-f="pf_n"></div></div>
-    <div class="card kpi"><div class="t">Latest Block Record</div><div class="v" data-f="pr_v"></div><div class="d" data-f="pr_d"></div><div class="n" data-f="pr_n"></div></div>
-  </div>
-  <div class="card" style="margin-bottom:var(--gap)"><h4>Feeding set-up</h4><p class="note" style="font-size:13px;margin:0" id="feedtxt"></p></div>
-  <h3 class="sec">Bromoform in the blocks (AST laboratory, mg/kg wet matter basis)</h3>
-  <div class="grid g4">
-    <div class="card kpi"><div class="t">KleenGrow Bromoform</div><div class="v" data-f="bk_v"></div><div class="d" data-f="bk_d"></div><div class="n" data-f="bk_n"></div></div>
-    <div class="card kpi"><div class="t">Control Block Bromoform</div><div class="v ctl" data-f="bc_v"></div><div class="d" data-f="bc_d"></div><div class="n" data-f="bc_n"></div></div>
-    <div class="card kpi"><div class="t">Change In Storage</div><div class="v ctl" data-f="bs_v"></div><div class="d" data-f="bs_d"></div><div class="n" data-f="bs_n"></div></div>
-    <div class="card kpi"><div class="t">Bromoform Delivered (Indicative)</div><div class="v" data-f="bd_v"></div><div class="d" data-f="bd_d"></div><div class="n" data-f="bd_n"></div></div>
-  </div>
-  <div class="grid g2">
-    <div class="card"><h4>Result by sample group (mg/kg)</h4><div class="chart"><canvas id="c_bro"></canvas></div><p class="note" id="bronote"></p></div>
-    <div class="card"><h4>Bromoform by farm: KleenGrow and control blocks (mg/kg)</h4><div class="chart"><canvas id="c_bfm"></canvas></div><p class="note">Mean of the samples for each farm (two to six samples each). Control blocks were not sampled at one farm. Specification range to be added by Sea Forest for comparison.</p></div>
-  </div>
-  <div class="grid g3">
-    <div class="card"><h4>Uptake over time</h4><p class="note" style="font-size:13px;margin:0" id="upt"></p><p class="note" style="margin-top:10px">Palatability or substitution lowering intake below target is a rated risk in the project risk register. Intake is the trial's uptake measure.</p></div>
-    <div class="card"><h4>Residues and market access</h4><ul class="tick">
-      <li><span class="p">!</span>No bromoform residue results from the beef trial are loaded on this page yet</li>
-      <li><span class="p">!</span>Milk: no jurisdiction has an MRL for bromoform; Australia is not listed in FSANZ Schedule 20 (briefing note, Sept 2025)</li>
-      <li><span class="y">✓</span>2025 dairy trial: milk residue testing was carried out at three farms (Year 1 residue data); results are held in the project files</li>
-      <li><span class="p">?</span>MRL position for beef to be confirmed by Sea Forest and TIA</li></ul></div>
-    <div class="card"><h4>Animal health and welfare</h4><ul class="tick">
-      <li><span class="y">✓</span>2025 dairy trial: no adverse animal-health findings (Progress Report 5)</li>
-      <li><span class="p">!</span>Beef trial: health and feed intake are monitored under the project SOPs; no ill-health or withdrawal records are loaded on this page yet</li>
-      <li><span class="p">?</span>Add withdrawal counts per cohort once the records are loaded</li></ul></div>
-  </div>
-</section>
-
 <!-- P6 -->
 <section class="page" id="p6">
   <h2>Pasture and paddocks</h2>
@@ -692,10 +689,9 @@ CFG.bw.p6p=CFG.bw.p6p.replace(/<div class="card"><h4>Pasture quality[\s\S]*$/,PQ
 
 const SRC={p1:'Sources: OptiWeigh liveweight (ADG and 95% bands), lick block visit records (intake), Sea Forest KleenGrow spec and Charmley et al. 2016 (modelled abatement), MLA National Heavy Steer Indicator 29 Oct 2026 and EY ACM 2026 reference price (values). See Sources and method.',
  p2:'Sources: OptiWeigh (liveweight, 14-day rolling ADG with 95% band, 30-day and 90-day ADG). Matched dates and days for both mobs.',
- p3:'Sources: lick block visit records (intake, blocks put out), modelled abatement (Sea Forest KleenGrow spec, Charmley et al. 2016 baseline), Sea Forest guidance of about 1 block per 20 head.',
+ p3:'Sources: lick block visit records (intake, blocks put out), modelled abatement (Sea Forest KleenGrow spec, Charmley et al. 2016 baseline), Sea Forest guidance of about 1 block per 20 head, AST laboratory bromoform results (mg/kg WMB), Progress Report 5, MRL briefing note (Sept 2025), 2025 dairy residue data.',
  p4g:'Sources: LEL_Economics_Data (cost), economic analysis workbook (net return at full cost and $4.85/kg MLA NHSI; farmer 60.23% share shown as secondary), EY ACM 2026 reference price for illustrative abatement value.',
  p4p:'Sources: LEL_Economics_Data and the economic analysis workbook; budget planning rate from the project cost model.',
- p5:'Sources: lick block visit records, AST laboratory bromoform results (mg/kg WMB), Progress Report 5, MRL briefing note (Sept 2025), 2025 dairy residue data.',
  p6:'Sources: OptiWeigh GPS, Sentinel-2 NDVI, Open-Meteo, Forage Lab Australia NIR (pasture report, 6 Nov draft).',
  p7g:'Sources: Project Plan (Deed Variation, 28 Jul 2026), Progress Report 5 (30 Sep 2026), cohort register.',p7p:'Sources: Project Plan (Deed Variation, 28 Jul 2026), Progress Report 5 (30 Sep 2026), cohort register.'};
 function addSrc(){for(const [id,t] of Object.entries(SRC)){const el=document.getElementById(id);if(el&&!el.querySelector('.src')){const p=document.createElement('p');p.className='src';p.textContent=t;el.appendChild(p)}}}
