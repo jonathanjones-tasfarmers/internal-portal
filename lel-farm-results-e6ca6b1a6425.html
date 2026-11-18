@@ -98,7 +98,6 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--di
     <button data-p="p4p" class="p-only">Cost and delivery</button>
     <button data-p="p5">Lick block and lab results</button>
     <button data-p="p6">Pasture and paddocks</button>
-    <button data-p="p6b">Records and traceability</button>
     <button data-p="p7g" class="g-only">Project and next steps</button>
     <button data-p="p7p" class="p-only">Project progress</button>
     <button data-p="p8">Sources and method</button>
@@ -112,16 +111,14 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--di
   <h2>The answer</h2>
   <p class="sub" id="verdict"></p>
   <h3 class="sec">Emissions outcome (modelled)</h3>
-  <div class="grid g4">
+  <div class="grid g3">
     <div class="card kpi"><div class="t">Modelled Methane Abatement</div><div class="v" data-f="ab_v"></div><div class="d" data-f="ab_d"></div><div class="n" data-f="ab_n"></div></div>
     <div class="card kpi"><div class="t">Intake Against Dose</div><div class="v" data-f="dose_v"></div><div class="d" data-f="dose_d"></div><div class="n" data-f="dose_n"></div></div>
-    <div class="card kpi"><div class="t">Blocks Put Out</div><div class="v" data-f="blk_v"></div><div class="d" data-f="blk_d"></div><div class="n" data-f="blk_n"></div></div>
     <div class="card kpi"><div class="t">CO₂e Abated, Whole Mob</div><div class="v" data-f="co2_v"></div><div class="d" data-f="co2_d"></div><div class="n" data-f="co2_n"></div></div>
   </div>
   <h3 class="sec">Growth and cost checks</h3>
-  <div class="grid g4">
+  <div class="grid g3">
     <div class="card kpi"><div class="t" data-f="adg_t"></div><div class="v ctl" data-f="adg_v"></div><div class="d" data-f="adg_d"></div><div class="n" data-f="adg_n"></div></div>
-    <div class="card kpi"><div class="t" data-f="co_t"></div><div class="v" data-f="co_v"></div><div class="d" data-f="co_d"></div><div class="n" data-f="co_n"></div></div>
     <div class="card kpi"><div class="t">Extra Gain: Needed vs Achieved</div><div class="v ctl" data-f="g_v"></div><div class="d" data-f="g_d"></div><div class="n" data-f="g_n"></div></div>
     <div class="card kpi"><div class="t" data-f="n_t"></div><div class="v" data-f="n_v"></div><div class="d" data-f="n_d"></div><div class="n" data-f="n_n"></div></div>
   </div>
@@ -166,12 +163,8 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--di
     <div class="card"><h4 id="abttitle">Modelled methane abatement (%)</h4><div class="chart"><canvas id="c_abt"></canvas></div></div>
   </div>
   <div class="grid g2">
-    <div class="card"><h4>Blocks put out against what the dose needs</h4><div class="chart"><canvas id="c_blk"></canvas></div><p class="note">A dose of 90 g needs about 3.7 blocks per 100 head per week and 150 g needs about 6.2. Blocks put out is the supply side of intake.</p></div>
-    <div class="card"><h4>Feeding set-up</h4><p class="note" style="font-size:13px;margin:0" id="feedtxt"></p></div>
-  </div>
-  <div class="grid g2">
-    <div class="card"><h4>Measured methane (AgScent)</h4><div class="ph">Placeholder: measured methane, KleenGrow vs control. Not yet bound to a layer for <span class="fn"></span>. This is the figure that would turn modelled abatement into evidence.</div></div>
-    <div class="card"><h4>Reading this page</h4><p class="note" style="font-size:13px;margin:0" id="p3read"></p></div>
+    <div class="card"><h4>Blocks put out against what the dose needs</h4><div class="chart"><canvas id="c_blk"></canvas></div><p class="note">A dose of 90 g needs about 3.7 blocks per 100 head per week and 150 g needs about 6.2. Blocks put out is the supply side of intake. The feeding set-up is on the Lick block and lab results page.</p></div>
+    <div class="card"><h4>Reading this page</h4><p class="note" style="font-size:13px;margin:0" id="p3read"></p><p class="note" style="font-size:13px;margin-top:12px"><b>Not yet measured:</b> methane at the animal (AgScent). It is the figure that would turn modelled abatement into evidence.</p></div>
   </div>
 </section>
 
@@ -183,7 +176,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--di
     <div class="card kpi"><div class="t">KleenGrow Cost</div><div class="v" data-f="co_v"></div><div class="d">Per Head / Day</div></div>
     <div class="card kpi"><div class="t">Standard Block Cost</div><div class="v ctl" data-f="cc_v"></div><div class="d">Per Head / Day</div></div>
     <div class="card kpi"><div class="t">Cost So Far, KleenGrow</div><div class="v" data-f="cph_v"></div><div class="d">Per Head</div></div>
-    <div class="card kpi"><div class="t">Net vs Standard Block</div><div class="v" data-f="nv_v"></div><div class="d">Per Head, Full Cost</div></div>
+    <div class="card kpi"><div class="t">Extra Gain: Needed vs Achieved</div><div class="v ctl" data-f="g_v"></div><div class="d" data-f="g_d"></div><div class="n" data-f="g_n"></div></div>
   </div>
   <div class="grid g2">
     <div class="card"><h4>Cumulative cost per head ($)</h4><div class="chart"><canvas id="c_cost"></canvas></div></div>
@@ -227,8 +220,9 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--di
   <div class="grid g3">
     <div class="card kpi"><div class="t">Blocks Put Out</div><div class="v" data-f="pb_v"></div><div class="d" data-f="pb_d"></div><div class="n" data-f="pb_n"></div></div>
     <div class="card kpi"><div class="t">Feeding Points In Use</div><div class="v" data-f="pf_v"></div><div class="d" data-f="pf_d"></div><div class="n" data-f="pf_n"></div></div>
-    <div class="card kpi"><div class="t">Last Restock</div><div class="v" data-f="pr_v"></div><div class="d" data-f="pr_d"></div><div class="n" data-f="pr_n"></div></div>
+    <div class="card kpi"><div class="t">Latest Block Record</div><div class="v" data-f="pr_v"></div><div class="d" data-f="pr_d"></div><div class="n" data-f="pr_n"></div></div>
   </div>
+  <div class="card" style="margin-bottom:var(--gap)"><h4>Feeding set-up</h4><p class="note" style="font-size:13px;margin:0" id="feedtxt"></p></div>
   <h3 class="sec">Bromoform in the blocks (AST laboratory, mg/kg wet matter basis)</h3>
   <div class="grid g4">
     <div class="card kpi"><div class="t">KleenGrow Bromoform</div><div class="v" data-f="bk_v"></div><div class="d" data-f="bk_d"></div><div class="n" data-f="bk_n"></div></div>
@@ -259,34 +253,6 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--di
   <h2>Pasture and paddocks</h2>
   <p class="sub" id="p6sub"></p>
   <div id="p6c"></div>
-</section>
-
-<section class="page" id="p6b">
-  <h2>Records and traceability</h2>
-  <p class="sub">Every result on this site traces back to a dated record. This page shows what is recorded, how, and what is not yet independently verified.</p>
-  <div class="status" id="p6bstat"></div>
-  <div class="grid g12">
-    <div class="card"><h4>The record trail, from animal to result</h4>
-      <ul class="tick">
-        <li id="p6bw"><span class="y">●</span><div><b>Animals identified and weighed automatically</b><br><small>OptiWeigh walk-over weighing links each liveweight to an animal and a mob, daily.</small></div></li>
-        <li><span class="y">●</span><div><b>Each mob tied to its treatment</b><br><small>Treatment is recorded by QR code at every lick block visit, so visits count by the treatment, not the unit.</small></div></li>
-        <li><span class="y">●</span><div><b>Blocks put out and cost recorded</b><br><small>Lick block visits are logged, giving blocks per 100 head per week and the cost per head.</small></div></li>
-        <li><span class="y">●</span><div><b>Blocks sampled in the laboratory</b><br><small>Bromoform in KleenGrow blocks is tested in the outer and inner layers of each block.</small></div></li>
-        <li><span class="y">●</span><div><b>Pasture quality sampled</b><br><small>Forage Lab Australia NIR analysis of paddock samples, 4 November 2026.</small></div></li>
-        <li><span class="y">●</span><div><b>Modelled methane abatement calculated daily</b><br><small>From block intake and the documented method on the Sources and method page.</small></div></li>
-        <li><span class="n">○</span><div><b>Independent verification of abatement</b><br><small>Not yet done. Abatement is modelled, not measured on the animal.</small></div></li>
-      </ul>
-    </div>
-    <div class="card"><h4>How the records are held</h4>
-      <table><tr><th>Record</th><th>Held in</th><th>Updated</th></tr>
-      <tr><td>Liveweight and ADG</td><td>OptiWeigh, then ArcGIS</td><td>Daily</td></tr>
-      <tr><td>Lick block visits</td><td>Survey, ArcGIS</td><td>Each visit</td></tr>
-      <tr><td>Modelled emissions</td><td>ArcGIS</td><td>Daily</td></tr>
-      <tr><td>Economics</td><td>ArcGIS</td><td>Daily</td></tr>
-      <tr><td>Lab and pasture results</td><td>ArcGIS, from lab reports</td><td>Per sample</td></tr></table>
-      <p class="note">The figures on this site are rebuilt from these layers. Any correction to a record is backed up before it is applied.</p>
-    </div>
-  </div>
 </section>
 
 <!-- P7 gov -->
@@ -333,7 +299,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--di
   <p class="sub">Where each figure comes from, and how it is calculated.</p>
   <div class="card" style="margin-bottom:var(--gap)"><h4>Product name</h4><p class="note" style="font-size:13px;margin:0">KleenGrow™ is the Sea Forest product fed in the lick-block trial. It is called SeaFeed™ in the Grant Deed and in earlier project reports. Both names refer to the same product.</p></div>
   <div class="card" style="margin-bottom:var(--gap)"><h4>Data sources</h4>
-    <table class="ms">
+    <table class="ms dsrc">
     <tr><th>Content</th><th>Source</th><th>Access</th><th>Updates</th></tr>
     <tr><td>Weight and ADG</td><td>OptiWeigh walk-over liveweight monitoring (OptiWeigh_Cattle_Weights). 14-day rolling ADG is a per-animal regression slope averaged across animals, with a 95% interval; 30-day and 90-day ADG are OptiWeigh's own windows.</td><td><span class="chip done">PUBLIC</span></td><td>Daily</td></tr>
     <tr><td>Intake and blocks put out</td><td>Lick block visit records entered by the farms (Survey123). Intake = mass of blocks put out ÷ (head × days to the next visit), so blocks are assumed used up by the next visit.</td><td><span class="chip pend">PUBLIC VIEW</span></td><td>Daily</td></tr>
@@ -344,6 +310,17 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--di
     <tr><td>Pasture quality</td><td>Forage Lab Australia NIR results (crude protein, aNDF, metabolisable energy), loaded into LEL_Pasture_Quality. Satellite greenness is Sentinel-2 NDVI; weather is Open-Meteo regional data.</td><td><span class="chip pend">PUBLIC VIEW</span></td><td>By hand</td></tr>
     <tr><td>Paddocks and unit locations</td><td>Paddock_Boundaries, LEL_Unit_Location_Daily, LEL_Unit_Moves (OptiWeigh GPS is the unit's position, not the mob's).</td><td><span class="chip c">PRIVATE</span></td><td>Daily</td></tr>
     </table></div>
+  <div class="card" style="margin-bottom:var(--gap)"><h4>The record trail, from animal to result</h4>
+    <ul class="tick">
+      <li id="p6bw"><span class="y">●</span><div><b>Animals identified and weighed automatically</b><br><small>OptiWeigh walk-over weighing links each liveweight to an animal and a mob, daily.</small></div></li>
+      <li><span class="y">●</span><div><b>Each mob tied to its treatment</b><br><small>Treatment is recorded by QR code at every lick block visit, so visits count by the treatment, not the unit.</small></div></li>
+      <li><span class="y">●</span><div><b>Blocks put out and cost recorded</b><br><small>Lick block visits are logged, giving blocks per 100 head per week and the cost per head.</small></div></li>
+      <li><span class="y">●</span><div><b>Blocks sampled in the laboratory</b><br><small>Bromoform is tested in the outer and inner layers of each block.</small></div></li>
+      <li><span class="y">●</span><div><b>Pasture quality sampled</b><br><small>Forage Lab Australia NIR analysis of paddock samples, 4 November 2026.</small></div></li>
+      <li><span class="y">●</span><div><b>Modelled methane abatement calculated daily</b><br><small>From block intake, using the method below.</small></div></li>
+      <li><span class="n">○</span><div><b>Independent verification of abatement</b><br><small>Not yet done. Abatement is modelled, not measured on the animal.</small></div></li>
+    </ul>
+    <p class="note">The figures on this site are rebuilt from these records. Any correction to a record is backed up before it is applied.</p></div>
   <div class="grid g2">
     <div class="card"><h4>How comparisons are made</h4><ul class="tick">
       <li><span class="y">✓</span>KleenGrow and control mobs are compared over the same dates and the same number of days</li>
@@ -415,7 +392,7 @@ bw:{gov:'Bowood',govFull:'Bowood Farm',pub:'Farm 1',idx:1,
           <circle cx="190" cy="135" r="6" fill="#3aa989" stroke="#fff" stroke-width="1.5"/><circle cx="102" cy="225" r="6" fill="#041221" stroke="#fff" stroke-width="1.5"/></svg>
       </div>
       <div class="legend"><span><i style="background:#3aa989"></i>KleenGrow unit</span><span><i style="background:#041221"></i>Control unit</span></div>
-      <p class="note">Schematic only. The real Map widget shows the digitised paddocks (80 of about 91 drawn). Unit GPS is the unit's position, not the whole mob's.</p></div>
+      <p class="note">Schematic of unit positions. Digitised paddock boundaries are 80 of about 91 drawn. Unit GPS is the unit's position, not the whole mob's.</p></div>
     <div>
       <div class="grid g2" style="margin-bottom:var(--gap)">
         <div class="card kpi"><div class="t">ADG Jun to Aug</div><div class="v ctl">592 <small>g</small></div><div class="d">Per Day</div></div>
@@ -426,14 +403,14 @@ bw:{gov:'Bowood',govFull:'Bowood Farm',pub:'Farm 1',idx:1,
         <p class="note">A greener paddock did not mean faster gain between mobs (rank correlation +0.23, 19 readings, not significant). KleenGrow paddocks were slightly less green on 10 of 11 paired scenes, from only 4 pairings.</p></div>
     </div>
   </div>
-  <div class="card"><h4>Pasture quality (private table)</h4><div class="ph">Placeholder: crude protein, aNDF and metabolisable energy by mob (two {n} samples, 4 Nov).</div></div>`,
+  <div class="card"><h4>Pasture quality</h4><div class="ph">Not yet available: crude protein, aNDF and metabolisable energy by mob (two {n} samples, 4 Nov).</div></div>`,
  p6p:`<div class="grid g2">
     <div class="card"><h4>Season and gain, {n} Cohort 1</h4>
       <table><tr><th>Measure</th><th>Jun to Aug</th><th>Sep to 3 Nov</th></tr><tr><td>Average daily gain (g/day)</td><td>592</td><td>1,410</td></tr><tr><td>Mean temperature (°C)</td><td>9.4</td><td>12.1</td></tr><tr><td>Rainfall per fortnight (mm)</td><td>49</td><td>32</td></tr><tr><td>Greenness (NDVI)</td><td>0.74</td><td>0.88</td></tr></table>
       <p class="note">Gain rose with the season in both mobs, so season acts on treatment and control alike.</p></div>
     <div class="card"><h4>What this means for the trial</h4><p class="note" style="font-size:13px;margin:0">A greener paddock did not mean faster gain between mobs (rank correlation +0.23, 19 readings, not significant). Mobs are not randomised, so feed was not perfectly balanced. The crossover that began on 4 November lets each mob act as its own comparison. Paddock-level maps are held in the farm's private view.</p></div>
   </div>
-  <div class="card"><h4>Pasture quality (private table)</h4><div class="ph">Placeholder: crude protein, aNDF and metabolisable energy by mob (two {n} samples, 4 Nov).</div></div>`,
+  <div class="card"><h4>Pasture quality</h4><div class="ph">Not yet available: crude protein, aNDF and metabolisable energy by mob (two {n} samples, 4 Nov).</div></div>`,
  notes:[['y','Neither farm shows a consistent growth benefit from KleenGrow so far'],['y','Cost came in 41% to 54% under budget'],['y','Block intake is about half the model dose, so modelled abatement is small'],['p','Bowood is negative at every sale price tested; Eastbourne is positive but fragile']],
  dec:[['q','Raise block intake toward the model dose, or accept low abatement?'],['q','Add measured methane (AgScent) at Bowood to test the model?'],['q','Extend the trial to a full finishing period before reporting economics?'],['q','Confirm farmer agreement before any farm-by-name sharing']],
  K:{1:{w_sf:['346.7 <small>kg</small>'],w_n:['Control 367.2 kg · 4 Nov'],adg_t:['30-Day ADG, KleenGrow vs Control'],adg_v:['-65 <small>g/day</small>','bad'],adg_d:['-5% · 1,166 vs 1,231'],adg_n:['15 Jul to 3 Nov, 54 matched days'],
@@ -487,13 +464,13 @@ eb:{gov:'Eastbourne',govFull:'Eastbourne Farm',pub:'Farm 2',idx:2,
  net:[[10.61,15.17,18.58],G], dose:[42.3,44.0], bud:[46,59],
  p6sub:'Context for the growth result. Not yet available for this farm.',
  p6g:`<div class="grid g2">
-    <div class="card"><h4>Paddock map</h4><div class="ph">Placeholder. No Eastbourne paddock polygons have been drawn yet, so unit locations cannot be tied to paddocks.</div></div>
-    <div class="card"><h4>Season and greenness</h4><div class="ph">Placeholder. The satellite greenness and weather analysis done for Bowood has not been run for Eastbourne.</div></div>
+    <div class="card"><h4>Paddock map</h4><div class="ph">Not yet available. No Eastbourne paddock polygons have been drawn yet, so unit locations cannot be tied to paddocks.</div></div>
+    <div class="card"><h4>Season and greenness</h4><div class="ph">Not yet available. The satellite greenness and weather analysis done for Bowood has not been run for Eastbourne.</div></div>
   </div>
-  <div class="card"><h4>Pasture quality (private table)</h4><div class="ph">Placeholder: crude protein, aNDF and metabolisable energy by mob, once Eastbourne samples are loaded (script 26).</div></div>`,
+  <div class="card"><h4>Pasture quality</h4><div class="ph">Not yet available: crude protein, aNDF and metabolisable energy by mob, once Eastbourne samples are loaded (script 26).</div></div>`,
  p6p:`<div class="grid g2">
-    <div class="card"><h4>Season and greenness</h4><div class="ph">Placeholder. The satellite greenness and weather analysis done for Farm 1 has not been run for {n}.</div></div>
-    <div class="card"><h4>Pasture quality (private table)</h4><div class="ph">Placeholder: crude protein, aNDF and metabolisable energy by mob, once {n} samples are loaded.</div></div>
+    <div class="card"><h4>Season and greenness</h4><div class="ph">Not yet available. The satellite greenness and weather analysis done for Farm 1 has not been run for {n}.</div></div>
+    <div class="card"><h4>Pasture quality</h4><div class="ph">Not yet available: crude protein, aNDF and metabolisable energy by mob, once {n} samples are loaded.</div></div>
   </div>`,
  notes:[['y','KleenGrow gained 4.6 kg more per head over 62 days, net +$10.61 per head at full cost (no subsidy)'],['p','The advantage is fragile: it moved between about -2 and +5 kg during the trial'],['y','Cost came in 54% under budget ($0.15 against $0.329 per head per day)'],['p','Intake averaged 41 g/day against the 90 g/day the model assumes, so modelled abatement is small (8.5%)']],
  dec:[['q','Wait for Cohort 2 to reach a 30-day matched window before drawing conclusions?'],['q','Add measured methane (AgScent) to test the modelled abatement?'],['q','Draw Eastbourne paddocks so pasture can be tested as a driver of gain?'],['q','Confirm farmer agreement before any farm-by-name sharing']],
@@ -531,8 +508,8 @@ eb:{gov:'Eastbourne',govFull:'Eastbourne Farm',pub:'Farm 2',idx:2,
  p4cross:`<h4>What is needed first</h4><ul class="tick"><li><span class="p">→</span>Install OptiWeigh units on both mobs</li><li><span class="p">→</span>A first matched window needs about 30 days of weights</li><li><span class="p">→</span>New farm data joins the trial-wide figures once the newest unit has been live 21 days</li></ul>`,
  net:[[0,0,0],G], dose:[13.8], bud:[0], noweights:true,
  p6sub:'Context for the growth result. Not yet available for this farm.',
- p6g:`<div class="grid g2"><div class="card"><h4>Paddock map</h4><div class="ph">Placeholder. No paddock polygons have been drawn for this farm yet.</div></div><div class="card"><h4>Season and greenness</h4><div class="ph">Placeholder. Satellite greenness and weather analysis has not been run for this farm.</div></div></div><div class="card"><h4>Pasture quality (private table)</h4><div class="ph">Placeholder: crude protein, aNDF and metabolisable energy by mob, once {n} samples are loaded.</div></div>`,
- p6p:`<div class="grid g2"><div class="card"><h4>Season and greenness</h4><div class="ph">Placeholder. Satellite greenness and weather analysis has not been run for {n}.</div></div><div class="card"><h4>Pasture quality (private table)</h4><div class="ph">Placeholder: crude protein, aNDF and metabolisable energy by mob, once {n} samples are loaded.</div></div></div>`,
+ p6g:`<div class="grid g2"><div class="card"><h4>Paddock map</h4><div class="ph">Not yet available. No paddock polygons have been drawn for this farm yet.</div></div><div class="card"><h4>Season and greenness</h4><div class="ph">Not yet available. Satellite greenness and weather analysis has not been run for this farm.</div></div></div><div class="card"><h4>Pasture quality</h4><div class="ph">Not yet available: crude protein, aNDF and metabolisable energy by mob, once {n} samples are loaded.</div></div>`,
+ p6p:`<div class="grid g2"><div class="card"><h4>Season and greenness</h4><div class="ph">Not yet available. Satellite greenness and weather analysis has not been run for {n}.</div></div><div class="card"><h4>Pasture quality</h4><div class="ph">Not yet available: crude protein, aNDF and metabolisable energy by mob, once {n} samples are loaded.</div></div></div>`,
  notes:[['p','Lick blocks started on 11 Oct; OptiWeigh units are not yet installed'],['p','No growth, ADG or economic result can be reported yet'],['y','Treatment and standard mobs are established: 356 and 398 head'],['p','Intake and modelled abatement are provisional and move in steps with feed-out records']],
  dec:[['q','Confirm the OptiWeigh installation date for this farm?'],['q','Agree when this farm joins the trial-wide figures?'],['q','Confirm farmer agreement before any farm-by-name sharing']],
  K:{1:{w_sf:['—'],w_n:['No OptiWeigh yet'],adg_t:['ADG, KleenGrow vs Control'],adg_v:['—'],adg_d:['Awaiting OptiWeigh'],adg_n:['No weight data yet'],
@@ -639,7 +616,7 @@ kk('bw',1,{adg_v:['-65 <small>g/day</small>'],adg_n:['Bands overlapped on 30 of 
   blk_v:['2.2'],blk_d:['Per 100 Head / Week'],blk_n:['Budget dose needs 3.7; 150 g needs 6.2'],
   co2_v:['10.9 <small>t</small>'],co2_d:['Modelled, 160 Head'],co2_n:['To 4 Nov, GWP100 28'],
   n_n:['-$31.55 per head. Farmer share (60.23%): -$2,945. Abatement value +$354, illustrative, not a realised credit'],
-  pb_v:['85'],pb_d:['KleenGrow Blocks, Cohort 1'],pb_n:['17 kg blocks, 7 feeding points used'],pf_v:['4'],pf_d:['In Use For 160 Head'],pf_n:['40 head per feeding point'],pr_v:['Closed'],pr_d:['Cohort Ended 4 Nov'],pr_n:['Final export 4 Nov'],
+  pb_v:['85'],pb_d:['KleenGrow Blocks, Cohort 1'],pb_n:['17 kg blocks, across 7 feeding points over the cohort'],pf_v:['4'],pf_d:['In Use For 160 Head, Latest Record'],pf_n:['40 head per feeding point'],pr_v:['Closed'],pr_d:['Cohort Ended 4 Nov'],pr_n:['Final export 4 Nov'],
   bk_v:['485 <small>mg/kg</small>'],bk_d:['Mean Of 6 Samples, 2 Pallets'],bk_n:['Range 199 to 1,140'],bc_v:['—'],bc_d:['No Control Block Sampled'],bc_n:['Other farms\' controls: 12 to 21'],
   bs_v:['-32 <small>%</small>'],bs_d:['Pallet 1, 9 Jul To 4 Nov'],bs_n:['65 to 183 days in storage'],bd_v:['13.8 <small>mg</small>'],bd_d:['Per Head / Day'],bd_n:['53.2 g × 259 mg/kg (pallet 1 mean)']});
 kk('bw',2,{adg_n:['Bands overlapped on 6 of 7 days'],
@@ -726,7 +703,6 @@ function renderExtra(){
   const s=S(), d=D[F];
   addSrc();
   const pw=document.getElementById('p6bw');if(pw&&F=='trt')pw.innerHTML='<span class="p">○</span><div><b>Automatic weighing</b><br><small>OptiWeigh units are not yet installed here, so there is no liveweight record yet.</small></div>';
-  const bs=document.getElementById('p6bstat');if(bs)bs.innerHTML='<span><b>'+nm()+'</b></span><span>'+(s.STAT[coh]||'')+'</span>';
   const f1=document.getElementById('feedtxt');if(f1)f1.textContent=s.feed[coh]||'';
   const u=document.getElementById('upt');if(u)u.textContent=s.upt;
   document.getElementById('bronote').textContent=s.bronote;
@@ -768,7 +744,7 @@ const MS=[['1','Foundation Activities','19 Jun to 27 Sep 2024','Project plan and
 ['4','On-Farm Activities and Reporting, Phase 2','Jul to Aug 2026','Continuous grazing trials for beef and sheep; formal Progress Report by 30 Sep 2026','Drawdown 3: $800,000','done','COMPLETE','Progress Report 5 accepted by the Grantor'],
 ['5','On-Farm Activities and Reporting, Phase 3','Sep 2026 to 31 Dec 2028','Long-term pasture-based beef and sheep/wool cohorts; bi-annual Progress and Data Reports','Not drawdown-linked','live','IN PROGRESS','Under way following acceptance of Milestone 4'],
 ['6','Final Project Report and Publication','Jan to 1 Feb 2029','Final Report, audited Financial Acquittal, producer handbook, economic feasibility calculator, viability report','Drawdown 4: $200,000','pend','DUE 1 FEB 2029','Not started']];
-document.querySelectorAll('table.ms').forEach(t=>t.innerHTML='<tr><th>Milestone</th><th>Period</th><th>Deliverables</th><th>Funding</th><th>Status</th></tr>'+MS.map(m=>`<tr><td>${m[0]}. ${m[1]}</td><td>${m[2]}</td><td>${m[3]}</td><td>${m[4]}</td><td><span class="chip ${m[5]}">${m[6]}</span><br><span class="note">${m[7]}</span></td></tr>`).join(''));
+document.querySelectorAll('table.ms:not(.dsrc)').forEach(t=>t.innerHTML='<tr><th>Milestone</th><th>Period</th><th>Deliverables</th><th>Funding</th><th>Status</th></tr>'+MS.map(m=>`<tr><td>${m[0]}. ${m[1]}</td><td>${m[2]}</td><td>${m[3]}</td><td>${m[4]}</td><td><span class="chip ${m[5]}">${m[6]}</span><br><span class="note">${m[7]}</span></td></tr>`).join(''));
 document.getElementById('farm').onchange=e=>{F=e.target.value;render()};
 
 render();
