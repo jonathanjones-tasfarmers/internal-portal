@@ -98,6 +98,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--di
     <button data-p="p4p" class="p-only">Cost and delivery</button>
     <button data-p="p5">Lick block and lab results</button>
     <button data-p="p6">Pasture and paddocks</button>
+    <button data-p="p6b">Records and traceability</button>
     <button data-p="p7g" class="g-only">Project and next steps</button>
     <button data-p="p7p" class="p-only">Project progress</button>
     <button data-p="p8">Sources and method</button>
@@ -192,6 +193,7 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--di
     <div class="card" id="p4econ"></div>
     <div class="card" id="p4cross"></div>
   </div>
+  <div class="card" id="p4sens"><h4>Net return per head against sale price ($)</h4><div class="chart"><canvas id="c_sens"></canvas></div><p class="note" id="sensnote"></p></div>
 </section>
 
 <!-- P4 pub -->
@@ -257,6 +259,34 @@ h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--di
   <h2>Pasture and paddocks</h2>
   <p class="sub" id="p6sub"></p>
   <div id="p6c"></div>
+</section>
+
+<section class="page" id="p6b">
+  <h2>Records and traceability</h2>
+  <p class="sub">Every result on this site traces back to a dated record. This page shows what is recorded, how, and what is not yet independently verified.</p>
+  <div class="status" id="p6bstat"></div>
+  <div class="grid g12">
+    <div class="card"><h4>The record trail, from animal to result</h4>
+      <ul class="tick">
+        <li id="p6bw"><span class="y">●</span><div><b>Animals identified and weighed automatically</b><br><small>OptiWeigh walk-over weighing links each liveweight to an animal and a mob, daily.</small></div></li>
+        <li><span class="y">●</span><div><b>Each mob tied to its treatment</b><br><small>Treatment is recorded by QR code at every lick block visit, so visits count by the treatment, not the unit.</small></div></li>
+        <li><span class="y">●</span><div><b>Blocks put out and cost recorded</b><br><small>Lick block visits are logged, giving blocks per 100 head per week and the cost per head.</small></div></li>
+        <li><span class="y">●</span><div><b>Blocks sampled in the laboratory</b><br><small>Bromoform in KleenGrow blocks is tested in the outer and inner layers of each block.</small></div></li>
+        <li><span class="y">●</span><div><b>Pasture quality sampled</b><br><small>Forage Lab Australia NIR analysis of paddock samples, 4 November 2026.</small></div></li>
+        <li><span class="y">●</span><div><b>Modelled methane abatement calculated daily</b><br><small>From block intake and the documented method on the Sources and method page.</small></div></li>
+        <li><span class="n">○</span><div><b>Independent verification of abatement</b><br><small>Not yet done. Abatement is modelled, not measured on the animal.</small></div></li>
+      </ul>
+    </div>
+    <div class="card"><h4>How the records are held</h4>
+      <table><tr><th>Record</th><th>Held in</th><th>Updated</th></tr>
+      <tr><td>Liveweight and ADG</td><td>OptiWeigh, then ArcGIS</td><td>Daily</td></tr>
+      <tr><td>Lick block visits</td><td>Survey, ArcGIS</td><td>Each visit</td></tr>
+      <tr><td>Modelled emissions</td><td>ArcGIS</td><td>Daily</td></tr>
+      <tr><td>Economics</td><td>ArcGIS</td><td>Daily</td></tr>
+      <tr><td>Lab and pasture results</td><td>ArcGIS, from lab reports</td><td>Per sample</td></tr></table>
+      <p class="note">The figures on this site are rebuilt from these layers. Any correction to a record is backed up before it is applied.</p>
+    </div>
+  </div>
 </section>
 
 <!-- P7 gov -->
@@ -695,6 +725,8 @@ function addSrc(){for(const [id,t] of Object.entries(SRC)){const el=document.get
 function renderExtra(){
   const s=S(), d=D[F];
   addSrc();
+  const pw=document.getElementById('p6bw');if(pw&&F=='trt')pw.innerHTML='<span class="p">○</span><div><b>Automatic weighing</b><br><small>OptiWeigh units are not yet installed here, so there is no liveweight record yet.</small></div>';
+  const bs=document.getElementById('p6bstat');if(bs)bs.innerHTML='<span><b>'+nm()+'</b></span><span>'+(s.STAT[coh]||'')+'</span>';
   const f1=document.getElementById('feedtxt');if(f1)f1.textContent=s.feed[coh]||'';
   const u=document.getElementById('upt');if(u)u.textContent=s.upt;
   document.getElementById('bronote').textContent=s.bronote;
@@ -706,6 +738,19 @@ function renderExtra(){
   if(document.getElementById('c_bfm')){
     const ks=['bw','eb','trt'];
     charts.push(new Chart(document.getElementById('c_bfm'),{type:'bar',data:{labels:ks.map(k=>nmOf(k)),datasets:[{label:'KleenGrow',data:ks.map(k=>LABM[k][0]),backgroundColor:ks.map(k=>k==F?G:'#9ad6c2'),borderRadius:4},{label:'Control',data:ks.map(k=>LABM[k][1]),backgroundColor:ks.map(k=>k==F?W:'#a9b8c4'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,usePointStyle:true}}},scales:{x:{grid:{display:false}},y:{grid:{color:GR},border:{display:false},title:{display:true,text:'mg/kg bromoform (WMB)'},min:0}}}}));
+  }
+  if(document.getElementById('c_sens')){
+    const SENS={bw:{cost:33.05,gain:0.309,fs:19.91},eb:{cost:11.48,gain:4.555,fs:6.91}};
+    const sn=SENS[F];const cv=document.getElementById('c_sens');
+    if(!sn||coh!=1){cv.parentElement.innerHTML='<div class="ph">Cohort 1 economics only. Cohort 2 and TRT Pastoral have no completed matched window yet.</div>';}
+    else{
+      const pr=[3,3.5,4,4.5,5,5.5,6,6.5];
+      const full=pr.map(x=>+(sn.gain*x-sn.cost).toFixed(2));
+      const sh=pr.map(x=>+(sn.gain*x-sn.fs).toFixed(2));
+      charts.push(new Chart(cv,{type:'line',data:{labels:pr.map(x=>'$'+x.toFixed(2)),datasets:[{label:'Full cost (no subsidy)',data:full,borderColor:G,backgroundColor:G,pointRadius:3,tension:0},{label:'Farmer share (60.23%)',data:sh,borderColor:GY,borderDash:[6,4],pointRadius:0,tension:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{y:{title:{display:true,text:'Net per head ($)'}},x:{title:{display:true,text:'Sale price ($/kg liveweight)'}}}}}));
+      const be=sn.cost/sn.gain;
+      document.getElementById('sensnote').textContent='Same cost and extra gain as the table above, repriced across sale prices. $4.85 is the MLA NHSI price on 29 Oct 2026. At full cost, break-even needs about $'+be.toFixed(2)+' per kg'+(be>7?', above any price on this chart.':'.')+(F=='eb'?' Eastbourne\'s gain rests on a single day\'s reading, so treat this as indicative.':'');
+    }
   }
 }
 
