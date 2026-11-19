@@ -189,7 +189,7 @@
   </div>
   <p class="mt-eyebrow">TasFarmers &middot; Low Emissions Livestock Project</p>
   <h1>Methane Data</h1>
-  <p class="mt-hero-sub">Modelled enteric methane abatement from SeaFeed: trial-wide and by farm, from the same Emissions and Economics data the public Data page draws on.</p>
+  <p class="mt-hero-sub">Modelled enteric methane abatement from SeaFeed: program-wide and by farm, from the same Emissions and Economics data the public Data page draws on.</p>
 </div>
 
 <div class="mt-page">
@@ -199,7 +199,7 @@
     <div class="mt-alert-banner-text" id="mt-alert-banner-text"></div>
   </div>
 
-  <p class="mt-section-label">Trial snapshot</p>
+  <p class="mt-section-label">Program snapshot</p>
   <div class="mt-kpi-grid" id="mt-kpi-grid">
     <div class="mt-kpi-card" aria-hidden="true"><p class="mt-kpi-label"><span class="mt-skel mt-skel-md" style="height:9px;"></span></p><p class="mt-kpi-value"><span class="mt-skel mt-skel-lg" style="height:24px;"></span></p></div>
     <div class="mt-kpi-card" aria-hidden="true"><p class="mt-kpi-label"><span class="mt-skel mt-skel-md" style="height:9px;"></span></p><p class="mt-kpi-value"><span class="mt-skel mt-skel-lg" style="height:24px;"></span></p></div>
@@ -363,7 +363,7 @@
 
     if (!farms.length) {
       document.getElementById('mt-grid').innerHTML = '<div class="mt-loading">No emissions data found yet. This page will populate once the daily Emissions pipeline has run.</div>';
-      document.getElementById('mt-kpi-grid').innerHTML = '<div class="mt-loading">No trial-wide figures yet.</div>';
+      document.getElementById('mt-kpi-grid').innerHTML = '<div class="mt-loading">No program-wide figures yet.</div>';
       return;
     }
 
@@ -436,9 +436,9 @@
     }).length;
 
     var cards = [
-      { label: 'Trial CO2e abated to date', value: totalTonnesCo2e > 0 ? co2eDisplay : '–', note: 'Cumulative, SeaFeed vs modelled baseline' },
+      { label: 'Program CO2e abated to date', value: totalTonnesCo2e > 0 ? co2eDisplay : '–', note: 'Cumulative, SeaFeed vs modelled baseline' },
       { label: 'Current abatement rate', value: latestAgg && latestAgg.abatement_rate != null ? latestAgg.abatement_rate + '%' : '–', note: latestAgg ? 'as of ' + fmtDate(latestAgg.record_date) : 'No data yet' },
-      { label: 'Current SeaFeed intake', value: latestAgg && latestAgg.intake_g_per_hd_day != null ? Math.round(latestAgg.intake_g_per_hd_day) + ' g/hd/day' : '–', note: 'Trial-wide, head-count-weighted' },
+      { label: 'Current SeaFeed intake', value: latestAgg && latestAgg.intake_g_per_hd_day != null ? Math.round(latestAgg.intake_g_per_hd_day) + ' g/hd/day' : '–', note: 'Program-wide, head-count-weighted' },
       { label: 'Farms reporting', value: String(farmsReporting), note: farmsReporting === 1 ? 'farm with live methane data' : 'farms with live methane data' }
     ];
 

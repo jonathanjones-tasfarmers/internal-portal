@@ -282,7 +282,7 @@
       </div>
       <p class="roi-eyebrow">TasFarmers &middot; Low Emissions Livestock Project</p>
       <h1>Farm ROI</h1>
-      <p class="roi-hero-sub">Real SeaFeed cost accruing month by month at each trial farm, and whether the observed SeaFeed-vs-Control gain is currently ahead or behind that cost. Built for conversations in the paddock: one card per farm, edit head count and assumptions on the spot.</p>
+      <p class="roi-hero-sub">Real SeaFeed cost accruing month by month at each participating farm, and whether the observed SeaFeed-vs-Control gain is currently ahead or behind that cost. Built for conversations in the paddock: one card per farm, edit head count and assumptions on the spot.</p>
     </div>
 
     <div class="roi-page">
@@ -303,12 +303,12 @@
 
       <div class="roi-section-row">
         <p class="roi-section-label">Farms</p>
-        <button type="button" class="roi-reset-btn" id="reset-btn">Reset to trial defaults</button>
+        <button type="button" class="roi-reset-btn" id="reset-btn">Reset to program defaults</button>
       </div>
       <div class="roi-grid" id="roi-grid"></div>
 
       <p class="roi-footer-note">
-        The "SeaFeed gaining Xg/day" stat, the cost-accrual chart, the ahead/behind line and the monthly snapshot strip all read real history from LEL_Economics_Data (cumulative_cost_aud and weight_gain_kg_per_head, one row per farm/treatment per day since that farm's trial start): genuine SeaFeed cost accrued from real lick blocks fed out and real observed weight gain, with SeaFeed and Control compared at the same number of days of weight data, not a projection, and this is the page's only "ahead or behind" verdict. The farmer/grant split on the cost chart, and every "net" figure, apply each card's own Contribution rate (%) assumption to that real cost: edit it in Adjust assumptions if the project-wide rate changes, and every real-data figure on the card updates together. Sale price (used to value the ADG advantage) auto-fills from the MLA National Heavy Steer Indicator: edit it once and this page stops touching it. The separate "Modelled annual estimate" block on each card is a projection from the assumptions in Adjust assumptions (dose &times; price &times; 365; the visitation rate is applied only to a planned dose, not to a live one, because a live dose already covers the whole mob), useful for "what would justify this" conversations, but it won't match the real cumulative figure above it unless every assumption happens to hold exactly, and it carries no verdict of its own. SeaFeed cost, contribution rate and benefit-pathway defaults in that modelled estimate reproduce the live TLEL Project Budget model (Supplement Costs, Farmer Break-Even, Project Budget sheets, as at 8 Sep 2026). Head counts default to each farm's 2026 deployment from the Beef Farm Head/Mob table: edit them to match what's actually on the ground when you're talking to a farmer. Dose auto-fills per farm from the Lick Block Tracker's own measured consumption rate (LEL_Lick_Block_Usage_History): edit it once and this page stops touching it. Cards and any farms you add are saved in this browser only.
+        The "SeaFeed gaining Xg/day" stat, the cost-accrual chart, the ahead/behind line and the monthly snapshot strip all read real history from LEL_Economics_Data (cumulative_cost_aud and weight_gain_kg_per_head, one row per farm/treatment per day since that farm's program start): genuine SeaFeed cost accrued from real lick blocks fed out and real observed weight gain, with SeaFeed and Control compared at the same number of days of weight data, not a projection, and this is the page's only "ahead or behind" verdict. The farmer/grant split on the cost chart, and every "net" figure, apply each card's own Contribution rate (%) assumption to that real cost: edit it in Adjust assumptions if the project-wide rate changes, and every real-data figure on the card updates together. Sale price (used to value the ADG advantage) auto-fills from the MLA National Heavy Steer Indicator: edit it once and this page stops touching it. The separate "Modelled annual estimate" block on each card is a projection from the assumptions in Adjust assumptions (dose &times; price &times; 365; the visitation rate is applied only to a planned dose, not to a live one, because a live dose already covers the whole mob), useful for "what would justify this" conversations, but it won't match the real cumulative figure above it unless every assumption happens to hold exactly, and it carries no verdict of its own. SeaFeed cost, contribution rate and benefit-pathway defaults in that modelled estimate reproduce the live TLEL Project Budget model (Supplement Costs, Farmer Break-Even, Project Budget sheets, as at 8 Sep 2026). Head counts default to each farm's 2026 deployment from the Beef Farm Head/Mob table: edit them to match what's actually on the ground when you're talking to a farmer. Dose auto-fills per farm from the Lick Block Tracker's own measured consumption rate (LEL_Lick_Block_Usage_History): edit it once and this page stops touching it. Cards and any farms you add are saved in this browser only.
       </p>
     </div>
 
@@ -860,7 +860,7 @@
         });
         var el = document.getElementById('roi-summary');
         el.innerHTML =
-          '<div class="roi-summary-item"><div class="rs-label">Farms on this page</div><div class="rs-value tabular">' + cards.length + '</div><div class="rs-note">cattle trial enterprises</div></div>' +
+          '<div class="roi-summary-item"><div class="rs-label">Farms on this page</div><div class="rs-value tabular">' + cards.length + '</div><div class="rs-note">cattle program enterprises</div></div>' +
           '<div class="roi-summary-item"><div class="rs-label">Total head</div><div class="rs-value tabular">' + int(totalHead) + '</div><div class="rs-note">across all cards below</div></div>' +
           '<div class="roi-summary-item"><div class="rs-label">Combined SeaFeed cost</div><div class="rs-value tabular">' + cur(totalCost, 0) + '</div><div class="rs-note">per year, at each card’s own settings</div></div>' +
           '<div class="roi-summary-item"><div class="rs-label">Combined contribution needed</div><div class="rs-value tabular" style="color:var(--tf-seafeed)">' + cur(totalContribution, 0) + '</div><div class="rs-note">at each card’s own rate</div></div>';
@@ -896,7 +896,7 @@
 
         if (!rows.length) {
           wrap.innerHTML = '';
-          noteEl.textContent = 'No cards have matched a live trial farm with enough real cost & weight-gain history yet.';
+          noteEl.textContent = 'No cards have matched a live participating farm with enough real cost & weight-gain history yet.';
           return;
         }
 
@@ -952,7 +952,7 @@
         }
         var hist = econHistoryByFarm[c.name];
         if (!hist || !hist.seafeed.length) {
-          return '<div class="roi-real-data"><p class="roi-real-data-empty">No live SeaFeed cost history found under the farm name &ldquo;' + escapeAttr(c.name) + '&rdquo; yet. Rename this card to match a live trial farm, or check back once it has logged Lick Block data.</p></div>';
+          return '<div class="roi-real-data"><p class="roi-real-data-empty">No live SeaFeed cost history found under the farm name &ldquo;' + escapeAttr(c.name) + '&rdquo; yet. Rename this card to match a live participating farm, or check back once it has logged Lick Block data.</p></div>';
         }
 
         var advantage = currentAdvantageGPerDay(hist);
@@ -1017,7 +1017,7 @@
             '</div>' +
             '<div class="roi-headcount-row">' +
               '<input class="roi-headcount-input tabular" type="number" min="0" step="10" value="' + c.headCount + '" data-field="headCount">' +
-              '<span class="roi-headcount-label">' + (c.headCountAuto !== false ? 'SeaFeed head, live from trial data' : 'head (your figure)') + '</span>' +
+              '<span class="roi-headcount-label">' + (c.headCountAuto !== false ? 'SeaFeed head, live from program data' : 'head (your figure)') + '</span>' +
             '</div>' +
             realDataSectionHtml(c, idx) +
             '<div class="roi-annual-wrap">' +
@@ -1264,7 +1264,7 @@
       }
 
       document.getElementById('reset-btn').addEventListener('click', function () {
-        if (!confirm('Reset all farm cards to the three trial defaults? Any farms you’ve added or edited will be lost.')) return;
+        if (!confirm('Reset all farm cards to the three program defaults? Any farms you’ve added or edited will be lost.')) return;
         cards = seedCards();
         openForms = {};
         saveCards();

@@ -317,7 +317,7 @@
   </div>
   <p class="wd-eyebrow">TasFarmers &middot; Low Emissions Livestock Project</p>
   <h1>Weight Data</h1>
-  <p class="wd-hero-sub">Current weight, weight gain since start, and ADG advantage over Control. One card per trial farm, from real OptiWeigh readings.</p>
+  <p class="wd-hero-sub">Current weight, weight gain since start, and ADG advantage over Control. One card per participating farm, from real OptiWeigh readings.</p>
 </div>
 
 <div class="wd-page">
@@ -327,7 +327,7 @@
     <div class="wd-alert-banner-text" id="wd-alert-banner-text"></div>
   </div>
 
-  <p class="wd-section-label">Trial snapshot</p>
+  <p class="wd-section-label">Program snapshot</p>
   <div class="wd-kpi-grid" id="wd-kpi-grid">
     <div class="wd-kpi-card" aria-hidden="true"><p class="wd-kpi-label"><span class="wd-skel wd-skel-md" style="height:9px;"></span></p><p class="wd-kpi-value"><span class="wd-skel wd-skel-lg" style="height:24px;"></span></p></div>
     <div class="wd-kpi-card" aria-hidden="true"><p class="wd-kpi-label"><span class="wd-skel wd-skel-md" style="height:9px;"></span></p><p class="wd-kpi-value"><span class="wd-skel wd-skel-lg" style="height:24px;"></span></p></div>
@@ -595,7 +595,7 @@
     function cell(scope, win){
       var r = rows.filter(function(x){ return x.farm_name === scope && x.window_days === win; })[0];
       if (scope === AGGREGATE_LABEL && win < TRIAL_MIN_WINDOW) {
-        return '<td><span class="wd-ow-na">Not used</span><span class="wd-ow-sub" style="white-space:normal;max-width:150px;">Trial-wide uses ' + TRIAL_MIN_WINDOW + ' days or more</span></td>';
+        return '<td><span class="wd-ow-na">Not used</span><span class="wd-ow-sub" style="white-space:normal;max-width:150px;">Program-wide uses ' + TRIAL_MIN_WINDOW + ' days or more</span></td>';
       }
       if (!r) return '<td><span class="wd-ow-na">–</span></td>';
       if (r.eligible !== 'Y' || r.diff_pct == null) {
@@ -616,7 +616,7 @@
     var body = scopes.map(function(scope){
       var isAgg = scope === AGGREGATE_LABEL;
       var dot = isAgg ? '' : '<span class="wd-dot" style="background:' + farmColor(scope, allFarms) + ';"></span>';
-      return '<tr><td class="wd-ow-scope">' + dot + escHtml(isAgg ? 'Trial-wide' : scope) +
+      return '<tr><td class="wd-ow-scope">' + dot + escHtml(isAgg ? 'Program-wide' : scope) +
         (isAgg ? '<small>farm differences combined, weighted by animals</small>' : '') + '</td>' +
         OW_WINDOWS.map(function(w){ return cell(scope, w); }).join('') + '</tr>';
     }).join('');
@@ -624,7 +624,7 @@
     card.innerHTML = '<div class="wd-ow-scroll"><table class="wd-ow-table"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' +
       '<div class="wd-ow-note">OptiWeigh&rsquo;s own average daily gain for each mob, per window, as of the latest daily snapshot (' + fmtDate(rows[0].comparison_date) + '). ' +
       'The percentage is SeaFeed minus Control over Control. Animal counts are SeaFeed / Control. A figure needs at least 10 animals and 7 days of data per mob. ' +
-      'The 90-day figure is the staple used for the headline, the farm cards and the leaderboard. A farm without enough data for 90 days uses its 30-day figure, then its 14-day figure, so a newly joined farm does not pull the others onto a shorter window. The trial-wide row only uses 30 days or more. ' +
+      'The 90-day figure is the staple used for the headline, the farm cards and the leaderboard. A farm without enough data for 90 days uses its 30-day figure, then its 14-day figure, so a newly joined farm does not pull the others onto a shorter window. The program-wide row only uses 30 days or more. ' +
       'The 14, 30, 90 and 180-day windows match OptiWeigh\u2019s own interface. These figures start on 2 Oct 2026 and have no history before that.</div>';
     wrap.style.display = 'block';
   }
@@ -746,10 +746,10 @@
     var pct = useOw ? owAgg.diff_pct : sincePct;
     var pctDisplay = pct == null ? '–' : (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%';
     var pctClass = pct != null && pct < 0 ? ' red' : '';
-    var advLabel = useOw ? 'Trial ADG advantage, ' + owAgg.window_days + ' days' : 'Trial ADG advantage';
+    var advLabel = useOw ? 'Program ADG advantage, ' + owAgg.window_days + ' days' : 'Program ADG advantage';
     var advNote = useOw
       ? 'SeaFeed vs Control, OptiWeigh, ' + owAgg.farms_included + (owAgg.farms_included === 1 ? ' farm' : ' farms')
-      : 'SeaFeed vs Control, since trial start';
+      : 'SeaFeed vs Control, since program start';
 
     var sfEcon = aggEcon && aggEcon.seafeed;
     var ctEcon = aggEcon && aggEcon.control;
@@ -762,7 +762,7 @@
     var owCost = !!(sfEcon && ctEcon && sfEcon.cost_per_kg_gain_ow_aud != null && ctEcon.cost_per_kg_gain_ow_aud != null);
     var sfGain = owCost ? sfEcon.cost_per_kg_gain_ow_aud : (sfEcon && sfEcon.cost_per_kg_gain_aud != null ? sfEcon.cost_per_kg_gain_aud : null);
     var ctGain = owCost ? ctEcon.cost_per_kg_gain_ow_aud : (ctEcon && ctEcon.cost_per_kg_gain_aud != null ? ctEcon.cost_per_kg_gain_aud : null);
-    var gainNote = owCost ? 'trial-wide, cost and OptiWeigh ADG over the same period' : 'trial-wide, to date (older method)';
+    var gainNote = owCost ? 'program-wide, cost and OptiWeigh ADG over the same period' : 'program-wide, to date (older method)';
 
     var cards = [
       { label: advLabel, value: pctDisplay, valueClass: pctClass, note: advNote },

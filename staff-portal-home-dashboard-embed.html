@@ -218,7 +218,7 @@
 <body>
 
 <p class="sp-section-label">Your farms</p>
-<p class="sp-section-sub">Lick block supply, weight gain, and visit status for each trial farm, at a glance.</p>
+<p class="sp-section-sub">Lick block supply, weight gain, and visit status for each participating farm, at a glance.</p>
 
 <div class="sp-alert-banner" id="sp-alert-banner">
   <span class="sp-alert-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L14.71 3.86a2 2 0 0 0-3.42 0Z"></path></svg></span>
@@ -547,7 +547,7 @@
       if (adgPct != null) {
         adgValue = signedPct(adgPct);
         adgClass = adgPct >= 0 ? 'ok' : 'neg';
-        adgNote = 'SeaFeed vs Control, since trial start';
+        adgNote = 'SeaFeed vs Control, since program start';
       }
     }
 
@@ -610,7 +610,7 @@
           '<div><p class="sp-farm-name">' + farm.name + '</p><p class="sp-farm-region">' + farm.region + '</p></div>' +
           '<span class="sp-visit-pill">Coming soon</span>' +
         '</div>' +
-        '<p class="sp-pending-note">Trial not yet underway. Supply, ADG, and cost data will appear here automatically once lick block usage starts logging for this farm.</p>' +
+        '<p class="sp-pending-note">Program not yet underway. Supply, ADG, and cost data will appear here automatically once lick block usage starts logging for this farm.</p>' +
       '</div>';
   }
 
