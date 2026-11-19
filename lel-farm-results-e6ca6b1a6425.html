@@ -62,6 +62,14 @@ td.pos{color:var(--green-hi)}td.neg{color:var(--coral)}
 .legend{display:flex;gap:16px;font-size:12px;color:var(--muted);margin-top:8px}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
 .map{height:420px;border-radius:8px;overflow:hidden;background:#eef5f1;border:1px solid var(--line)}
+@media(min-width:901px){
+ header{padding-left:max(32px,calc((100% - 1320px)/2 + 32px));padding-right:max(32px,calc((100% - 1320px)/2 + 32px))}
+ .layout{max-width:1320px;margin:0 auto;grid-template-columns:246px 1fr}
+ aside{padding:20px 16px 20px 31px;position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto}
+ aside h3{margin-left:0}
+ main{padding-right:32px}
+}
+@media(min-width:1321px){aside{border-left:1px solid var(--line)}}
 @media(max-width:900px){.layout{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid var(--line)}
  .g3,.g4,.g2,.g21,.g12{grid-template-columns:1fr}main{padding:16px}header{flex-direction:column;align-items:flex-start}}
 .view{display:flex;gap:4px}.view button{background:var(--panel);color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:5px 10px;font:inherit;font-size:12px;cursor:pointer}.view button.on{border-color:var(--green);color:var(--white);background:#e7f4f0}
