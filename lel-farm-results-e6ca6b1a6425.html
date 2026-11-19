@@ -863,7 +863,10 @@ const MS=[['1','Foundation Activities','19 Jun to 27 Sep 2024','Project plan and
 ['5','On-Farm Activities and Reporting, Phase 3','Sep 2026 to 31 Dec 2028','Long-term pasture-based beef and sheep/wool cohorts; bi-annual Progress and Data Reports','Not drawdown-linked','live','IN PROGRESS','Under way following acceptance of Milestone 4'],
 ['6','Final Project Report and Publication','Jan to 1 Feb 2029','Final Report, audited Financial Acquittal, producer handbook, economic feasibility calculator, viability report','Drawdown 4: $200,000','pend','DUE 1 FEB 2029','Not started']];
 document.querySelectorAll('table.ms:not(.dsrc)').forEach(t=>t.innerHTML='<tr><th>Milestone</th><th>Period</th><th>Deliverables</th><th>Funding</th><th>Status</th></tr>'+MS.map(m=>`<tr><td>${m[0]}. ${m[1]}</td><td>${m[2]}</td><td>${m[3]}</td><td>${m[4]}</td><td><span class="chip ${m[5]}">${m[6]}</span><br><span class="note">${m[7]}</span></td></tr>`).join(''));
-document.getElementById('farm').onchange=e=>{F=e.target.value;render()};
+/* open on each farm's active (in progress) cohort; completed cohorts stay one click away */
+const activeCoh=f=>{const c=CFG[f].chip;if(c){const k=Object.keys(c).filter(k=>c[k][0]=='live').map(Number);return k.length?Math.max(...k):1}return 2};
+document.getElementById('farm').onchange=e=>{F=e.target.value;coh=activeCoh(F);render()};
+coh=activeCoh(F);
 
 render();
 </script>
