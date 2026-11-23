@@ -1,0 +1,59 @@
+name: Daily farm results refresh
+
+# Rebuilds lel-farm-results-e6ca6b1a6425.html (the LEL farm results page the Hub site iframes)
+# from the PUBLIC ArcGIS layers and commits it here, which republishes it on GitHub Pages.
+# No credentials: fetch_data.py reads public layers only, and the push uses this repo's own token.
+# Source lives in _farm-results-build/ (the underscore keeps it out of the Pages site).
+# Runs at 03:30 UTC (13:30 AEST / 14:30 AEDT): the LEL daily pipelines are scheduled for 19:00 UTC
+# but GitHub has been starting them up to 6 hours late (finished 23:44 to 01:05 UTC, 19-23 Nov 2026).
+on:
+  schedule:
+    - cron: "30 3 * * *"
+  workflow_dispatch:
+    inputs:
+      cap:
+        description: "Last day to include (YYYY-MM-DD). Blank = yesterday, Hobart time (last complete OptiWeigh day)."
+        required: false
+
+concurrency:
+  group: farm-results-refresh
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TZ: Australia/Hobart
+    defaults:
+      run:
+        working-directory: _farm-results-build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch public-layer data and build
+        run: |
+          CAP="${{ github.event.inputs.cap }}"
+          [ -n "$CAP" ] || CAP=$(date -d yesterday +%F)
+          echo "CAP=$CAP" >> "$GITHUB_ENV"
+          python3 fetch_data.py "$CAP"
+          python3 build.py
+          cp dist/governance.html ../lel-farm-results-e6ca6b1a6425.html
+
+      - name: Commit and publish
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add data/data.json ../lel-farm-results-e6ca6b1a6425.html
+          if git diff --cached --quiet; then
+            echo "No change since the last build; nothing to publish."
+          else
+            git commit -m "Farm results page: data to $CAP"
+            git push
+          fi
