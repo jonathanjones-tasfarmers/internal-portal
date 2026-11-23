@@ -75,7 +75,7 @@ td.pos{color:var(--green-hi)}td.neg{color:var(--coral)}
 body.pub .g-only{display:none!important}body:not(.pub) .p-only{display:none!important}
 .chip.pend{background:var(--panel2);color:var(--muted);border:1px solid var(--line)}table.ms td,table.ms th{text-align:left;vertical-align:top}table.ms td:nth-child(3){max-width:330px}
 h3.sec{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);margin:8px 0 10px}.src{color:var(--dim);font-size:11px;margin-top:18px;line-height:1.5}
-.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g21{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}.g12{grid-template-columns:minmax(0,1fr) minmax(0,2fr)}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g21{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}.g1{grid-template-columns:minmax(0,1fr)}.g12{grid-template-columns:minmax(0,1fr) minmax(0,2fr)}
 /* ===== REDESIGN MOCKUP 2026-11-19 ===== */
 :root{--bg:#f6f5f1;--line:#e4e2db;--muted:#55636f;--dim:#68757f;--r:14px;--gap:20px;--pad:24px;
  --ink:#0d2438;--mint-bg:#e8f5f0;--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Aptos,"Helvetica Neue",Arial,sans-serif}
@@ -212,62 +212,112 @@ table.ms td,table.ms th{font-size:13.5px}
  table.stk td:first-child::before{display:none}
  table.stk td>span{display:inline-block;white-space:normal}
 }
+/* ===== v4 layout 2026-11-23: top bar instead of sidebar, full-row charts, readability ===== */
+header.top{position:sticky;top:0;z-index:40;display:block;padding:0;background:var(--panel);border-bottom:1px solid var(--line)}
+.top-row,.top nav{max-width:1320px;margin:0 auto;padding-left:32px;padding-right:32px}
+.top-row{display:flex;align-items:center;justify-content:space-between;gap:10px 24px;flex-wrap:wrap;padding-top:12px;padding-bottom:10px}
+.ttl{min-width:0;flex:1 1 380px}
+.top h1{font-size:19px;font-weight:650;letter-spacing:-.01em;line-height:1.25}
+.top .status{display:flex;flex-wrap:wrap;gap:2px 12px;align-items:center;justify-content:flex-start;background:none;border:0;border-radius:0;padding:0;margin:5px 0 0;font-size:13px;color:var(--muted)}
+.top .status .chip{font-size:10.5px;margin-right:6px}
+.ctrls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ctrls select{width:auto;min-width:180px;margin:0;padding:8px 12px}
+.ctrls .seg,.ctrls .view{margin:0}
+.ctrls .seg button,.ctrls .view button{flex:0 0 auto;padding:7px 14px;white-space:nowrap}
+.top nav{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;border-top:1px solid #eeece6;counter-reset:pg}
+.top nav::-webkit-scrollbar{display:none}
+.top nav button{counter-increment:pg;flex:0 0 auto;width:auto;display:flex;gap:8px;align-items:baseline;white-space:nowrap;background:none;border:0;border-bottom:3px solid transparent;border-radius:0;margin:0;padding:12px 14px 10px;font-size:14px;color:var(--muted);box-shadow:none}
+.top nav button::before{content:counter(pg);font-size:12px;color:var(--dim);width:auto;flex:none}
+.top nav button:hover{background:none;color:var(--ink)}
+.top nav button.on{background:none;color:var(--ink);border-bottom-color:var(--green);font-weight:650}
+.top nav button.on::before{color:var(--green-hi)}
+.layout{display:block;max-width:1320px;margin:0 auto;min-height:0}
+main{max-width:none;padding:28px 32px 56px}
+.chart{height:360px}
+.chart.short{height:300px}
+.chart.empty{height:auto!important}
+.ph{min-height:72px}
+.page>.sub{max-width:90ch}
+.note{max-width:110ch}
+.def{font-size:13.5px;line-height:1.5;color:var(--muted);margin:-4px 0 14px;max-width:100ch}
+.jump{display:flex;flex-wrap:wrap;gap:8px;margin:-12px 0 26px}
+.jump a{font-size:13px;color:var(--green-hi);text-decoration:none;border:1px solid #bfe3d6;background:var(--mint-bg);border-radius:99px;padding:5px 12px}
+.jump a:hover{background:#d6eee5}
+h3.sec,.page .grid,.page>.card{scroll-margin-top:150px}
+.kpi::after{display:none}.kpi.has-n::after{display:block}
+.kpi.has-n{cursor:pointer}
+.kpi:not(.has-n):hover .n{display:none}
+.kpi:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+@media(max-width:900px){
+ header.top{position:static}
+ .top-row{padding:12px 16px 8px}
+ .top h1{font-size:16px}
+ .ttl{flex-basis:100%}
+ .top .status{font-size:12px}
+ .ctrls{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+ .ctrls select{min-width:0;width:100%}
+ .ctrls .view{grid-column:1/-1;display:flex}
+ .ctrls .view button{flex:1}
+ .top nav{padding:4px 16px 10px;gap:6px;border-top:0;-webkit-mask-image:linear-gradient(90deg,#000 82%,transparent);mask-image:linear-gradient(90deg,#000 82%,transparent)}
+ .top nav.end{-webkit-mask-image:none;mask-image:none}
+ .top nav button{border:1px solid var(--line);border-radius:99px;padding:6px 14px;font-size:13px}
+ .top nav button::before{display:none}
+ .top nav button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+ main{padding:18px 16px 40px}
+ .chart,.chart.short{height:280px}
+ h3.sec,.page .grid,.page>.card{scroll-margin-top:12px}
+}
 </style>
 </head>
 <body>
-<body>
-<body>
-<header>
-  <div>
-    <h1 id="h1"></h1>
-    <p id="hsub"></p>
+<header class="top">
+  <div class="top-row">
+    <div class="ttl">
+      <h1 id="h1"></h1>
+      <div class="status" id="status"></div>
+    </div>
+    <div class="ctrls">
+      <select id="farm" aria-label="Choose a farm"></select>
+      <div class="seg" id="seg" role="group" aria-label="Choose a cohort"><button data-c="1" class="on">Cohort 1</button><button data-c="2">Cohort 2</button></div>
+      <div class="view" id="aud" role="group" aria-label="View for"><button data-a="g" class="on">Governance</button><button data-a="p">Government</button></div>
+    </div>
   </div>
-  <div class="mock">
-    <div class="view" id="aud"><button data-a="g" class="on">Governance</button><button data-a="p">Government</button></div>
-    
-  </div>
+  <nav id="nav" aria-label="Pages">
+    <button data-p="p1" class="on">Summary</button>
+    <button data-p="p2">Growth</button>
+    <button data-p="p3">Methane and blocks</button>
+    <button data-p="p4g" class="g-only">Cost</button>
+    <button data-p="p4p" class="p-only">Cost</button>
+    <button data-p="p6">Pasture</button>
+    <button data-p="p7g" class="g-only">Progress</button>
+    <button data-p="p7p" class="p-only">Progress</button>
+    <button data-p="p8">Method</button>
+  </nav>
 </header>
 <div class="layout">
-<aside>
-  <h3>Choose a farm</h3>
-  <select id="farm"></select>
-  <h3>Choose a cohort</h3>
-  <div class="seg" id="seg"><button data-c="1" class="on">Cohort 1</button><button data-c="2">Cohort 2</button></div>
-  <h3>Pages</h3>
-  <nav id="nav">
-    <button data-p="p1" class="on">The answer</button>
-    <button data-p="p2">Growth and weight</button>
-    <button data-p="p3">Methane, blocks and lab results</button>
-    <button data-p="p4g" class="g-only">Cost and return</button>
-    <button data-p="p4p" class="p-only">Cost and delivery</button>
-    <button data-p="p6">Pasture and paddocks</button>
-    <button data-p="p7g" class="g-only">Project and next steps</button>
-    <button data-p="p7p" class="p-only">Project progress</button>
-    <button data-p="p8">Sources and method</button>
-  </nav>
-</aside>
 <main>
-<div class="status" id="status"></div>
 
 <!-- P1 -->
 <section class="page on" id="p1">
-  <h2>The answer</h2>
+  <h2>Summary</h2>
   <p class="sub" id="verdict"></p>
   <h3 class="sec">Emissions outcome (modelled)</h3>
+  <p class="def">Abatement is the share of methane the cattle are modelled not to produce because of KleenGrow. CO₂e converts methane into the same warming effect as carbon dioxide (1 kg of methane = 28 kg CO₂e).</p>
   <div class="grid g3">
     <div class="card kpi"><div class="t">Modelled Methane Abatement</div><div class="v" data-f="ab_v"></div><div class="d" data-f="ab_d"></div><div class="n" data-f="ab_n"></div></div>
     <div class="card kpi"><div class="t">Intake Against Dose</div><div class="v" data-f="dose_v"></div><div class="d" data-f="dose_d"></div><div class="n" data-f="dose_n"></div></div>
     <div class="card kpi"><div class="t">CO₂e Abated, Whole Mob</div><div class="v" data-f="co2_v"></div><div class="d" data-f="co2_d"></div><div class="n" data-f="co2_n"></div></div>
   </div>
   <h3 class="sec">Growth and cost checks</h3>
+  <p class="def">ADG is average daily gain: the grams of liveweight each animal puts on per day.</p>
   <div class="grid g3">
     <div class="card kpi"><div class="t" data-f="adg_t"></div><div class="v ctl" data-f="adg_v"></div><div class="d" data-f="adg_d"></div><div class="n" data-f="adg_n"></div></div>
     <div class="card kpi"><div class="t">Extra Gain: Needed vs Achieved</div><div class="v ctl" data-f="g_v"></div><div class="d" data-f="g_d"></div><div class="n" data-f="g_n"></div></div>
     <div class="card kpi"><div class="t" data-f="n_t"></div><div class="v" data-f="n_v"></div><div class="d" data-f="n_d"></div><div class="n" data-f="n_n"></div></div>
   </div>
-  <div class="grid g21">
+  <div class="grid g1">
     <div class="card"><h4 id="tltitle"></h4><div class="chart"><canvas id="c_tl"></canvas></div><p class="note" id="tlnote"></p></div>
-    <div class="card"><h4>Modelled methane abatement over time (%)</h4><div class="chart"><canvas id="c_ab1"></canvas></div><p class="note">Modelled from block intake, not measured on the animal. See Methane, blocks and lab results for the dose and blocks put out.</p></div>
+    <div class="card"><h4>Modelled methane abatement over time (%)</h4><div class="chart"><canvas id="c_ab1"></canvas></div><p class="note">Modelled from block intake, not measured on the animal. The Methane and blocks page shows the dose and the blocks put out.</p></div>
   </div>
 </section>
 
@@ -281,12 +331,12 @@ table.ms td,table.ms th{font-size:13.5px}
     <div class="card kpi"><div class="t" data-f="pt3"></div><div class="v" data-f="pv3"></div><div class="d" data-f="pd3"></div></div>
     <div class="card kpi"><div class="t" data-f="pt4"></div><div class="v ctl" data-f="pv4"></div><div class="d" data-f="pd4"></div></div>
   </div>
-  <div class="grid g2">
+  <div class="grid g1">
     <div class="card"><h4>Rolling 14-day weight (kg)</h4><div class="chart"><canvas id="c_w"></canvas></div><p class="note" id="wnote"></p></div>
-    <div class="card"><h4>Rolling 14-day ADG with 95% band (g/day)</h4><div class="chart"><canvas id="c_adg"></canvas></div><p class="note">Shaded bands are the 95% confidence range. Where bands overlap, the mobs cannot be told apart.</p></div>
+    <div class="card"><h4>Rolling 14-day ADG with 95% band (g/day)</h4><div class="chart"><canvas id="c_adg"></canvas></div><p class="note">The shaded bands are the 95% range: the true average is very likely inside its band. Where the two bands overlap, the mobs cannot be told apart.</p></div>
   </div>
-  <div class="grid g21">
-    <div class="card"><h4>KleenGrow minus control: weight difference (kg)</h4><div class="chart"><canvas id="c_diff"></canvas></div></div>
+  <div class="grid g1">
+    <div class="card"><h4>KleenGrow minus control: weight difference (kg)</h4><div class="chart"><canvas id="c_diff"></canvas></div><p class="note">Above zero (mint), the KleenGrow mob is heavier on average; below zero (coral), the control mob is heavier.</p></div>
     <div class="card" id="p2tbl"></div>
   </div>
 </section>
@@ -295,40 +345,42 @@ table.ms td,table.ms th{font-size:13.5px}
 <section class="page" id="p3">
   <h2>Methane, blocks and lab results</h2>
   <p class="sub" id="msub"></p>
-  <h3 class="sec">Modelled methane and intake</h3>
+  <nav class="jump" aria-label="On this page"><a href="#m-meth">Methane and intake</a><a href="#m-blocks">Blocks put out</a><a href="#m-bromo">Bromoform in the blocks</a><a href="#m-health">Uptake, residues and health</a></nav>
+  <h3 class="sec" id="m-meth">Modelled methane and intake</h3>
   <div class="grid g4">
     <div class="card kpi"><div class="t">Abatement Rate</div><div class="v" data-f="ab_v"></div><div class="d">Modelled, KleenGrow Mob</div></div>
     <div class="card kpi"><div class="t">CH₄ Abated</div><div class="v" data-f="m_g"></div><div class="d">Per Head / Day</div></div>
     <div class="card kpi"><div class="t">KleenGrow Intake</div><div class="v" data-f="in_v"></div><div class="d">Per Head / Day</div></div>
     <div class="card kpi"><div class="t">Model Assumed</div><div class="v ctl">90 <small>g</small></div><div class="d">Budget Dose (Lower Recommended Dose 150 g)</div></div>
   </div>
-  <div class="grid g2">
+  <div class="grid g1">
     <div class="card"><h4 id="inttitle">Block intake per head (g/day)</h4><div class="chart"><canvas id="c_int"></canvas></div></div>
     <div class="card"><h4 id="abttitle">Modelled methane abatement (%)</h4><div class="chart"><canvas id="c_abt"></canvas></div></div>
   </div>
-  <div class="grid g2">
+  <div class="grid g1">
     <div class="card"><h4>Blocks put out against what the dose needs</h4><div class="chart"><canvas id="c_blk"></canvas></div><p class="note">A dose of 90 g needs about 3.7 blocks per 100 head per week and 150 g needs about 6.2. Blocks put out is the supply side of intake. The feeding set-up is further down this page.</p></div>
     <div class="card"><h4>Reading this page</h4><p class="note" style="font-size:13px;margin:0" id="p3read"></p><p class="note" style="font-size:13px;margin-top:12px"><b>Not yet measured:</b> methane at the animal (AgScent). It is the figure that would turn modelled abatement into evidence.</p></div>
   </div>
 
-  <h3 class="sec">Blocks put out and feeding set-up</h3>
+  <h3 class="sec" id="m-blocks">Blocks put out and feeding set-up</h3>
   <div class="grid g3">
     <div class="card kpi"><div class="t">Blocks Put Out</div><div class="v" data-f="pb_v"></div><div class="d" data-f="pb_d"></div><div class="n" data-f="pb_n"></div></div>
     <div class="card kpi"><div class="t">Feeding Points In Use</div><div class="v" data-f="pf_v"></div><div class="d" data-f="pf_d"></div><div class="n" data-f="pf_n"></div></div>
     <div class="card kpi"><div class="t">Latest Block Record</div><div class="v" data-f="pr_v"></div><div class="d" data-f="pr_d"></div><div class="n" data-f="pr_n"></div></div>
   </div>
   <div class="card" style="margin-bottom:var(--gap)"><h4>Feeding set-up</h4><p class="note" style="font-size:13px;margin:0" id="feedtxt"></p></div>
-  <h3 class="sec">Bromoform in the blocks (AST laboratory, mg/kg wet matter basis)</h3>
+  <h3 class="sec" id="m-bromo">Bromoform in the blocks (AST laboratory, mg/kg wet matter basis)</h3>
   <div class="grid g4">
     <div class="card kpi"><div class="t">KleenGrow Bromoform</div><div class="v" data-f="bk_v"></div><div class="d" data-f="bk_d"></div><div class="n" data-f="bk_n"></div></div>
     <div class="card kpi"><div class="t">Control Block Bromoform</div><div class="v ctl" data-f="bc_v"></div><div class="d" data-f="bc_d"></div><div class="n" data-f="bc_n"></div></div>
     <div class="card kpi"><div class="t">Change In Storage</div><div class="v ctl" data-f="bs_v"></div><div class="d" data-f="bs_d"></div><div class="n" data-f="bs_n"></div></div>
     <div class="card kpi"><div class="t">Bromoform Delivered (Indicative)</div><div class="v" data-f="bd_v"></div><div class="d" data-f="bd_d"></div><div class="n" data-f="bd_n"></div></div>
   </div>
-  <div class="grid g2">
+  <div class="grid g1">
     <div class="card"><h4>Result by sample group (mg/kg)</h4><div class="chart"><canvas id="c_bro"></canvas></div><p class="note" id="bronote"></p></div>
     <div class="card"><h4>Bromoform by farm: KleenGrow and control blocks (mg/kg)</h4><div class="chart"><canvas id="c_bfm"></canvas></div><p class="note">Mean of the samples for each farm (two to six samples each). Control blocks were not sampled at one farm. Specification range to be added by Sea Forest for comparison.</p></div>
   </div>
+  <h3 class="sec" id="m-health">Uptake, residues and animal health</h3>
   <div class="grid g3">
     <div class="card"><h4>Uptake over time</h4><p class="note" style="font-size:13px;margin:0" id="upt"></p><p class="note" style="margin-top:10px">Palatability or substitution lowering intake below target is a rated risk in the project risk register. Intake is the program's uptake measure.</p></div>
     <div class="card"><h4>Residues and market access</h4><ul class="tick">
@@ -353,7 +405,7 @@ table.ms td,table.ms th{font-size:13.5px}
     <div class="card kpi"><div class="t">Cost So Far, KleenGrow</div><div class="v" data-f="cph_v"></div><div class="d">Per Head</div></div>
     <div class="card kpi"><div class="t">Extra Gain: Needed vs Achieved</div><div class="v ctl" data-f="g_v"></div><div class="d" data-f="g_d"></div><div class="n" data-f="g_n"></div></div>
   </div>
-  <div class="grid g2">
+  <div class="grid g1">
     <div class="card"><h4>Cumulative cost per head ($)</h4><div class="chart"><canvas id="c_cost"></canvas></div></div>
     <div class="card"><h4>Net position per head ($), Cohort 1: full cost first</h4><div class="chart"><canvas id="c_net"></canvas></div></div>
   </div>
@@ -374,7 +426,7 @@ table.ms td,table.ms th{font-size:13.5px}
     <div class="card kpi"><div class="t">Extra Gain: Needed vs Achieved</div><div class="v" data-f="g_v"></div><div class="d" data-f="g_d"></div></div>
     <div class="card kpi"><div class="t">Matched Days Compared</div><div class="v" data-f="n_v"></div><div class="d" data-f="n_d"></div></div>
   </div>
-  <div class="grid g2">
+  <div class="grid g1">
     <div class="card"><h4>Block intake per head against the model dose (g/day)</h4><div class="chart"><canvas id="c_dose"></canvas></div><p class="note" id="dosenote">Blocks put out supplied about half of the budget dose at the two completed cohorts (59% and 47%). The records cannot show whether cattle would have eaten more if more had been put out.</p></div>
     <div class="card"><h4>KleenGrow cost as a share of the project budget rate (%)</h4><div class="chart"><canvas id="c_bud"></canvas></div><p class="note" id="budnote">Cost came in 41% to 54% under the project's planning rate at both farms with a completed cohort.</p></div>
   </div>
@@ -481,6 +533,11 @@ table.ms td,table.ms th{font-size:13.5px}
 const D = __DATA__;
 const G='#3aa989', W='#041221', C='#c0392b', GR='#eeece6', TX='#5b6b78', GY='#a9b8c4';
 Chart.defaults.color=TX; Chart.defaults.font.family='-apple-system,BlinkMacSystemFont,"Segoe UI",Aptos,"Helvetica Neue",Arial,sans-serif';Chart.defaults.font.size=12;Chart.defaults.elements.line.borderWidth=2.5;Chart.defaults.plugins.legend.labels.boxWidth=8;Chart.defaults.plugins.legend.labels.boxHeight=8;Chart.defaults.plugins.legend.labels.padding=16;
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],MONL=['January','February','March','April','May','June','July','August','September','October','November','December'];
+function fmtD(x){const m=/^(\d{4})-(\d\d)-(\d\d)$/.exec(x);return m?(+m[3])+' '+MON[+m[2]-1]:x}
+/* latest date in the data, so the header follows the daily refresh */
+const DATA_TO=(()=>{let mx='';const walk=o=>{if(!o||typeof o!='object')return;for(const k in o){if(/^\d{4}-\d\d-\d\d$/.test(k)){if(k>mx)mx=k}else walk(o[k])}};walk(D);return mx})();
+const DATA_TO_L=DATA_TO?(+DATA_TO.slice(8))+' '+MONL[+DATA_TO.slice(5,7)-1]+' '+DATA_TO.slice(0,4):'';
 const sm=(a,n)=>a.map((_,i)=>{const s=a.slice(Math.max(0,i-n+1),i+1).filter(v=>v!=null);return s.length?s.reduce((x,y)=>x+y,0)/s.length:null});
 const li=(arr)=>arr.map(([c,t])=>`<li><span class="${c}">${{y:'✓',p:'!',n:'✗'}[c]||'→'}</span>${t}</li>`).join('');
 const li2=(arr)=>arr.map(([c,t])=>`<li><span class="${c}">${{q:'?'}[c]||'→'}</span>${t}</li>`).join('');
@@ -676,29 +733,29 @@ function kv(key){const base=S().K[coh][key];const o=aud=='p'?S().KP[coh][key]:nu
 function line(id,labels,sets,yt,o={}){
   const c=new Chart(document.getElementById(id),{type:'line',data:{labels,datasets:sets.map(s=>({label:s.l,data:s.d,borderColor:s.c,backgroundColor:s.bg||s.c,borderWidth:s.w??2,pointRadius:0,tension:.35,spanGaps:true,fill:s.fill||false,borderDash:s.dash||[],segment:s.seg}))},
    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
-    plugins:{legend:{position:'bottom',display:sets.filter(s=>!s.l.startsWith('_')).length>1,labels:{boxWidth:10,usePointStyle:true,filter:i=>!i.text.startsWith('_')}}},
-    scales:{x:{grid:{display:false},ticks:{maxTicksLimit:7,callback:function(v){return this.getLabelForValue(v).slice(5)}}},y:{grid:{color:GR},border:{display:false},title:{display:true,text:yt}}}},
+    plugins:{legend:{position:'bottom',display:sets.filter(s=>!s.l.startsWith('_')).length>1,labels:{boxWidth:10,usePointStyle:true,filter:i=>!i.text.startsWith('_')}},tooltip:{filter:i=>!i.dataset.label.startsWith('_'),callbacks:{title:it=>it.length?fmtD(it[0].label):''}}},
+    scales:{x:{grid:{display:false},ticks:{maxTicksLimit:innerWidth<600?5:8,autoSkipPadding:14,maxRotation:0,callback:function(v){return fmtD(this.getLabelForValue(v))}}},y:{beginAtZero:!!o.zero,grid:{color:o.zero?(c=>c.tick&&c.tick.value===0?'#a9b8c4':GR):GR,lineWidth:o.zero?(c=>c.tick&&c.tick.value===0?1.5:1):1},border:{display:false},title:{display:true,text:yt}}}},
    plugins:o.mark?[{id:'m',afterDraw(ch){const i=labels.indexOf(o.mark);if(i<0)return;const x=ch.scales.x.getPixelForValue(i),a=ch.chartArea,g=ch.ctx;g.save();g.setLineDash([5,4]);g.strokeStyle='#c98a2e';g.beginPath();g.moveTo(x,a.top);g.lineTo(x,a.bottom);g.stroke();g.restore()}}]:[]});
   charts.push(c);
 }
-function wrapL(l){var w=String(l).split(' '),o=[],c='';w.forEach(function(x){if((c+' '+x).trim().length>14&&c){o.push(c);c=x}else c=(c+' '+x).trim()});if(c)o.push(c);return o}
-function bars(id,labels,data,cols,yt){charts.push(new Chart(document.getElementById(id),{type:'bar',data:{labels:labels.map(wrapL),datasets:[{data,backgroundColor:cols,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:false}},y:{grid:{color:GR},border:{display:false},title:{display:true,text:yt}}}}}))}
+function wrapL(l){var w=String(l).split(' '),o=[],c='';w.forEach(function(x){if((c+' '+x).trim().length>(innerWidth<600?10:18)&&c){o.push(c);c=x}else c=(c+' '+x).trim()});if(c)o.push(c);return o}
+function bars(id,labels,data,cols,yt){const el=document.getElementById(id);el.parentElement.classList.add('short');charts.push(new Chart(el,{type:'bar',data:{labels:labels.map(wrapL),datasets:[{data,backgroundColor:cols,borderRadius:4,maxBarThickness:96}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:false}},y:{grid:{color:GR},border:{display:false},title:{display:true,text:yt}}}}}))}
 
 function render(){
   charts.forEach(c=>c.destroy());charts=[];
   if(F=='trt')coh=1;
   document.querySelectorAll('#seg button').forEach(x=>{x.classList.toggle('on',+x.dataset.c==coh);x.style.display=(F=='trt'&&x.dataset.c=='2')?'none':''});
-  Object.values(CH).forEach(([p,h])=>p.innerHTML=h);
+  Object.values(CH).forEach(([p,h])=>{p.innerHTML=h;p.classList.remove('empty','short')});
   document.body.classList.toggle('pub',aud=='p');
   const s=S(), d=D[F];
   document.getElementById('h1').textContent=(aud=='g'?s.govFull:s.pub)+': KleenGrow™ Program Results';
-  document.getElementById('hsub').textContent='Low Emissions Livestock Project. '+(aud=='g'?'Governance Committee view':'Summary for State Government')+'. Data to 18 November 2026';
+  
   // farm select
   const sel=document.getElementById('farm');
   sel.innerHTML=['bw','eb','trt'].map(k=>`<option value="${k}" ${k==F?'selected':''}>${aud=='g'?CFG[k].govFull:CFG[k].pub}</option>`).join('');
   // status & text
   const chip=s.chip?s.chip[coh]:[coh==1?'done':'live',coh==1?'COMPLETE':'IN PROGRESS'];
-  document.getElementById('status').innerHTML=`<span><span class="chip ${chip[0]}">${chip[1]}</span>&nbsp; <b>${nm()}, Cohort ${coh}</b></span><span>${s.STAT[coh]}</span>`;
+  document.getElementById('status').innerHTML=`<span><span class="chip ${chip[0]}">${chip[1]}</span><b>${nm()}, Cohort ${coh}</b></span><span>${s.STAT[coh]}</span>${DATA_TO_L?`<span>Data to ${DATA_TO_L}</span>`:''}`;
   document.getElementById('verdict').textContent=s.VER[aud][coh];
   document.getElementById('gsub').textContent=s.GSUB[coh];
   document.getElementById('msub').textContent=s.MSUB[coh];
@@ -726,14 +783,14 @@ function render(){
   const all=[...new Set([...Object.keys(d.ser1.seafeed),...Object.keys(d.ser1.control),...Object.keys(d.ser2.seafeed)])].sort();
   const tl=(g,from)=>all.map(x=>x>=from&&d.ser2[g][x]?d.ser2[g][x][1]:null);
   const c1=g=>{const v=sm(all.map(x=>d.ser1[g][x]?d.ser1[g][x][1]:null),7);return all.map((x,i)=>x<=s.c1end?v[i]:null)};
-  const has=Object.keys(d.ser1.seafeed).length>0;const PH=(id,t)=>{const cv=document.getElementById(id);cv.parentElement.innerHTML=`<div class="ph" style="height:100%">${t}</div>`};
+  const has=Object.keys(d.ser1.seafeed).length>0;const PH=(id,t)=>{const cv=document.getElementById(id);cv.parentElement.classList.add('empty');cv.parentElement.innerHTML=`<div class="ph">${t}</div>`};
   if(!has){['c_tl','c_w','c_adg','c_diff'].forEach(i=>PH(i,'No weight data yet: OptiWeigh units are not installed.'))}
-  else{line('c_tl',all,[{l:'KleenGrow, Cohort 1',d:c1('seafeed'),c:G},{l:'Control, Cohort 1',d:c1('control'),c:W},{l:'KleenGrow, Cohort 2',d:tl('seafeed',s.c2from),c:G,dash:[4,3]},{l:'Control, Cohort 2',d:tl('control',s.c2from),c:W,dash:[4,3]}],'g/day',{mark:s.mark});
+  else{line('c_tl',all,[{l:'KleenGrow, Cohort 1',d:c1('seafeed'),c:'#9ad6c2'},{l:'Control, Cohort 1',d:c1('control'),c:'#a9b8c4'},{l:'KleenGrow, Cohort 2',d:tl('seafeed',s.c2from),c:G},{l:'Control, Cohort 2',d:tl('control',s.c2from),c:W}],'g/day',{mark:s.mark});
   line('c_w',dates,[{l:'KleenGrow',d:pk('seafeed',0),c:G},{l:'Control',d:pk('control',0),c:W}],'kg');
   const bs=(g,i)=>sm(pk(g,i),coh==1?7:1), z='rgba(0,0,0,0)';
   line('c_adg',dates,[{l:'_a',d:bs('seafeed',2),c:z,w:0},{l:'_b',d:bs('seafeed',3),c:z,w:0,fill:'-1',bg:'rgba(58,169,137,.18)'},{l:'_c',d:bs('control',2),c:z,w:0},{l:'_d',d:bs('control',3),c:z,w:0,fill:'-1',bg:'rgba(4,18,33,.10)'},{l:'KleenGrow',d:bs('seafeed',1),c:G},{l:'Control',d:bs('control',1),c:W}],'g/day');
   const md=dates.filter(x=>Sr.seafeed[x]&&Sr.control[x]);
-  line('c_diff',md,[{l:'KleenGrow minus control',d:md.map(x=>+(Sr.seafeed[x][0]-Sr.control[x][0]).toFixed(1)),c:G,seg:{borderColor:c=>'#041221'}}],'kg');}
+  line('c_diff',md,[{l:'KleenGrow minus control',d:md.map(x=>+(Sr.seafeed[x][0]-Sr.control[x][0]).toFixed(1)),c:G,fill:{target:'origin',above:'rgba(58,169,137,.16)',below:'rgba(192,57,43,.14)'},seg:{borderColor:c=>(c.p0.parsed.y<0||c.p1.parsed.y<0)?C:G}}],'kg',{zero:true});}
   const E=coh==1?d.em1:d.em2, ed=Object.keys(E).sort();
   if(ed.length>=3){line('c_int',ed,[{l:'Intake',d:ed.map(x=>E[x][1]),c:G}],'g/head/day');line('c_abt',ed,[{l:'Abatement',d:ed.map(x=>E[x][0]),c:G}],'%');}
   else if(ed.length){const lx=ed[ed.length-1],l=E[lx];bars('c_int',['KleenGrow','Standard block'],[l[1],d.ctl2?d.ctl2[1]:0],[G,W],'g/head/day, '+fdt(lx));bars('c_abt',['KleenGrow','Standard block'],[l[0],0],[G,W],'% modelled, '+fdt(lx));}
@@ -850,16 +907,16 @@ function renderExtra(){
   if(document.getElementById('c_ab1')){const E2=coh==1?d.em1:d.em2,e2=Object.keys(E2).sort();if(e2.length>=3)line('c_ab1',e2,[{l:'Abatement',d:e2.map(x=>E2[x][0]),c:G}],'% abatement');else{const l2=E2[e2[0]];bars('c_ab1',['KleenGrow','Standard block'],[l2[0],0],[G,W],'% modelled, latest day');}}
   if(document.getElementById('c_blk'))bars('c_blk',['Put out','Needed for 90 g','Needed for 150 g'],[s.blkv[coh],3.71,6.18],[G,GY,GY],'blocks per 100 head per week');
   if(document.getElementById('c_bro')){
-    charts.push(new Chart(document.getElementById('c_bro'),{type:'bar',data:{labels:s.lab.map(g=>aud=='g'?g[0]:g[1]),datasets:[{label:'Outer',data:s.lab.map(g=>g[2]),backgroundColor:s.lab.map(g=>g[4]=='kg'?G:W),borderRadius:4},{label:'Inner',data:s.lab.map(g=>g[3]),backgroundColor:s.lab.map(g=>g[4]=='kg'?'#9ad6c2':'#a9b8c4'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,usePointStyle:true}}},scales:{x:{grid:{display:false}},y:{grid:{color:GR},border:{display:false},title:{display:true,text:'mg/kg bromoform (WMB)'}}}}}));
+    charts.push(new Chart(document.getElementById('c_bro'),{type:'bar',data:{labels:s.lab.map(g=>aud=='g'?g[0]:g[1]),datasets:[{label:'Outer',data:s.lab.map(g=>g[2]),backgroundColor:s.lab.map(g=>g[4]=='kg'?G:W),borderRadius:4,maxBarThickness:72},{label:'Inner',data:s.lab.map(g=>g[3]),backgroundColor:s.lab.map(g=>g[4]=='kg'?'#9ad6c2':'#a9b8c4'),borderRadius:4,maxBarThickness:72}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,usePointStyle:true}}},scales:{x:{grid:{display:false}},y:{grid:{color:GR},border:{display:false},title:{display:true,text:'mg/kg bromoform (WMB)'}}}}}));
   }
   if(document.getElementById('c_bfm')){
     const ks=['bw','eb','trt'];
-    charts.push(new Chart(document.getElementById('c_bfm'),{type:'bar',data:{labels:ks.map(k=>nmOf(k)),datasets:[{label:'KleenGrow',data:ks.map(k=>LABM[k][0]),backgroundColor:ks.map(k=>k==F?G:'#9ad6c2'),borderRadius:4},{label:'Control',data:ks.map(k=>LABM[k][1]),backgroundColor:ks.map(k=>k==F?W:'#a9b8c4'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,usePointStyle:true}}},scales:{x:{grid:{display:false}},y:{grid:{color:GR},border:{display:false},title:{display:true,text:'mg/kg bromoform (WMB)'},min:0}}}}));
+    charts.push(new Chart(document.getElementById('c_bfm'),{type:'bar',data:{labels:ks.map(k=>nmOf(k)),datasets:[{label:'KleenGrow',data:ks.map(k=>LABM[k][0]),backgroundColor:ks.map(k=>k==F?G:'#9ad6c2'),borderRadius:4,maxBarThickness:72},{label:'Control',data:ks.map(k=>LABM[k][1]),backgroundColor:ks.map(k=>k==F?W:'#a9b8c4'),borderRadius:4,maxBarThickness:72}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,usePointStyle:true}}},scales:{x:{grid:{display:false}},y:{grid:{color:GR},border:{display:false},title:{display:true,text:'mg/kg bromoform (WMB)'},min:0}}}}));
   }
   if(document.getElementById('c_sens')){
     const SENS={bw:{cost:33.05,gain:0.309,fs:19.91},eb:{cost:11.48,gain:4.555,fs:6.91}};
     const sn=SENS[F];const cv=document.getElementById('c_sens');
-    if(!sn||coh!=1){cv.parentElement.innerHTML='<div class="ph">Cohort 1 economics only. Cohort 2 and TRT Pastoral have no completed matched window yet.</div>';}
+    if(!sn||coh!=1){cv.parentElement.classList.add('empty');cv.parentElement.innerHTML='<div class="ph">Cohort 1 economics only. Cohort 2 and TRT Pastoral have no completed matched window yet.</div>';}
     else{
       const pr=[3,3.5,4,4.5,5,5.5,6,6.5];
       const full=pr.map(x=>+(sn.gain*x-sn.cost).toFixed(2));
@@ -871,7 +928,7 @@ function renderExtra(){
   }
 }
 
-function showPage(id){document.querySelectorAll('#nav button,.page').forEach(e=>e.classList.remove('on'));document.querySelector(`#nav button[data-p="${id}"]`).classList.add('on');document.getElementById(id).classList.add('on');window.scrollTo(0,0);charts.forEach(c=>c.resize());requestAnimationFrame(()=>charts.forEach(c=>c.resize()))}
+function showPage(id){document.querySelectorAll('#nav button,.page').forEach(e=>e.classList.remove('on'));const nb=document.querySelector(`#nav button[data-p="${id}"]`);nb.classList.add('on');nb.scrollIntoView({block:'nearest',inline:'nearest'});document.getElementById(id).classList.add('on');window.scrollTo(0,0);charts.forEach(c=>c.resize());requestAnimationFrame(()=>charts.forEach(c=>c.resize()))}
 document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>showPage(b.dataset.p));
 document.querySelectorAll('#seg button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#seg button').forEach(x=>x.classList.remove('on'));b.classList.add('on');coh=+b.dataset.c;render()});
 document.querySelectorAll('#aud button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#aud button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
@@ -932,7 +989,16 @@ Object.entries(OPEN).forEach(([f,o])=>{
   if(KP)KP.n_v=[`${daysIn} <small>days</small>`];
 });
 
-const _render=render;render=function(){_render();labelTables()};
+/* sentence case for tile labels (data strings use Title Case); names, months and acronyms keep their capitals */
+const KEEP=new Set(['KleenGrow','OptiWeigh','Bowood','Eastbourne','TRT','Pastoral','Farm','Cohort','Sea','Forest','Grant','Deed','Government','Committee','Project','Program','MLA','AgScent','Survey123',...MON]);
+function scWord(w){return w.split(/([-\/])/).map(p=>{const m=/^([(\[]?)([A-Z][a-z]*)([,.:;)\]]?)$/.exec(p);return m&&!KEEP.has(m[2])?m[1]+m[2].toLowerCase()+m[3]:p}).join('')}
+function sentenceCase(el){let first=true;const tw=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);let n;while((n=tw.nextNode())){n.nodeValue=n.nodeValue.replace(/\S+/g,w=>{if(first){first=false;const i=w.search(/[-\/]/);return i>0?w.slice(0,i+1)+scWord(w.slice(i+1)):w}return scWord(w)})}}
+function polish(){
+  document.querySelectorAll('.kpi .t,.kpi .d').forEach(sentenceCase);
+  document.querySelectorAll('.kpi').forEach(k=>{const n=k.querySelector('.n'),has=!!(n&&n.textContent.trim());k.classList.toggle('has-n',has);
+    if(has){k.tabIndex=0;k.setAttribute('role','button');k.setAttribute('aria-expanded',k.classList.contains('open')?'true':'false')}else{k.removeAttribute('tabindex');k.removeAttribute('role');k.removeAttribute('aria-expanded');k.classList.remove('open')}});
+}
+const _render=render;render=function(){_render();labelTables();polish()};
 /* open on each farm's active (in progress) cohort; completed cohorts stay one click away */
 const activeCoh=f=>{const c=CFG[f].chip;if(c){const k=Object.keys(c).filter(k=>c[k][0]=='live').map(Number);return k.length?Math.max(...k):1}return 2};
 document.getElementById('farm').onchange=e=>{F=e.target.value;coh=activeCoh(F);render()};
@@ -940,5 +1006,10 @@ coh=activeCoh(F);
 
 render();
 </script>
-<script>(function(){var a=document.getElementById("aud"),s=document.querySelector("aside");if(a&&s){var l=document.createElement("h3");l.textContent="View for";s.insertBefore(a,s.firstChild);s.insertBefore(l,a);}var m=document.querySelector("header .mock");if(m)m.style.display="none";
-document.addEventListener("click",function(e){var k=e.target.closest(".kpi");document.querySelectorAll(".kpi.open").forEach(function(x){if(x!==k)x.classList.remove("open")});if(k)k.classList.toggle("open")});})();</script></body></html>
+<script>(function(){
+function setOpen(k,on){k.classList.toggle("open",on);k.setAttribute("aria-expanded",on?"true":"false")}
+document.addEventListener("click",function(e){var k=e.target.closest(".kpi.has-n");document.querySelectorAll(".kpi.open").forEach(function(x){if(x!==k)setOpen(x,false)});if(k)setOpen(k,!k.classList.contains("open"))});
+document.addEventListener("keydown",function(e){var k=e.target.closest&&e.target.closest(".kpi.has-n");if(e.key==="Escape"){document.querySelectorAll(".kpi.open").forEach(function(x){setOpen(x,false)});return}if(k&&(e.key==="Enter"||e.key===" ")){e.preventDefault();setOpen(k,!k.classList.contains("open"))}});
+document.querySelectorAll(".jump a").forEach(function(a){a.addEventListener("click",function(e){var t=document.querySelector(a.getAttribute("href"));if(t){e.preventDefault();t.scrollIntoView({behavior:"smooth",block:"start"})}})});
+var nav=document.getElementById("nav");function edge(){nav.classList.toggle("end",nav.scrollLeft+nav.clientWidth>=nav.scrollWidth-4)}nav.addEventListener("scroll",edge,{passive:true});addEventListener("resize",edge);edge();
+})();</script></body></html>
