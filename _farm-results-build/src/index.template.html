@@ -986,6 +986,15 @@ Object.entries(OPEN).forEach(([f,o])=>{
     CFG[f].VER.g[c]=ver; if(CFG[f].VER.p&&CFG[f].VER.p!==CFG[f].VER.g)CFG[f].VER.p[c]=ver;
   }
   CFG[f].STAT[c]=CFG[f].STAT[c].replace(/day \d+/,`day ${daysIn}`);
+  /* page intros and notes for the open cohort, rebuilt from the data each day */
+  const nW=wd.length;
+  if(nW)CFG[f].GSUB[c]=`Cohort ${c} has ${nW} day${nW==1?'':'s'} of matched weight data, to ${fdt(wd[nW-1])}. `+(nW<30?'Treat differences between mobs as unreliable until the bands separate and a 30-day window exists.':'Read a difference between mobs as real only where the 95% bands separate.');
+  if(ed.length){
+    const nE=ed.length, avg=ed.reduce((t,y)=>t+(E[y][1]||0),0)/nE, le=E[ed[nE-1]];
+    CFG[f].MSUB[c]=`Cohort ${c} has ${nE} day${nE==1?'':'s'} of modelled emissions (${fdt(ed[0])} to ${fdt(ed[nE-1])}), `+(nE<7?'so there is no trend yet.':nE<30?'so the trend is still short.':'enough to read a trend.');
+    CFG[f].p3read=CFG[f].p3read.replace(new RegExp(' ?Cohort '+c+' intake[^]*$'),'')+` Cohort ${c} intake so far averages ${Math.round(avg)} g/day over ${nE} day${nE==1?'':'s'} of data (${Math.round(le[1])} g/day on ${fdt(ed[nE-1])}).`;
+  }
+  REG.forEach(r=>{if(r[0]==f&&r[1]=='Cohort '+c&&nW)r[4]=String(nW)});
   if(KP)KP.n_v=[`${daysIn} <small>days</small>`];
 });
 
