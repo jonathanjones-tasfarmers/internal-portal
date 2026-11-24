@@ -101,12 +101,31 @@ def costs(farm, cohort2):
     return out
 
 
+# Emissions intensity (added 24 Nov 2026): kg CO2e per kg liveweight gain, baseline and after abatement,
+# stored on per-farm LEL_Economics_Data rows by 04 (lel_intensity.py in lel-pipelines). Left out until the
+# layer has the fields. {treatment: {day: [baseline, net]}}
+INT_FIELDS = ["ch4_intensity_baseline_kg_co2e_per_kg_lwg", "ch4_intensity_kg_co2e_per_kg_lwg"]
+HAS_INT = all(f in layer_fields("LEL_Economics_Data") for f in INT_FIELDS)
+print("Economics has intensity fields:", HAS_INT)
+
+
+def intensity(farm):
+    out = {"seafeed": {}, "control": {}}
+    if not farm or not HAS_INT:
+        return out
+    for a in query("LEL_Economics_Data", f"farm_name='{farm}' AND {INT_FIELDS[0]} IS NOT NULL",
+                   "calculation_date,treatment," + ",".join(INT_FIELDS), "calculation_date"):
+        out.setdefault(a["treatment"], {})[day(a["calculation_date"])] = [a[INT_FIELDS[0]], a[INT_FIELDS[1]]]
+    return out
+
+
 data = {}
 for key, (f1, f2) in FARMS.items():
     em1, _ = emissions(f1)
     em2, ctl2 = emissions(f2)
     data[key] = {"ser1": weights(f1), "ser2": weights(f2), "em1": em1, "em2": em2, "ctl2": ctl2,
-                 "cost1": costs(f1, False), "cost2": costs(f2, True)}
+                 "cost1": costs(f1, False), "cost2": costs(f2, True),
+                 "int1": intensity(f1), "int2": intensity(f2)}
     print(key, {k: (len(v) if hasattr(v, "__len__") and v is not None else v) for k, v in data[key].items()})
 CAP = sys.argv[1] if len(sys.argv) > 1 else None
 
