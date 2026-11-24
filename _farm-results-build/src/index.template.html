@@ -359,6 +359,10 @@ h3.sec,.page .grid,.page>.card{scroll-margin-top:150px}
     <div class="card kpi"><div class="t">Bromoform Dose</div><div class="v" data-f="dz_v"></div><div class="d" data-f="dz_d"></div><div class="n" data-f="dz_n"></div></div>
     <div class="card kpi"><div class="t">Intake Per Kg Liveweight</div><div class="v" data-f="gk_v"></div><div class="d" data-f="gk_d"></div><div class="n" data-f="gk_n"></div></div>
   </div>
+  <div class="grid g2">
+    <div class="card kpi"><div class="t">Emissions Intensity, KleenGrow</div><div class="v" data-f="ei_v"></div><div class="d" data-f="ei_d"></div><div class="n" data-f="ei_n"></div></div>
+    <div class="card kpi"><div class="t">Emissions Intensity, Control</div><div class="v" data-f="ec_v"></div><div class="d" data-f="ec_d"></div><div class="n" data-f="ec_n"></div></div>
+  </div>
   <div class="grid g1">
     <div class="card"><h4 id="inttitle">Block intake per head (g/day)</h4><div class="chart"><canvas id="c_int"></canvas></div></div>
     <div class="card"><h4 id="abttitle">Modelled methane abatement (%)</h4><div class="chart"><canvas id="c_abt"></canvas></div></div>
@@ -1010,6 +1014,23 @@ const DOSE_CAP=35.7;
   Object.assign(K,gk?{gk_v:[`${gk.v.toFixed(2)} <small>g/kg</small>`],gk_d:[when(gk)],
       gk_n:['Grams of block eaten per kg of liveweight per day, so light and heavy cattle can be compared. Uses the 14-day average OptiWeigh weight.']}
     :{gk_v:none,gk_d:why,gk_n:['']});
+}));
+
+/* ===== Emissions intensity per kg of liveweight gain (added 24 Nov 2026, Jock's request via Jono) =====
+   int rows: {treatment: {day: [baseline, after abatement]}} in kg CO2e per kg gain, over the same days as the
+   mob's weight gain. Each day's figure already covers the whole window, so open and closed cohorts both show
+   the latest day that has one. */
+['bw','eb','trt'].forEach(f=>[1,2].forEach(c=>{
+  const K=CFG[f].K&&CFG[f].K[c], I=D[f]&&D[f]['int'+c];
+  if(!K)return;
+  const open=OPEN[f]&&OPEN[f].coh==c;
+  const last=t=>{const d=I&&I[t]?Object.keys(I[t]).sort():[];return d.length?{d:d[d.length-1],v:I[t][d[d.length-1]]}:null};
+  const s=last('seafeed'), k=last('control'), when=r=>open?`Latest, ${fdt(r.d)}`:`End of cohort, ${fdt(r.d)}`;
+  const why=['Needs at least 14 days of weight gain'], note='Modelled methane over the same days as the weight gain, as CO₂e (GWP100 28), divided by that gain. Baseline methane is modelled from liveweight, so this mostly reflects growth. Project period only, not a whole-of-life footprint.';
+  Object.assign(K,s?{ei_v:[`${s.v[1].toFixed(1)} <small>kg CO₂e/kg gain</small>`],ei_d:[`${when(s)} · ${s.v[0].toFixed(1)} with no abatement`],ei_n:[note]}
+    :{ei_v:['—'],ei_d:why,ei_n:['']});
+  Object.assign(K,k?{ec_v:[`${k.v[0].toFixed(1)} <small>kg CO₂e/kg gain</small>`],ec_d:[when(k)],ec_n:['Control mob on the standard block, no abatement modelled.']}
+    :{ec_v:['—'],ec_d:why,ec_n:['']});
 }));
 
 /* sentence case for tile labels (data strings use Title Case); names, months and acronyms keep their capitals */

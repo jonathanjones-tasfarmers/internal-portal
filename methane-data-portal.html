@@ -235,7 +235,7 @@
   </div>
 
   <p class="mt-footer-note">
-    Daily abatement rate and CH4 figures from LEL_Emissions_Data &middot; Cumulative CO2e from LEL_Economics_Data &middot; GWP factor from LEL_Industry_Benchmarks (AR5 100-year) &middot; Not for external distribution
+    Daily abatement rate and CH4 figures from LEL_Emissions_Data &middot; Cumulative CO2e and emissions intensity from LEL_Economics_Data (intensity = modelled CH4 over the same days as the weight gain, divided by that gain; baseline modelled from liveweight, Project period only) &middot; GWP factor from LEL_Industry_Benchmarks (AR5 100-year) &middot; Not for external distribution
   </p>
 
 </div>
@@ -370,7 +370,9 @@
   function fetchEconLatest(){
     return q(ECON_URL, {
       where: "treatment IN ('seafeed','control')",
-      outFields: "farm_name,treatment,cumulative_ch4_abated_kg_per_head,representative_head_count,calculation_date",
+      // "*" rather than a list: the emissions intensity fields (2026-11-24) are new, and naming a
+      // field the layer doesn't have yet would fail the whole query.
+      outFields: "*",
       orderByFields: "calculation_date DESC", resultRecordCount: "2000", f: "json"
     }).then(function(data){
       var latest = {}; // { farm: { seafeed: {...}, control: {...} } }
@@ -426,7 +428,8 @@
       var isStale = latest && !isSupersededCohort(farm, farms) && daysSinceEpochMs(latest.record_date) > STALE_AFTER_DAYS;
       if (isStale) staleItems.push(farm + ': last reading ' + fmtDate(latest.record_date) + ' (' + Math.floor(daysSinceEpochMs(latest.record_date)) + ' days ago)');
       var ctlRows = (historyByFarm[farm] || []).filter(function(r){ return r.treatment === 'control'; });
-      return cardHtml('mt-' + idx, farm, color, latest, econ, isStale, ctlRows.length ? ctlRows[ctlRows.length - 1] : null);
+      var econCtl = (econByFarm[farm] && econByFarm[farm].control) || null;
+      return cardHtml('mt-' + idx, farm, color, latest, econ, isStale, ctlRows.length ? ctlRows[ctlRows.length - 1] : null, econCtl);
     }).join('');
 
     renderLeaderboard(farms, latestByFarm);
@@ -533,13 +536,19 @@
   // ------------------------------------------------------------
   // CARD MARKUP
   // ------------------------------------------------------------
-  function cardHtml(prefix, farm, color, latest, econ, isStale, latestCtl){
+  function cardHtml(prefix, farm, color, latest, econ, isStale, latestCtl, econCtl){
     var abatementRate = latest && latest.abatement_rate != null ? latest.abatement_rate + '%' : '–';
     var abatedPerDay = latest && latest.methane_abated_g_per_hd_day != null ? Math.round(latest.methane_abated_g_per_hd_day) + ' g' : '–';
     var cumulativeKg = econ && econ.cumulative_ch4_abated_kg_per_head != null ? econ.cumulative_ch4_abated_kg_per_head.toFixed(1) + ' kg' : '–';
     var dose = latest && latest.bromoform_mg_per_kg_dmi != null ? latest.bromoform_mg_per_kg_dmi.toFixed(1) : '–';
     var perKg = latest && latest.intake_g_per_kg_lw != null ? latest.intake_g_per_kg_lw.toFixed(2) + ' g' : '–';
     var perKgCtl = latestCtl && latestCtl.intake_g_per_kg_lw != null ? latestCtl.intake_g_per_kg_lw.toFixed(2) + ' g' : '–';
+    // Emissions intensity (added 2026-11-24): modelled kg CO2e per kg liveweight gain over the same
+    // days as the mob's weight gain (LEL_Economics_Data, 04 / lel_intensity.py).
+    var fmtInt = function(r, f){ return r && r[f] != null ? r[f].toFixed(1) : '–'; };
+    var intNet = fmtInt(econ, 'ch4_intensity_kg_co2e_per_kg_lwg');
+    var intBase = fmtInt(econ, 'ch4_intensity_baseline_kg_co2e_per_kg_lwg');
+    var intCtl = fmtInt(econCtl, 'ch4_intensity_baseline_kg_co2e_per_kg_lwg');
 
     return '<div class="mt-card" style="border-top-color:' + color + ';">' +
       '<div class="mt-card-head"><span class="mt-dot" style="background:' + color + ';"></span><h2 class="mt-name">' + farm + '</h2>' +
@@ -552,6 +561,9 @@
       '<div><span class="mt-stat-label">Bromoform dose</span><span class="mt-stat-value">' + dose + '</span><span class="mt-stat-sub">mg/kg DMI, SeaFeed</span></div>' +
       '<div><span class="mt-stat-label">Intake per kg LW</span><span class="mt-stat-value">' + perKg + '</span><span class="mt-stat-sub">g/kg/day, SeaFeed</span></div>' +
       '<div><span class="mt-stat-label">Control per kg LW</span><span class="mt-stat-value">' + perKgCtl + '</span><span class="mt-stat-sub">g/kg/day, standard block</span></div>' +
+      '<div><span class="mt-stat-label">Intensity, SeaFeed</span><span class="mt-stat-value">' + intNet + '</span><span class="mt-stat-sub">kg CO2e/kg gain, after abatement</span></div>' +
+      '<div><span class="mt-stat-label">SeaFeed, no abatement</span><span class="mt-stat-value">' + intBase + '</span><span class="mt-stat-sub">kg CO2e/kg gain, baseline</span></div>' +
+      '<div><span class="mt-stat-label">Intensity, control</span><span class="mt-stat-value">' + intCtl + '</span><span class="mt-stat-sub">kg CO2e/kg gain, standard block</span></div>' +
       '</div>' +
       '<div class="mt-chart-box"><canvas id="' + prefix + '-chart"></canvas><p class="mt-chart-empty" id="' + prefix + '-chart-empty">No emissions history to chart yet.</p></div>' +
       '<p class="mt-chart-title">Bromoform dose (mg/kg DMI)</p>' +
