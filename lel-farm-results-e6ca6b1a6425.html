@@ -348,7 +348,7 @@ h3.sec,.page .grid,.page>.card{scroll-margin-top:150px}
 <section class="page" id="p3">
   <h2>Methane, blocks and lab results</h2>
   <p class="sub" id="msub"></p>
-  <nav class="jump" aria-label="On this page"><a href="#m-meth">Methane and intake</a><a href="#m-blocks">Blocks put out</a><a href="#m-bromo">Bromoform in the blocks</a><a href="#m-health">Uptake, residues and health</a></nav>
+  <nav class="jump" aria-label="On this page"><a href="#m-meth">Methane and intake</a><a href="#m-blocks">Blocks put out</a><a href="#m-bromo">Bromoform in the blocks</a></nav>
   <h3 class="sec" id="m-meth">Modelled methane and intake</h3>
   <div class="grid g4">
     <div class="card kpi"><div class="t">Abatement Rate</div><div class="v" data-f="ab_v"></div><div class="d">Modelled, KleenGrow Mob</div></div>
@@ -382,19 +382,6 @@ h3.sec,.page .grid,.page>.card{scroll-margin-top:150px}
   <div class="grid g1">
     <div class="card"><h4>Result by sample group (mg/kg)</h4><div class="chart"><canvas id="c_bro"></canvas></div><p class="note" id="bronote"></p></div>
     <div class="card"><h4>Bromoform by farm: KleenGrow and control blocks (mg/kg)</h4><div class="chart"><canvas id="c_bfm"></canvas></div><p class="note">Mean of the samples for each farm (two to six samples each). Control blocks were not sampled at one farm. Specification range to be added by Sea Forest for comparison.</p></div>
-  </div>
-  <h3 class="sec" id="m-health">Uptake, residues and animal health</h3>
-  <div class="grid g3">
-    <div class="card"><h4>Uptake over time</h4><p class="note" style="font-size:13px;margin:0" id="upt"></p><p class="note" style="margin-top:10px">Palatability or substitution lowering intake below target is a rated risk in the project risk register. Intake is the program's uptake measure.</p></div>
-    <div class="card"><h4>Residues and market access</h4><ul class="tick">
-      <li><span class="p">!</span>No bromoform residue results from the beef program are loaded on this page yet</li>
-      <li><span class="p">!</span>Milk: no jurisdiction has an MRL for bromoform; Australia is not listed in FSANZ Schedule 20 (briefing note, Sept 2025)</li>
-      <li><span class="y">✓</span>2025 dairy trial: milk residue testing was carried out at three farms (Year 1 residue data); results are held in the project files</li>
-      <li><span class="p">?</span>MRL position for beef to be confirmed by Sea Forest and TIA</li></ul></div>
-    <div class="card"><h4>Animal health and welfare</h4><ul class="tick">
-      <li><span class="y">✓</span>2025 dairy trial: no adverse animal-health findings (Progress Report 5)</li>
-      <li><span class="p">!</span>Beef program: health and feed intake are monitored under the project SOPs; no ill-health or withdrawal records are loaded on this page yet</li>
-      <li><span class="p">?</span>Add withdrawal counts per cohort once the records are loaded</li></ul></div>
   </div>
 </section>
 
@@ -894,7 +881,7 @@ CFG.bw.p6p=CFG.bw.p6p.replace(/<div class="card"><h4>Pasture quality[\s\S]*$/,PQ
 
 const SRC={p1:'Sources: OptiWeigh liveweight (ADG and 95% bands), lick block visit records (intake), 700 mg/kg block bromoform, Goloja et al. 2026 dose-response and Charmley et al. 2016 (modelled abatement), MLA National Heavy Steer Indicator 29 Oct 2026 and EY ACM 2026 reference price (values). See Sources and method.',
  p2:'Sources: OptiWeigh (liveweight, 14-day rolling ADG with 95% band, 30-day and 90-day ADG). Matched dates and days for both mobs.',
- p3:'Sources: lick block visit records (intake, blocks put out), modelled abatement (700 mg/kg block bromoform, Goloja et al. 2026 dose-response, Charmley et al. 2016 baseline), Sea Forest guidance of about 1 block per 20 head, AST laboratory bromoform results (mg/kg WMB), Progress Report 5, MRL briefing note (Sept 2025), 2025 dairy residue data.',
+ p3:'Sources: lick block visit records (intake, blocks put out), modelled abatement (700 mg/kg block bromoform, Goloja et al. 2026 dose-response, Charmley et al. 2016 baseline), Sea Forest guidance of about 1 block per 20 head, AST laboratory bromoform results (mg/kg WMB).',
  p4g:'Sources: LEL_Economics_Data (cost), economic analysis workbook (net return at full cost and $4.85/kg MLA NHSI; farmer 60.23% share shown as secondary), EY ACM 2026 reference price for illustrative abatement value.',
  p4p:'Sources: LEL_Economics_Data and the economic analysis workbook; budget planning rate from the project cost model.',
  p6:'Sources: OptiWeigh GPS, Sentinel-2 NDVI, Open-Meteo, Forage Lab Australia NIR (pasture report, 6 Nov draft).',
