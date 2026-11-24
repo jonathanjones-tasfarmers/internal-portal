@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!--
+  LEL Staff Portal: AI assistant panel (Stage 4 of the Sea Forest Hub requests, 24 Nov 2026).
+  Embed in the Staff Portal home page with an iframe, like the other *-embed.html pages.
+  The page itself holds no key: it sends questions to the assistant service in _assistant/
+  (a Cloudflare Worker), which keeps the AI key, reads the Project's public data layers and
+  answers. Staff enter the shared staff access code once; it is remembered in this browser.
+  Set ASSISTANT_URL below once the service is deployed.
+-->
+<title>LEL Assistant</title>
+<style>
+  :root{
+    --tf-navy-900:#041221; --tf-slate-200:#dbe3e9; --tf-slate-300:#c4d0d9; --tf-slate-600:#5d6d79;
+    --tf-seafeed:#3aa989; --tf-seafeed-soft:#e9f6f1; --tf-red:#c0392b; --tf-white:#ffffff;
+    --surface-page:#ffffff; --surface-card:#ffffff; --surface-user:#f1f5f8;
+    --text-heading:var(--tf-navy-900); --text-body:#16263a; --text-muted:var(--tf-slate-600);
+    --border-subtle:var(--tf-slate-200); --border-default:var(--tf-slate-300);
+    --radius-lg:12px; --radius-md:10px; --radius-sm:6px;
+    --font-display:Tahoma,Verdana,sans-serif; --font-body:Verdana,Tahoma,sans-serif;
+  }
+  *{box-sizing:border-box} [hidden]{display:none !important}
+  body{margin:0;background:var(--surface-page);color:var(--text-body);font-family:var(--font-body);font-size:14px;line-height:1.55}
+  .wrap{max-width:860px;margin:0 auto;padding:16px}
+  .head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  h1{font-family:var(--font-display);font-size:20px;color:var(--text-heading);margin:0}
+  .sub{color:var(--text-muted);font-size:12.5px;margin:4px 0 0}
+  .card{border:1px solid var(--border-subtle);border-top:3px solid var(--tf-seafeed);border-radius:var(--radius-lg);background:var(--surface-card);margin-top:14px;display:flex;flex-direction:column;min-height:420px}
+  .log{flex:1;padding:14px;overflow-y:auto;max-height:60vh;display:flex;flex-direction:column;gap:10px}
+  .msg{padding:10px 12px;border-radius:var(--radius-md);max-width:92%;overflow-wrap:anywhere}
+  .msg.user{align-self:flex-end;background:var(--surface-user)}
+  .msg.bot{align-self:flex-start;background:var(--tf-seafeed-soft)}
+  .msg.err{align-self:flex-start;background:#fbeceb;color:var(--tf-red)}
+  .msg p{margin:0 0 6px}.msg p:last-child{margin:0}.msg ul{margin:4px 0 6px;padding-left:20px}
+  .msg .when{display:block;color:var(--text-muted);font-size:11px;margin-top:6px}
+  .starters{display:flex;flex-wrap:wrap;gap:8px;padding:0 14px 12px}
+  .starters button{font:inherit;font-size:12.5px;border:1px solid var(--border-default);background:var(--tf-white);color:var(--text-body);border-radius:999px;padding:6px 12px;cursor:pointer}
+  .starters button:hover{border-color:var(--tf-seafeed)}
+  form{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--border-subtle)}
+  textarea,input{font:inherit;flex:1;border:1px solid var(--border-default);border-radius:var(--radius-sm);padding:8px 10px;color:var(--text-body);background:var(--tf-white);resize:none}
+  button.send{font:inherit;font-weight:700;background:var(--tf-seafeed);color:#fff;border:0;border-radius:var(--radius-sm);padding:8px 16px;cursor:pointer}
+  button.send:disabled{opacity:.6;cursor:default}
+  .link{font:inherit;font-size:12px;color:var(--text-muted);background:none;border:0;text-decoration:underline;cursor:pointer;padding:0}
+  .foot{color:var(--text-muted);font-size:11.5px;margin:10px 2px 0}
+  .dots::after{content:"…";animation:d 1.2s steps(3,end) infinite}
+  @keyframes d{0%{content:"."}33%{content:".."}66%{content:"…"}}
+  @media (max-width:480px){.msg{max-width:100%}form{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div>
+      <h1>LEL Assistant</h1>
+      <p class="sub">Ask about the Project's mobs, figures and methods. Answers come from the same data as these portal pages.</p>
+    </div>
+    <button class="link" id="reset" type="button">New conversation</button>
+  </div>
+  <div class="card">
+    <div class="log" id="log" aria-live="polite"></div>
+    <div class="starters" id="starters"></div>
+    <form id="code-form" hidden>
+      <input id="code" type="password" placeholder="Staff access code" autocomplete="current-password" aria-label="Staff access code">
+      <button class="send" type="submit">Save</button>
+    </form>
+    <form id="ask-form">
+      <textarea id="q" rows="2" maxlength="2000" placeholder="Ask a question, e.g. how is Bowood tracking this week?" aria-label="Your question"></textarea>
+      <button class="send" id="send" type="submit">Ask</button>
+    </form>
+  </div>
+  <p class="foot">Abatement, CO2e and intensity figures are modelled, not measured at the animal. The assistant reads the Project's public data only and cannot change anything. Questions are answered by Anthropic's Claude AI service. <button class="link" id="forget" type="button">Change access code</button></p>
+</div>
+<script>
+(function(){
+  // Set once the assistant service is deployed (see _assistant/README.md).
+  var ASSISTANT_URL = "";
+  var STARTERS = [
+    "How is each open mob tracking this week?",
+    "Which mobs need attention?",
+    "What is the Project's total abatement and CO2e to date, and how is it worked out?",
+    "How do the farms compare with their controls?",
+    "What does bromoform dose mean?"
+  ];
+  var KEY = "lel-assistant-code";
+  var history = [];
+  var log = document.getElementById("log"), q = document.getElementById("q"), send = document.getElementById("send");
+  var askForm = document.getElementById("ask-form"), codeForm = document.getElementById("code-form");
+
+  function store(k, v){ try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
+  function read(k){ try { return localStorage.getItem(k); } catch (e) { return null; } }
+  var code = read(KEY);
+
+  function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]; }); }
+  // Small, safe Markdown: escape first, then bold, bullet lists and paragraphs.
+  function render(text){
+    var out = [], list = null;
+    esc(text).split(/\n/).forEach(function(line){
+      line = line.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+      var m = /^\s*(?:[-*•]|\d+\.)\s+(.*)$/.exec(line);
+      if (m) { if (!list) { list = []; } list.push("<li>" + m[1] + "</li>"); return; }
+      if (list) { out.push("<ul>" + list.join("") + "</ul>"); list = null; }
+      if (line.trim()) out.push("<p>" + line + "</p>");
+    });
+    if (list) out.push("<ul>" + list.join("") + "</ul>");
+    return out.join("");
+  }
+  function add(kind, html){
+    var d = document.createElement("div"); d.className = "msg " + kind; d.innerHTML = html;
+    log.appendChild(d); log.scrollTop = log.scrollHeight; return d;
+  }
+  function fmtDate(iso){
+    if (!iso) return "";
+    var p = iso.split("-"), m = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    return +p[2] + " " + m[+p[1] - 1] + " " + p[0];
+  }
+  function showStarters(){
+    var box = document.getElementById("starters"); box.innerHTML = "";
+    if (history.length) return;
+    STARTERS.forEach(function(s){
+      var b = document.createElement("button"); b.type = "button"; b.textContent = s;
+      b.onclick = function(){ q.value = s; ask(); };
+      box.appendChild(b);
+    });
+  }
+  function needCode(msg){
+    codeForm.hidden = false; askForm.hidden = true;
+    if (msg) add("err", esc(msg));
+    document.getElementById("code").focus();
+  }
+  // A failed question comes off the conversation and goes back in the box, so it can be re-sent.
+  function undo(text){
+    history.pop();
+    var last = log.querySelector(".msg.user:last-of-type"); if (last) last.remove();
+    q.value = text; showStarters();
+  }
+  function ask(){
+    var text = q.value.trim();
+    if (!text || send.disabled) return;
+    if (!ASSISTANT_URL) { add("err", "The assistant service is not set up yet."); return; }
+    if (!code) { needCode(); return; }
+    history.push({ role: "user", content: text });
+    add("user", esc(text)); q.value = ""; showStarters();
+    var wait = add("bot", '<span class="dots">Looking at the data</span>');
+    send.disabled = true;
+    fetch(ASSISTANT_URL.replace(/\/$/, "") + "/chat", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: code, messages: history })
+    }).then(function(res){
+      return res.json().catch(function(){ return {}; }).then(function(body){ return { status: res.status, body: body }; });
+    }).then(function(r){
+      wait.remove();
+      if (r.status === 200 && r.body.answer) {
+        history.push({ role: "assistant", content: r.body.answer });
+        add("bot", render(r.body.answer) + (r.body.as_of ? '<span class="when">Data as of ' + esc(fmtDate(r.body.as_of)) + "</span>" : ""));
+        return;
+      }
+      undo(text);
+      if (r.status === 401) { code = null; store(KEY, null); needCode(r.body.error || "Wrong staff access code."); return; }
+      add("err", esc(r.body.error || "Something went wrong. Please try again."));
+    }).catch(function(){
+      wait.remove(); undo(text);
+      add("err", "Couldn't reach the assistant. Check your connection and try again.");
+    }).then(function(){ send.disabled = false; q.focus(); });
+  }
+
+  askForm.addEventListener("submit", function(e){ e.preventDefault(); ask(); });
+  q.addEventListener("keydown", function(e){ if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(); } });
+  codeForm.addEventListener("submit", function(e){
+    e.preventDefault();
+    var v = document.getElementById("code").value.trim(); if (!v) return;
+    code = v; store(KEY, v); codeForm.hidden = true; askForm.hidden = false;
+    document.getElementById("code").value = "";
+    if (q.value.trim()) ask(); else q.focus();
+  });
+  document.getElementById("forget").onclick = function(){ code = null; store(KEY, null); needCode(); };
+  document.getElementById("reset").onclick = function(){ history = []; log.innerHTML = ""; showStarters(); q.focus(); };
+
+  showStarters();
+  if (!code) needCode();
+})();
+</script>
+</body>
+</html>

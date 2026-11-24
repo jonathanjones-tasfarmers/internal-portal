@@ -1,0 +1,11 @@
+name = "lel-staff-assistant"
+main = "src/worker.js"
+compatibility_date = "2026-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+# Pages allowed to call the assistant. The Staff Portal pages are served from GitHub Pages and
+# shown inside the Hub in an iframe, so the calling origin is the GitHub Pages one.
+ALLOWED_ORIGINS = "https://jonathanjones-tasfarmers.github.io"
+
+# Secrets, set once with:  npx wrangler secret put ANTHROPIC_API_KEY   and   npx wrangler secret put STAFF_CODE
