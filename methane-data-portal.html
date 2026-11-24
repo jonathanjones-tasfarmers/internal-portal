@@ -28,7 +28,11 @@
       written by 03. Emissions_Live_Pipeline_v2.py. Per-row fields used:
       record_date, farm_name, treatment, intake_g_per_hd_day,
       abatement_rate, baseline_ch4_g_per_hd_day, methane_abated_g_per_hd_day,
-      is_backfilled. Also carries an "All Farms (Trial Aggregate)"
+      is_backfilled, and (added 2026-11-24, Jock's request via Jono)
+      bromoform_mg_per_kg_dmi + intake_g_per_kg_lw when the view shows
+      them. If it doesn't, both are worked out here from the row's own
+      intake and baseline with the live LEL_Model_Assumptions_Public
+      constants (same maths as lel_abatement.py). Also carries an "All Farms (Trial Aggregate)"
       farm_name row per treatment per day: the pipeline's own
       head-count-weighted rollup, read directly here rather than
       re-derived, so this page can never disagree with the aggregate the
@@ -170,6 +174,7 @@
   .mt-stat-sub { display: block; font-size: 10.5px; font-weight: 400; color: var(--text-muted); line-height: 1.3; margin-top: 1px; }
 
   .mt-chart-box { position: relative; height: 210px; margin-top: 4px; }
+  .mt-chart-title { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 18px 0 4px; }
   .mt-chart-empty { font-size: 12.5px; color: var(--text-muted); text-align: center; padding: 40px 0; display: none; }
 
   .mt-footer-note { font-family: var(--font-display); font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 40px; line-height: 1.6; }
@@ -308,10 +313,43 @@
   // Full daily history, every farm + the pipeline's own aggregate rows:
   // used both for the trial KPI band (aggregate rows) and each farm's
   // trend chart (per-farm rows).
+  // 2026-11-24: dose and intake per kg of liveweight. Only ask the view for a field it shows (an
+  // unknown outField fails the whole query); anything missing is worked out in addDoseAndPerKg().
+  var OPTIONAL_FIELDS = ['bromoform_mg_per_kg_dmi', 'intake_g_per_kg_lw'];
+  function fetchEmissionsFields(){
+    return fetch(EMISSIONS_URL.replace(/\/query$/, '') + '?f=json').then(function(res){ return res.json(); })
+      .then(function(meta){ var have = (meta.fields || []).map(function(f){ return f.name; });
+        return OPTIONAL_FIELDS.filter(function(n){ return have.indexOf(n) !== -1; }); })
+      .catch(function(){ return []; });
+  }
+  function fetchAssumptions(){
+    return q(ASSUMPTIONS_URL, { where: "1=1", outFields: "*", orderByFields: "last_updated DESC", resultRecordCount: 1, f: "json" })
+      .then(function(data){ return (data.features && data.features[0] && data.features[0].attributes) || {}; })
+      .catch(function(){ return {}; });
+  }
+  function addDoseAndPerKg(byFarm, stored, ma){
+    var ok = ma.charmley_my_g_per_kg_dmi && ma.dmi_pct_of_bodyweight;
+    Object.keys(byFarm).forEach(function(farm){
+      byFarm[farm].forEach(function(r){
+        var base = r.baseline_ch4_g_per_hd_day, intake = r.intake_g_per_hd_day, has = ok && base > 0 && intake != null;
+        if (stored.indexOf('intake_g_per_kg_lw') === -1) {
+          r.intake_g_per_kg_lw = has ? intake / (base / (ma.charmley_my_g_per_kg_dmi * ma.dmi_pct_of_bodyweight)) : null;
+        }
+        if (stored.indexOf('bromoform_mg_per_kg_dmi') === -1) {
+          r.bromoform_mg_per_kg_dmi = (has && r.treatment === 'seafeed' && ma.block_bromoform_mg_per_kg)
+            ? intake / 1000 * ma.block_bromoform_mg_per_kg / (base / ma.charmley_my_g_per_kg_dmi) : null;
+        }
+      });
+    });
+    return byFarm;
+  }
+
   function fetchEmissionsHistory(){
+    return Promise.all([fetchEmissionsFields(), fetchAssumptions()]).then(function(pre){
+    var stored = pre[0], ma = pre[1];
     return q(EMISSIONS_URL, {
       where: "1=1",
-      outFields: "farm_name,treatment,record_date,intake_g_per_hd_day,abatement_rate,baseline_ch4_g_per_hd_day,methane_abated_g_per_hd_day",
+      outFields: ["farm_name,treatment,record_date,intake_g_per_hd_day,abatement_rate,baseline_ch4_g_per_hd_day,methane_abated_g_per_hd_day"].concat(stored).join(','),
       orderByFields: "record_date ASC", resultRecordCount: "5000", f: "json"
     }).then(function(data){
       var byFarm = {}; // { farm: [ {..attrs..}, ... ] }: includes AGGREGATE_LABEL as one of the "farms"
@@ -321,7 +359,8 @@
         if (!byFarm[farm]) byFarm[farm] = [];
         byFarm[farm].push(a);
       });
-      return byFarm;
+      return addDoseAndPerKg(byFarm, stored, ma);
+    });
     }).catch(function(err){ console.error('Emissions history fetch failed:', err); return {}; });
   }
 
@@ -386,7 +425,8 @@
       var econ = (econByFarm[farm] && econByFarm[farm].seafeed) || null;
       var isStale = latest && !isSupersededCohort(farm, farms) && daysSinceEpochMs(latest.record_date) > STALE_AFTER_DAYS;
       if (isStale) staleItems.push(farm + ': last reading ' + fmtDate(latest.record_date) + ' (' + Math.floor(daysSinceEpochMs(latest.record_date)) + ' days ago)');
-      return cardHtml('mt-' + idx, farm, color, latest, econ, isStale);
+      var ctlRows = (historyByFarm[farm] || []).filter(function(r){ return r.treatment === 'control'; });
+      return cardHtml('mt-' + idx, farm, color, latest, econ, isStale, ctlRows.length ? ctlRows[ctlRows.length - 1] : null);
     }).join('');
 
     renderLeaderboard(farms, latestByFarm);
@@ -394,6 +434,7 @@
     farms.forEach(function(farm, idx){
       var rows = (historyByFarm[farm] || []).filter(function(r){ return r.treatment === 'seafeed'; });
       renderChart('mt-' + idx, rows);
+      renderDoseCharts('mt-' + idx, historyByFarm[farm] || []);
     });
 
     if (staleItems.length) {
@@ -492,10 +533,13 @@
   // ------------------------------------------------------------
   // CARD MARKUP
   // ------------------------------------------------------------
-  function cardHtml(prefix, farm, color, latest, econ, isStale){
+  function cardHtml(prefix, farm, color, latest, econ, isStale, latestCtl){
     var abatementRate = latest && latest.abatement_rate != null ? latest.abatement_rate + '%' : '–';
     var abatedPerDay = latest && latest.methane_abated_g_per_hd_day != null ? Math.round(latest.methane_abated_g_per_hd_day) + ' g' : '–';
     var cumulativeKg = econ && econ.cumulative_ch4_abated_kg_per_head != null ? econ.cumulative_ch4_abated_kg_per_head.toFixed(1) + ' kg' : '–';
+    var dose = latest && latest.bromoform_mg_per_kg_dmi != null ? latest.bromoform_mg_per_kg_dmi.toFixed(1) : '–';
+    var perKg = latest && latest.intake_g_per_kg_lw != null ? latest.intake_g_per_kg_lw.toFixed(2) + ' g' : '–';
+    var perKgCtl = latestCtl && latestCtl.intake_g_per_kg_lw != null ? latestCtl.intake_g_per_kg_lw.toFixed(2) + ' g' : '–';
 
     return '<div class="mt-card" style="border-top-color:' + color + ';">' +
       '<div class="mt-card-head"><span class="mt-dot" style="background:' + color + ';"></span><h2 class="mt-name">' + farm + '</h2>' +
@@ -505,8 +549,15 @@
       '<div><span class="mt-stat-label">Abatement rate</span><span class="mt-stat-value">' + abatementRate + '</span><span class="mt-stat-sub">' + (latest ? 'as of ' + fmtDateShort(latest.record_date) : 'No data yet') + '</span></div>' +
       '<div><span class="mt-stat-label">CH4 abated/day</span><span class="mt-stat-value">' + abatedPerDay + '</span><span class="mt-stat-sub">per head</span></div>' +
       '<div><span class="mt-stat-label">Cumulative CH4</span><span class="mt-stat-value">' + cumulativeKg + '</span><span class="mt-stat-sub">per head, to date</span></div>' +
+      '<div><span class="mt-stat-label">Bromoform dose</span><span class="mt-stat-value">' + dose + '</span><span class="mt-stat-sub">mg/kg DMI, SeaFeed</span></div>' +
+      '<div><span class="mt-stat-label">Intake per kg LW</span><span class="mt-stat-value">' + perKg + '</span><span class="mt-stat-sub">g/kg/day, SeaFeed</span></div>' +
+      '<div><span class="mt-stat-label">Control per kg LW</span><span class="mt-stat-value">' + perKgCtl + '</span><span class="mt-stat-sub">g/kg/day, standard block</span></div>' +
       '</div>' +
       '<div class="mt-chart-box"><canvas id="' + prefix + '-chart"></canvas><p class="mt-chart-empty" id="' + prefix + '-chart-empty">No emissions history to chart yet.</p></div>' +
+      '<p class="mt-chart-title">Bromoform dose (mg/kg DMI)</p>' +
+      '<div class="mt-chart-box"><canvas id="' + prefix + '-dose"></canvas><p class="mt-chart-empty" id="' + prefix + '-dose-empty">No dose yet: needs liveweight to estimate dry matter intake.</p></div>' +
+      '<p class="mt-chart-title">Block intake per kg of liveweight (g/kg/day)</p>' +
+      '<div class="mt-chart-box"><canvas id="' + prefix + '-perkg"></canvas><p class="mt-chart-empty" id="' + prefix + '-perkg-empty">No figure yet: needs liveweight.</p></div>' +
       '</div>';
   }
 
@@ -546,6 +597,55 @@
         elements: { point: { radius: 0 }, line: { tension: 0.3, borderWidth: 2 } }
       }
     });
+  }
+
+  // ------------------------------------------------------------
+  // DOSE + INTAKE PER KG CHARTS (added 2026-11-24). Dose: SeaFeed only,
+  // with the model's 35.7 mg/kg ceiling noted in the tooltip title. Intake
+  // per kg: SeaFeed (mint) against the standard-block control (slate), on
+  // the same day axis.
+  // ------------------------------------------------------------
+  function smallLine(canvas, labels, sets, unit, places){
+    new Chart(canvas, {
+      type: 'line',
+      data: { labels: labels, datasets: sets.map(function(d){ return { label: d.label, data: d.data, borderColor: d.color, backgroundColor: 'transparent', borderDash: d.dash || [], spanGaps: true }; }) },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: sets.length > 1, position: 'top', align: 'end', labels: { boxWidth: 6, usePointStyle: true, pointStyle: 'circle', font: { size: 10 }, color: '#73818c' } },
+          tooltip: { callbacks: { label: function(ctx){ return (ctx.dataset.label ? ctx.dataset.label + ': ' : '') + (ctx.parsed.y != null ? ctx.parsed.y.toFixed(places) + ' ' + unit : '–'); } } }
+        },
+        scales: {
+          x: { ticks: { font: { size: 9 }, maxTicksLimit: 6, color: '#73818c' }, grid: { display: false }, border: { display: false } },
+          y: { beginAtZero: true, ticks: { font: { size: 9 }, color: '#73818c' }, grid: { color: '#eef2f4' }, border: { display: false } }
+        },
+        elements: { point: { radius: 0 }, line: { tension: 0.3, borderWidth: 2 } }
+      }
+    });
+  }
+  function renderDoseCharts(prefix, rows){
+    var sf = rows.filter(function(r){ return r.treatment === 'seafeed'; });
+    var byDay = {};
+    rows.forEach(function(r){ var k = fmtDateShort(r.record_date); (byDay[k] = byDay[k] || {})[r.treatment] = r; });
+    var days = []; rows.forEach(function(r){ var k = fmtDateShort(r.record_date); if (days.indexOf(k) === -1) days.push(k); });
+
+    var doseCanvas = document.getElementById(prefix + '-dose');
+    if (sf.some(function(r){ return r.bromoform_mg_per_kg_dmi != null; })) {
+      document.getElementById(prefix + '-dose-empty').style.display = 'none';
+      smallLine(doseCanvas, sf.map(function(r){ return fmtDateShort(r.record_date); }),
+        [{ label: 'SeaFeed dose', data: sf.map(function(r){ return r.bromoform_mg_per_kg_dmi; }), color: MINT }], 'mg/kg DMI', 1);
+    } else { doseCanvas.style.display = 'none'; document.getElementById(prefix + '-dose-empty').style.display = 'block'; }
+
+    var kgCanvas = document.getElementById(prefix + '-perkg');
+    if (rows.some(function(r){ return r.intake_g_per_kg_lw != null; })) {
+      document.getElementById(prefix + '-perkg-empty').style.display = 'none';
+      var pick = function(t){ return days.map(function(k){ var r = byDay[k][t]; return r && r.intake_g_per_kg_lw != null ? r.intake_g_per_kg_lw : null; }); };
+      smallLine(kgCanvas, days, [
+        { label: 'SeaFeed', data: pick('seafeed'), color: MINT },
+        { label: 'Control', data: pick('control'), color: SLATE, dash: [4, 3] }
+      ], 'g/kg', 3);
+    } else { kgCanvas.style.display = 'none'; document.getElementById(prefix + '-perkg-empty').style.display = 'block'; }
   }
 
   loadAll();

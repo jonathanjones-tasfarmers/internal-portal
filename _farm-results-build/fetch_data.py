@@ -9,7 +9,8 @@ Optional date argument: drop every row after that day. Use the last COMPLETE day
 
 Shape of data.json (per farm key bw, eb, trt):
   ser1 / ser2  cohort 1 / cohort 2: {treatment: {date: [rolling_weight_14d, rolling_adg, ci_lower, ci_upper]}}
-  em1 / em2    modelled SeaFeed (KleenGrow) emissions rows: {date: [abatement_rate, intake_g_per_hd_day, methane_abated_g_per_hd_day]}
+  em1 / em2    modelled SeaFeed (KleenGrow) emissions rows: {date: [abatement_rate, intake_g_per_hd_day, methane_abated_g_per_hd_day,
+               bromoform_mg_per_kg_dmi, intake_g_per_kg_lw]}  (the last two added 24 Nov 2026; None with no liveweight)
   ctl2         [0, latest standard-block intake] for cohort 2 (None when there is no cohort 2)
   cost1/cost2  cumulative cost: {treatment: {date: [cost_per_head_day_aud, cost_per_head_aud]}} (cohort 2: [cost_per_head_aud])
 """
@@ -52,13 +53,40 @@ def weights(farm):
     return out
 
 
+def layer_fields(layer):
+    req = urllib.request.Request(f"{BASE}/{layer}/FeatureServer/0?f=json", headers={"User-Agent": "lel-farm-results"})
+    return {f["name"] for f in json.load(urllib.request.urlopen(req)).get("fields", [])}
+
+
+# Dose and intake per kg of liveweight (added 24 Nov 2026). The pipeline stores both on each row; if the
+# public view does not show a field yet, it is worked out here from the row's own intake and baseline with
+# the live constants in LEL_Model_Assumptions_Public (the same maths as lel_abatement.py in lel-pipelines).
+EM_FIELDS = layer_fields("LEL_Emissions_Data_view")
+MA = (query("LEL_Model_Assumptions_Public", "1=1", "dmi_pct_of_bodyweight,charmley_my_g_per_kg_dmi,block_bromoform_mg_per_kg", "") or [{}])[0]
+STORED = [f for f in ("bromoform_mg_per_kg_dmi", "intake_g_per_kg_lw") if f in EM_FIELDS]
+print("Public view shows:", STORED or "neither dose nor intake per kg (worked out from intake and baseline)")
+
+
+def dose_and_per_kg(a):
+    intake, base = a.get("intake_g_per_hd_day"), a.get("baseline_ch4_g_per_hd_day")
+    dose, gpk = a.get("bromoform_mg_per_kg_dmi"), a.get("intake_g_per_kg_lw")
+    ok = intake is not None and base and MA.get("charmley_my_g_per_kg_dmi") and MA.get("dmi_pct_of_bodyweight")
+    if gpk is None and "intake_g_per_kg_lw" not in STORED and ok:
+        gpk = round(intake / (base / (MA["charmley_my_g_per_kg_dmi"] * MA["dmi_pct_of_bodyweight"])), 3)
+    if dose is None and "bromoform_mg_per_kg_dmi" not in STORED and ok and MA.get("block_bromoform_mg_per_kg"):
+        dose = round(intake / 1000 * MA["block_bromoform_mg_per_kg"] / (base / MA["charmley_my_g_per_kg_dmi"]), 2)
+    return dose, gpk
+
+
 def emissions(farm):
     em, ctl = {}, None
     if not farm:
         return em, ctl
-    for a in query("LEL_Emissions_Data_view", f"farm_name='{farm}'", "record_date,treatment,abatement_rate,intake_g_per_hd_day,methane_abated_g_per_hd_day", "record_date"):
+    fields = "record_date,treatment,abatement_rate,intake_g_per_hd_day,methane_abated_g_per_hd_day"
+    extra = [f for f in ["baseline_ch4_g_per_hd_day"] + STORED if f in EM_FIELDS]
+    for a in query("LEL_Emissions_Data_view", f"farm_name='{farm}'", ",".join([fields] + extra), "record_date"):
         if a["treatment"] == "seafeed":
-            em[day(a["record_date"])] = [a["abatement_rate"], a["intake_g_per_hd_day"], a["methane_abated_g_per_hd_day"]]
+            em[day(a["record_date"])] = [a["abatement_rate"], a["intake_g_per_hd_day"], a["methane_abated_g_per_hd_day"], *dose_and_per_kg(a)]
         elif a["treatment"] == "control":
             ctl = [0, a["intake_g_per_hd_day"]]
     return em, ctl
