@@ -252,7 +252,7 @@
   var MINT = '#3aa989', SLATE = '#a9b8c4';
   var DEFAULT_GWP = 28; // AR5 100-year methane GWP: same fallback page-5-data.html uses if the benchmarks lookup fails
 
-  var FALLBACK_METHOD_TEXT = "Baseline enteric methane is modelled from each animal's liveweight using Charmley et al. (2016)'s universal equation for forage-fed cattle (CH4 g/day = 20.7 x dry matter intake), with intake estimated at 2.5% of bodyweight per Sea Forest's guidance. The abatement rate applied against that baseline scales with each farm's measured SeaFeed intake, within Sea Forest's stated dose-response range. CO2e figures use the AR5 100-year methane global warming potential factor.";
+  var FALLBACK_METHOD_TEXT = "Baseline enteric methane is modelled from each animal's liveweight using Charmley et al. (2016)'s universal equation for forage-fed cattle (CH4 g/day = 20.7 x dry matter intake), with intake estimated at 2.5% of bodyweight per Sea Forest's guidance. The abatement rate applied against that baseline comes from the bromoform each animal eats per kg of dry matter (SeaFeed block intake x 700 mg bromoform per kg of block), through the beef dose-response in Goloja et al. (2026), BMC Agriculture 2:4. CO2e figures use the AR5 100-year methane global warming potential factor.";
 
   function q(url, params){
     return fetch(url + "?" + new URLSearchParams(params)).then(function(res){ return res.json(); }).then(function(data){
@@ -301,7 +301,7 @@
       if (!row || row.dmi_pct_of_bodyweight == null || row.charmley_my_g_per_kg_dmi == null) return FALLBACK_METHOD_TEXT;
       var dmiPct = (row.dmi_pct_of_bodyweight * 100).toFixed(1);
       return "Baseline enteric methane is modelled from each animal's liveweight: estimated dry matter intake (" + dmiPct + "% of bodyweight) x " +
-        row.charmley_my_g_per_kg_dmi + " g CH4/kg DMI (" + (row.ym_source_note || "Charmley et al. 2016") + "). The abatement rate applied against that baseline scales with each farm's measured SeaFeed intake, within Sea Forest's stated dose-response range. CO2e figures use the AR5 100-year methane global warming potential factor.";
+        row.charmley_my_g_per_kg_dmi + " g CH4/kg DMI (" + (row.ym_source_note || "Charmley et al. 2016") + "). The abatement rate applied against that baseline comes from the bromoform each animal eats per kg of dry matter (SeaFeed block intake x 700 mg bromoform per kg of block), through the beef dose-response in Goloja et al. (2026), BMC Agriculture 2:4. CO2e figures use the AR5 100-year methane global warming potential factor.";
     }).catch(function(){ return FALLBACK_METHOD_TEXT; });
   }
 
