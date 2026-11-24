@@ -355,6 +355,10 @@ h3.sec,.page .grid,.page>.card{scroll-margin-top:150px}
     <div class="card kpi"><div class="t">KleenGrow Intake</div><div class="v" data-f="in_v"></div><div class="d">Per Head / Day</div></div>
     <div class="card kpi"><div class="t">Model Assumed</div><div class="v ctl">90 <small>g</small></div><div class="d">Budget Dose (Lower Recommended Dose 150 g)</div></div>
   </div>
+  <div class="grid g2">
+    <div class="card kpi"><div class="t">Bromoform Dose</div><div class="v" data-f="dz_v"></div><div class="d" data-f="dz_d"></div><div class="n" data-f="dz_n"></div></div>
+    <div class="card kpi"><div class="t">Intake Per Kg Liveweight</div><div class="v" data-f="gk_v"></div><div class="d" data-f="gk_d"></div><div class="n" data-f="gk_n"></div></div>
+  </div>
   <div class="grid g1">
     <div class="card"><h4 id="inttitle">Block intake per head (g/day)</h4><div class="chart"><canvas id="c_int"></canvas></div></div>
     <div class="card"><h4 id="abttitle">Modelled methane abatement (%)</h4><div class="chart"><canvas id="c_abt"></canvas></div></div>
@@ -999,6 +1003,27 @@ Object.entries(OPEN).forEach(([f,o])=>{
   REG.forEach(r=>{if(r[0]==f&&r[1]=='Cohort '+c&&nW)r[4]=String(nW)});
   if(KP)KP.n_v=[`${daysIn} <small>days</small>`];
 });
+
+/* ===== Bromoform dose and intake per kg of liveweight (added 24 Nov 2026, Jock's request via Jono) =====
+   em rows: [rate, intake, CH4 abated, dose mg/kg DMI, intake g/kg liveweight]. Open cohort: the latest day.
+   Closed cohort: the average over the days that have a value. No liveweight (TRT Pastoral) = no value. */
+const DOSE_CAP=35.7;
+['bw','eb','trt'].forEach(f=>[1,2].forEach(c=>{
+  const K=CFG[f].K&&CFG[f].K[c], E=D[f]&&D[f]['em'+c];
+  if(!K||!E)return;
+  const open=OPEN[f]&&OPEN[f].coh==c, ed=Object.keys(E).sort();
+  const pick=i=>{const v=ed.filter(x=>E[x][i]!=null);if(!v.length)return null;
+    if(open){const x=v[v.length-1];return{v:E[x][i],d:x,n:v.length}}
+    return{v:v.reduce((t,x)=>t+E[x][i],0)/v.length,d:v[v.length-1],n:v.length}};
+  const dz=pick(3), gk=pick(4), when=r=>open?`Latest, ${fdt(r.d)}`:`Cohort average, ${r.n} days`;
+  const none=['—'], why=['No liveweight yet, so no dry matter estimate'];
+  Object.assign(K,dz?{dz_v:[`${dz.v.toFixed(1)} <small>mg/kg DMI</small>`],dz_d:[when(dz)],
+      dz_n:[`Bromoform eaten per kg of dry matter: intake × 700 mg/kg block ÷ dry matter intake (2.5% of liveweight). The model holds at ${DOSE_CAP} mg/kg.`]}
+    :{dz_v:none,dz_d:why,dz_n:['']});
+  Object.assign(K,gk?{gk_v:[`${gk.v.toFixed(2)} <small>g/kg</small>`],gk_d:[when(gk)],
+      gk_n:['Grams of block eaten per kg of liveweight per day, so light and heavy cattle can be compared. Uses the 14-day average OptiWeigh weight.']}
+    :{gk_v:none,gk_d:why,gk_n:['']});
+}));
 
 /* sentence case for tile labels (data strings use Title Case); names, months and acronyms keep their capitals */
 const KEEP=new Set(['KleenGrow','OptiWeigh','Bowood','Eastbourne','TRT','Pastoral','Farm','Cohort','Sea','Forest','Grant','Deed','Government','Committee','Project','Program','MLA','AgScent','Survey123',...MON]);
