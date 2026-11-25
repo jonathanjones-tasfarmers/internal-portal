@@ -213,14 +213,28 @@
   .sp-roadmap-note.ontrack { color: var(--tf-seafeed); font-weight: 700; }
   .sp-roadmap-note.behind { color: var(--tf-red); font-weight: 700; }
   .sp-roadmap-note.muted { color: var(--text-muted); }
+  .sp-farms-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .sp-ask-btn { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--text-heading); background: var(--surface-card, #fff); border: 1px solid var(--border-default); border-radius: var(--radius-md, 10px); padding: 8px 14px; text-decoration: none; white-space: nowrap; margin-bottom: 12px; }
+  .sp-ask-btn:hover { border-color: var(--tf-seafeed); }
+  .sp-ask-btn svg { width: 15px; height: 15px; stroke: var(--tf-seafeed); fill: none; stroke-width: 2; flex: none; }
 </style>
 <link rel="stylesheet" href="portal-common.css" />
 <script src="portal-common.js"></script>
 </head>
 <body>
 
-<p class="sp-section-label">Your farms</p>
-<p class="sp-section-sub">Visits, weight gain and lick block supply for each farm's current cohort.</p>
+<!-- LEL Assistant (Stage 4, 26 Nov 2026): opens the chat panel in a new tab, so the Hub layout
+     doesn't need another section. Sits beside the heading to keep the frame height unchanged. -->
+<div class="sp-farms-head">
+  <div>
+    <p class="sp-section-label">Your farms</p>
+    <p class="sp-section-sub">Visits, weight gain and lick block supply for each farm's current cohort.</p>
+  </div>
+  <a class="sp-ask-btn" href="https://jonathanjones-tasfarmers.github.io/internal-portal/staff-assistant-embed.html" target="_blank" rel="noopener">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+    Ask the LEL Assistant
+  </a>
+</div>
 
 <div class="sp-alert-banner" id="sp-alert-banner">
   <span class="sp-alert-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L14.71 3.86a2 2 0 0 0-3.42 0Z"></path></svg></span>
