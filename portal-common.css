@@ -155,3 +155,18 @@ details.lp-fold.lp-archive {
   margin-top: 28px;
   line-height: 1.6;
 }
+
+/* Small data tables and lead lines (added 2026-11-26: lab bromoform on
+   Methane, pasture quality on Farms) */
+.lp-card { background: #fff; border: 1px solid var(--border-subtle, #dde4ea); border-radius: 12px; padding: 18px 22px; margin: 0 0 28px; box-shadow: 0 1px 2px rgba(4,18,33,0.08); }
+.lp-lead { font-size: 13.5px; line-height: 1.55; margin: 0 0 14px; color: var(--text-body, #1c2a38); }
+.lp-table-wrap { overflow-x: auto; }
+.lp-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.lp-table th { text-align: left; font-family: Tahoma, Verdana, sans-serif; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted, #5f6f7c); padding: 6px 10px 8px 0; border-bottom: 1px solid var(--border-subtle, #dde4ea); white-space: nowrap; }
+.lp-table td { padding: 8px 10px 8px 0; border-bottom: 1px solid var(--border-subtle, #dde4ea); vertical-align: top; }
+.lp-table tr:last-child td { border-bottom: none; }
+.lp-table td.num, .lp-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.lp-table .good { color: #3aa989; font-weight: 700; }
+.lp-table .bad { color: #c0392b; font-weight: 700; }
+.lp-table .muted { color: var(--text-muted, #5f6f7c); }
+.lp-note { font-size: 11.5px; color: var(--text-muted, #5f6f7c); margin: 10px 0 0; line-height: 1.5; }

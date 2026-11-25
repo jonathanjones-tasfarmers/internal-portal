@@ -360,6 +360,9 @@
 
   <div id="mt-archive-wrap"></div>
 
+  <h2 class="lp-section">Bromoform in the blocks (lab results)</h2>
+  <div class="lp-card" id="mt-lab"><p class="lp-lead">Loading lab results&hellip;</p></div>
+
   <section id="agscent">
     <h2 class="lp-section">Measured with AgScent</h2>
     <p class="lp-section-sub">Breath methane measured by the AgScent sensor on Bowood&rsquo;s OptiWeigh unit, SeaFeed animals only, compared with what an untreated animal of the same weight would be expected to emit.</p>
@@ -508,6 +511,7 @@
   <details class="lp-fold lp-method"><summary>How this is calculated</summary><div class="lp-fold-body">
     <p id="mt-method-text">Loading methodology note&hellip;</p>
     <p>Emissions intensity is modelled CH4 over the same days as the mob&rsquo;s weight gain, divided by that gain, in kg CO2e per kg liveweight gain. Control uses the standard block.</p>
+    <p>Lab results are AST laboratory bromoform tests (mg/kg, wet matter basis) of the outer and inner layers of sampled blocks, from LEL_Lickblock_Sampling. A farm&rsquo;s figure is the mean of its SeaFeed samples. Change in storage compares the same pallet sampled at the start and the end. The methane model uses the single figure in LEL_Model_Assumptions_Public for every block, so where the lab finds less, modelled abatement is likely too high.</p>
     <p>Sources: LEL_Emissions_Data (daily abatement rate and CH4) &middot; LEL_Economics_Data (cumulative CO2e, emissions intensity) &middot; LEL_Industry_Benchmarks (AR5 100-year GWP) &middot; LEL_Methane_Visits (AgScent visits, loaded by 16. AgScent_Methane_Import.py; times in Tasmanian local time).</p>
   </div></details>
   <p class="lp-footer">Not for external distribution</p>
@@ -1449,6 +1453,62 @@
   });
 
   start();
+})();
+</script>
+<script>
+// Lab bromoform in the blocks (added 2026-11-26, from the Project Results site).
+(function(){
+  var B = 'https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/';
+  function q(layer, params){
+    return fetch(B + layer + '/FeatureServer/0/query?' + new URLSearchParams(Object.assign({ where: '1=1', outFields: '*', f: 'json', resultRecordCount: '2000' }, params)))
+      .then(function(r){ return r.json(); }).then(function(d){ return (d.features || []).map(function(f){ return f.attributes; }); });
+  }
+  function mean(a){ return a.reduce(function(s, v){ return s + v; }, 0) / a.length; }
+  function n0(v){ return Math.round(v).toLocaleString('en-AU'); }
+  function d(ms){ return new Date(ms).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }); }
+  var el = document.getElementById('mt-lab');
+  Promise.all([q('LEL_Lickblock_Sampling_Public', { where: "analyte='Bromoform'" }), q('LEL_Model_Assumptions_Public', {})]).then(function(res){
+    var rows = res[0].filter(function(r){ return r.result_value != null; });
+    var assumed = (res[1][0] || {}).block_bromoform_mg_per_kg || 700;
+    if (!rows.length) { el.innerHTML = '<p class="lp-lead">No lab results loaded yet.</p>'; return; }
+    var farms = {};
+    rows.forEach(function(r){
+      var f = LELPortal.parse(r.farm_name).farm;
+      var o = farms[f] = farms[f] || { sf: [], ct: [], last: 0, pallets: {} };
+      (r.treatment === 'seafeed' ? o.sf : o.ct).push(r.result_value);
+      o.last = Math.max(o.last, r.sampling_date || 0);
+      if (r.treatment === 'seafeed') {
+        var pallet = String(r.sample_label || '').split(' ')[0];
+        var p = o.pallets[pallet] = o.pallets[pallet] || { start: [], end: [], days: [] };
+        (r.stage === 'end' ? p.end : p.start).push(r.result_value);
+        if (r.days_in_storage != null) p.days.push(r.days_in_storage);
+      }
+    });
+    var allSf = [];
+    var body = Object.keys(farms).sort().map(function(f){
+      var o = farms[f]; allSf = allSf.concat(o.sf);
+      var m = o.sf.length ? mean(o.sf) : null;
+      var vs = m != null ? Math.round((m / assumed - 1) * 100) : null;
+      var storage = '–';
+      Object.keys(o.pallets).forEach(function(k){
+        var p = o.pallets[k];
+        if (p.start.length && p.end.length) {
+          var ch = Math.round((mean(p.end) / mean(p.start) - 1) * 100);
+          storage = (ch >= 0 ? '+' : '−') + Math.abs(ch) + '% <span class="muted">(' + k + ', ' + Math.min.apply(null, p.days) + ' to ' + Math.max.apply(null, p.days) + ' days)</span>';
+        }
+      });
+      return '<tr><td><b>' + LELPortal.esc(f) + '</b></td>' +
+        '<td class="num">' + (m != null ? n0(m) : '–') + '</td>' +
+        '<td class="num muted">' + (o.sf.length ? n0(Math.min.apply(null, o.sf)) + ' to ' + n0(Math.max.apply(null, o.sf)) : '–') + '</td>' +
+        '<td class="num ' + (vs == null ? '' : vs < -10 ? 'bad' : 'good') + '">' + (vs == null ? '–' : (vs >= 0 ? '+' : '−') + Math.abs(vs) + '%') + '</td>' +
+        '<td class="num">' + (o.ct.length ? n0(mean(o.ct)) : '<span class="muted">not sampled</span>') + '</td>' +
+        '<td>' + storage + '</td>' +
+        '<td class="muted">' + d(o.last) + '</td></tr>';
+    }).join('');
+    el.innerHTML = '<p class="lp-lead">The methane model assumes <b>' + n0(assumed) + ' mg/kg</b> in every SeaFeed block. Lab results so far range from <b>' + n0(Math.min.apply(null, allSf)) + ' to ' + n0(Math.max.apply(null, allSf)) + ' mg/kg</b>, so where a farm sits below the model, its modelled abatement is likely too high.</p>' +
+      '<div class="lp-table-wrap"><table class="lp-table"><thead><tr><th>Farm</th><th class="num">SeaFeed mean</th><th class="num">Range</th><th class="num">Against model</th><th class="num">Control mean</th><th>Change in storage</th><th>Latest sample</th></tr></thead><tbody>' + body + '</tbody></table></div>' +
+      '<p class="lp-note">mg/kg, wet matter basis. ' + rows.length + ' samples (outer and inner layers). Sea Forest is to add a specification range.</p>';
+  }).catch(function(err){ console.error('Lab results failed:', err); el.innerHTML = '<p class="lp-lead">Could not load lab results.</p>'; });
 })();
 </script>
 </body>

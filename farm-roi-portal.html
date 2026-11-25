@@ -273,6 +273,15 @@
       .roi-verdict-value { font-family: var(--font-display); font-size: 24px; font-weight: 700; }
       .roi-verdict.ahead .roi-verdict-value { color: var(--tf-seafeed); }
       .roi-verdict.behind .roi-verdict-value { color: var(--tf-red); }
+      .roi-cc { margin: 10px 0 14px; padding: 10px 14px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); }
+      .roi-cc .roi-real-data-title { margin-bottom: 6px; }
+      .roi-cc-row { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; font-size: 12.5px; padding: 4px 0; }
+      .roi-cc-label { font-family: var(--font-display); font-weight: 700; color: var(--text-heading); min-width: 82px; }
+      .roi-cc-row b.mint { color: var(--tf-seafeed); }
+      .roi-cc-row b.red { color: var(--tf-red); }
+      .roi-cc-muted, .roi-cc-rate { color: var(--text-muted); font-size: 11.5px; }
+      .roi-cc-rate { flex-basis: 100%; padding-left: 94px; }
+      @media (max-width: 720px) { .roi-cc-rate { padding-left: 0; } }
       .roi-month-label { font-size: 11px; color: var(--text-muted); }
       .roi-monthly-table b.mint { color: var(--tf-seafeed); font-size: 15px; }
       .roi-monthly-table b.red { color: var(--tf-red); font-size: 15px; }
@@ -319,6 +328,7 @@
         <p>&ldquo;Ahead or behind&rdquo; is the only verdict on this page. It compares the value of the extra weight SeaFeed cattle gained over Control cattle (at the same number of days of weight data, valued at the sale price) with the farmer&rsquo;s share of real SeaFeed cost. Both come from LEL_Economics_Data: real lick blocks fed out and real observed weight gain since each farm&rsquo;s start, with later cohorts chained onto the first.</p>
         <p>&ldquo;This month so far&rdquo; is the change in the same figures since the start of the month, so it grows through the month. A farm can be behind to date and still gain ground this month.</p>
         <p>The g/day gain on each card is since the farm&rsquo;s start, from the same economics data. The 90-day OptiWeigh figure on the Weights page uses a different window, so the two can differ.</p>
+        <p>Extra gain needed is the full SeaFeed cost per head for that cohort divided by the sale price, so it is the kg SeaFeed cattle must gain over Control to pay for the blocks with no subsidy; the farmer-share figure applies the contribution rate. Achieved is the SeaFeed minus Control gain at the same number of days of weight data. The cost rate is compared with the Project budget rate of $0.329 per head per day (90 g at $3.66/kg).</p>
         <p>The farmer and grant split, and every net figure, use the card&rsquo;s own contribution rate. Change it under Planning a conversation if the Project-wide rate changes. Sale price fills from the MLA National Heavy Steer Indicator and dose fills from the Lick Blocks page, until you type your own figure. Head count follows the latest SeaFeed head in the economics data.</p>
         <p>The modelled annual estimate is a projection (dose &times; price &times; 365, with the visitation rate applied only to a planned dose). It will not match the real figures unless every assumption holds. Its defaults come from the TLEL Project Budget model (Supplement Costs, Farmer Break-Even and Project Budget sheets, 8 Sep 2026). Cards and added farms are saved in this browser only.</p>
       </div></details>
@@ -484,7 +494,7 @@
       function fetchEconHistory() {
         return fetch(ECON_URL + "?" + new URLSearchParams({
           where: "farm_name<>'" + AGGREGATE_LABEL + "' AND treatment IN ('seafeed','control')",
-          outFields: "farm_name,treatment,calculation_date,cumulative_cost_aud,representative_head_count,weight_gain_kg_per_head,days_of_data",
+          outFields: "farm_name,treatment,calculation_date,cumulative_cost_aud,cost_per_head_day_aud,representative_head_count,weight_gain_kg_per_head,days_of_data",
           orderByFields: "farm_name ASC, treatment ASC, calculation_date ASC",
           resultRecordCount: "4000", f: "json"
         })).then(function (res) { return res.json(); }).then(function (data) {
@@ -1019,6 +1029,7 @@
           '<div class="roi-real-data">' +
             verdictHtml +
             advantageLine +
+            cohortCheckHtml(hist, c) +
             '<div class="roi-real-data-charts">' + costCol + netCol + '</div>' +
           '</div>'
         );
@@ -1031,6 +1042,49 @@
         var cardEl = d.closest('.roi-card[data-id]');
         if (cardEl) openPlans[cardEl.getAttribute('data-id')] = d.open;
       }, true);
+
+      // ------------------------------------------------------------
+      // COHORT CHECK (added 2026-11-26, from the Project Results site):
+      // for each cohort, the extra kg per head SeaFeed would need to gain to
+      // pay for itself against the extra kg it actually gained over the same
+      // number of days of weight data, plus the SeaFeed cost rate against
+      // the Project budget rate (90 g/head/day x $3.66/kg = $0.329).
+      // ------------------------------------------------------------
+      var BUDGET_RATE = 0.329;
+      function cohortChecks(hist, c) {
+        var segs = hist.segments && hist.segments.length ? hist.segments : [{ seafeed: hist.seafeed, control: hist.control }];
+        return segs.map(function (seg, i) {
+          var ctByDays = {};
+          seg.control.forEach(function (r) { if (r.weight_gain_kg_per_head != null && r.days_of_data) ctByDays[r.days_of_data] = r; });
+          var m = null;
+          for (var j = seg.seafeed.length - 1; j >= 0 && !m; j--) {
+            var sf = seg.seafeed[j];
+            if (sf.weight_gain_kg_per_head == null || !sf.days_of_data || sf.cumulative_cost_aud == null || !sf.representative_head_count) continue;
+            var ct = ctByDays[sf.days_of_data];
+            if (ct) m = { sf: sf, ct: ct };
+          }
+          var lastRate = null;
+          for (var k = seg.seafeed.length - 1; k >= 0 && lastRate == null; k--) lastRate = seg.seafeed[k].cost_per_head_day_aud;
+          var out = { label: segs.length > 1 ? 'Cohort ' + (i + 1) : 'This cohort', rate: lastRate };
+          if (m) {
+            var costPerHead = m.sf.cumulative_cost_aud / m.sf.representative_head_count;
+            out.days = m.sf.days_of_data;
+            out.achieved = m.sf.weight_gain_kg_per_head - m.ct.weight_gain_kg_per_head;
+            out.neededFull = costPerHead / c.salePrice;
+            out.neededFarmer = out.neededFull * c.contributionRate / 100;
+          }
+          return out;
+        });
+      }
+      function cohortCheckHtml(hist, c) {
+        var rows = cohortChecks(hist, c).map(function (o) {
+          var gain = o.days == null ? '<span class="roi-cc-muted">Needs matched weight data</span>'
+            : '<b class="' + (o.achieved >= o.neededFull ? 'mint' : 'red') + '">' + (o.achieved >= 0 ? '+' : '−') + fmt(Math.abs(o.achieved), 1) + ' kg</b> achieved, ' + fmt(o.neededFull, 1) + ' kg needed <span class="roi-cc-muted">(' + fmt(o.neededFarmer, 1) + ' kg at the farmer share, ' + o.days + ' days' + (o.days < 30 ? ', too early to judge' : '') + ')</span>';
+          var rate = o.rate == null ? '' : '<span class="roi-cc-rate">Cost ' + cur(o.rate) + '/head/day, ' + Math.round(o.rate / BUDGET_RATE * 100) + '% of the $0.329 budget rate</span>';
+          return '<div class="roi-cc-row"><span class="roi-cc-label">' + o.label + '</span><span class="roi-cc-gain">' + gain + '</span>' + rate + '</div>';
+        }).join('');
+        return '<div class="roi-cc"><p class="roi-real-data-title">Extra gain per head: needed to cover full SeaFeed cost vs achieved</p>' + rows + '</div>';
+      }
 
       function cardHtml(c, idx) {
         var r = compute(c);

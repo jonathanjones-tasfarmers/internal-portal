@@ -1015,8 +1015,13 @@
       <div id="or-alert-banner" style="display:none"><div id="or-alert-banner-text"></div></div>
       <div id="or-pipeline-grid" style="display:none"></div>
 
+      <h2 class="lp-section">Pasture quality (lab results)</h2>
+      <p class="lp-section-sub">What each mob was grazing on the sampling day. Useful context for the weight results: a mob on better pasture can gain more for reasons that have nothing to do with the blocks.</p>
+      <div class="lp-card" id="pq-card"><p class="lp-lead">Loading pasture results&hellip;</p></div>
+
       <details class="lp-fold lp-method"><summary>How this is calculated</summary><div class="lp-fold-body">
         <p>Farms come from lick block usage (LEL_Lick_Block_Usage_History) and the Farm Directory table. A farm&rsquo;s later cohorts (&ldquo;&hellip; - Cohort 2&rdquo;) show on that farm&rsquo;s card, not as farms of their own. Contact details stay private in ArcGIS Online (LEL_Farm_Directory) and are edited there when signed in, along with species, committed head, stage and go-live quarter.</p>
+        <p>Pasture quality is Forage Lab Australia NIR analysis of paddock samples for each mob (LEL_Pasture_Quality): crude protein and aNDF (fibre) as % of dry matter, and metabolisable energy (ME) in MJ per kg of dry matter. Higher protein and ME, and lower fibre, mean better feed. One sampling is a snapshot of that day only.</p>
         <p>A visit is overdue once its next-visit date has passed. Targets are cumulative farms and head per quarter from LEL_Onboarding_Targets, seeded from the funded budget and edited directly in ArcGIS Online. A farm counts as committed when its stage is Active, or when it has lick block usage and no stage set.</p>
       </div></details>
       <p class="lp-footer">Not for external distribution</p>
@@ -1710,5 +1715,52 @@
         loadAll();
       })();
         </script>
+    <script>
+      // Pasture quality (added 2026-11-26, from the Project Results site).
+      (function () {
+        var URL = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Pasture_Quality_Public/FeatureServer/0/query";
+        var el = document.getElementById("pq-card");
+        function n(v, d) { return v == null ? "–" : Number(v).toFixed(d); }
+        function sd(v, d) { return (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(d); }
+        fetch(URL + "?" + new URLSearchParams({ where: "1=1", outFields: "*", orderByFields: "sample_date DESC, farm_name ASC", resultRecordCount: "500", f: "json" }))
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            var rows = (data.features || []).map(function (f) { return f.attributes; });
+            if (!rows.length) { el.innerHTML = '<p class="lp-lead">No pasture results loaded yet.</p>'; return; }
+            var groups = {}, order = [];
+            rows.forEach(function (r) {
+              var k = r.farm_name + "|" + r.sample_date;
+              if (!groups[k]) { groups[k] = { farm: r.farm_name, date: r.sample_date, lab: r.lab, mobs: {} }; order.push(k); }
+              groups[k].mobs[r.treatment] = r;
+            });
+            var notes = [];
+            var body = order.map(function (k) {
+              var g = groups[k], s = g.mobs.seafeed, c = g.mobs.control;
+              var date = new Date(g.date).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
+              var name = LELPortal.esc(LELPortal.parse(g.farm).farm);
+              var out = "";
+              [["SeaFeed mob", s], ["Control mob", c]].forEach(function (m, i) {
+                if (!m[1]) return;
+                out += "<tr><td>" + (i === 0 || !s ? "<b>" + name + "</b><br><span class=\"muted\">" + date + "</span>" : "") + "</td><td>" + m[0] + "</td>" +
+                  '<td class="num">' + n(m[1].crude_protein_pct_dm, 1) + '</td><td class="num">' + n(m[1].andf_pct_dm, 1) + '</td><td class="num">' + n(m[1].me_mj_per_kg, 2) + "</td></tr>";
+              });
+              if (s && c) {
+                var dp = s.crude_protein_pct_dm - c.crude_protein_pct_dm, df = s.andf_pct_dm - c.andf_pct_dm, de = s.me_mj_per_kg - c.me_mj_per_kg;
+                out += '<tr><td></td><td class="muted">SeaFeed minus Control</td>' +
+                  '<td class="num ' + (dp < 0 ? "bad" : "good") + '">' + sd(dp, 1) + '</td><td class="num ' + (df > 0 ? "bad" : "good") + '">' + sd(df, 1) + '</td><td class="num ' + (de < 0 ? "bad" : "good") + '">' + sd(de, 2) + "</td></tr>";
+                if (dp < 0 && de < 0) notes.push(name + "&rsquo;s SeaFeed mob was on poorer pasture than its Control mob on " + date + " (lower protein and energy), which works against the SeaFeed weight result.");
+                else if (dp > 0 && de > 0) notes.push(name + "&rsquo;s SeaFeed mob was on better pasture than its Control mob on " + date + " (higher protein and energy), which flatters the SeaFeed weight result.");
+              }
+              return out;
+            }).join("");
+            var sampled = {};
+            rows.forEach(function (r) { sampled[LELPortal.parse(r.farm_name).farm] = true; });
+            el.innerHTML = (notes.length ? '<p class="lp-lead">' + notes.join(" ") + "</p>" : "") +
+              '<div class="lp-table-wrap"><table class="lp-table"><thead><tr><th>Farm</th><th>Mob</th><th class="num">Crude protein (% DM)</th><th class="num">aNDF fibre (% DM)</th><th class="num">ME (MJ/kg DM)</th></tr></thead><tbody>' + body + "</tbody></table></div>" +
+              '<p class="lp-note">' + LELPortal.esc(rows[0].lab || "") + " NIR analysis. Farms sampled so far: " + Object.keys(sampled).map(LELPortal.esc).join(", ") + ". Other farms will appear here once their samples are loaded.</p>";
+          })
+          .catch(function (err) { console.error("Pasture results failed:", err); el.innerHTML = '<p class="lp-lead">Could not load pasture results.</p>'; });
+      })();
+    </script>
   </body>
 </html>
