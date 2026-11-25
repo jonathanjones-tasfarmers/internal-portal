@@ -284,6 +284,11 @@
      on both mobs. Additive: the existing ADG advantage figures on the farm
      cards and leaderboard are untouched until Jono decides. */
   .wd-ow { margin-bottom: 28px; }
+  .wd-ow-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .wd-ow-toggle { background: none; border: 1px solid var(--border-default); border-radius: 999px; padding: 5px 12px; font-family: var(--font-display); font-size: 11.5px; font-weight: 700; color: var(--text-muted); cursor: pointer; margin-bottom: 10px; }
+  .wd-ow-toggle:hover { color: var(--text-heading); border-color: var(--tf-seafeed); }
+  .wd-ow-table.hide-short .wd-ow-short { display: none; }
+  .wd-ow-table th.wd-ow-staple { color: var(--text-heading); }
   .wd-ow-card { background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; }
   .wd-ow-scroll { overflow-x: auto; }
   table.wd-ow-table { width: 100%; border-collapse: collapse; min-width: 640px; }
@@ -308,16 +313,14 @@
   .wd-skel-md { width:64px; }
   @media (prefers-reduced-motion: reduce) { .wd-skel { animation: none !important; } }
 </style>
+<link rel="stylesheet" href="portal-common.css" />
+<script src="portal-common.js"></script>
 </head>
 <body>
 
-<div class="wd-hero">
-  <div class="wd-hero-icon" aria-hidden="true">
-    <svg viewBox="0 0 24 24"><path d="M3 3v18h18"></path><path d="M7 15l4-6 4 3 5-8"></path></svg>
-  </div>
-  <p class="wd-eyebrow">TasFarmers &middot; Low Emissions Livestock Project</p>
-  <h1>Weight Data</h1>
-  <p class="wd-hero-sub">Current weight, weight gain since start, and ADG advantage over Control. One card per participating farm, from real OptiWeigh readings.</p>
+<div class="lp-title">
+  <h1>Weights</h1>
+  <p>SeaFeed vs Control weight gain from OptiWeigh. The 90-day figure is the headline across the portal. Shorter windows, weather and closed cohorts are in the folds.</p>
 </div>
 
 <div class="wd-page">
@@ -335,13 +338,9 @@
     <div class="wd-kpi-card" aria-hidden="true"><p class="wd-kpi-label"><span class="wd-skel wd-skel-md" style="height:9px;"></span></p><p class="wd-kpi-value"><span class="wd-skel wd-skel-lg" style="height:24px;"></span></p></div>
   </div>
 
-  <div class="wd-leaderboard" id="wd-leaderboard" style="display:none;">
-    <p class="wd-section-label" id="wd-leaderboard-title">ADG leaderboard &middot; SeaFeed vs own Control</p>
-    <div class="wd-leaderboard-list" id="wd-leaderboard-list"></div>
-  </div>
 
   <div class="wd-ow" id="wd-ow" style="display:none;">
-    <p class="wd-section-label">OptiWeigh ADG &middot; SeaFeed vs Control, same window for both mobs</p>
+    <div class="wd-ow-head"><p class="wd-section-label">SeaFeed vs Control average daily gain (OptiWeigh)</p><button type="button" class="wd-ow-toggle" id="wd-ow-toggle" aria-pressed="false">Show 14-day</button></div>
     <div class="wd-ow-card" id="wd-ow-card"></div>
   </div>
 
@@ -359,9 +358,16 @@
     </div>
   </div>
 
-  <p class="wd-footer-note">
-    Weight data from OptiWeigh_Cattle_Weights (current weight, trend chart) &middot; Weight gain/ADG figures from LEL_Economics_Data &middot; Rainfall/temperature from LEL_Weather_Data (Open-Meteo, by region) &middot; Not for external distribution
-  </p>
+  <div id="wd-archive-wrap"></div>
+
+  <details class="lp-fold lp-method"><summary>How this is calculated</summary><div class="lp-fold-body">
+    <p>The percentage is SeaFeed minus Control over Control, from OptiWeigh&rsquo;s own average daily gain for each mob. A figure needs at least 10 animals and 7 days of data per mob. The 90-day figure is the headline on every page. A farm without enough data for 90 days uses its 30-day figure, then its 14-day figure. The program-wide row only uses 30 days or more. The 14, 30, 90 and 180-day windows match OptiWeigh&rsquo;s own interface and start on 2 Oct 2026.</p>
+    <p>Gain since start on each card comes from LEL_Economics_Data and covers the days since the farm&rsquo;s comparison start, so it can differ from the OptiWeigh windows.</p>
+    <p>Block cost per kg gain divides block cost by OptiWeigh weight gain over the same period.</p>
+    <p>Rainfall and temperature figures are Pearson r between daily weight-gain change and weather: screening-level only, not a controlled result.</p>
+    <p>Sources: OptiWeigh_Cattle_Weights (current weight, trend chart) &middot; LEL_ADG_Comparison (OptiWeigh windows) &middot; LEL_Economics_Data (gain since start, cost per kg) &middot; LEL_Weather_Data (Open-Meteo, by region).</p>
+  </div></details>
+  <p class="lp-footer">Not for external distribution</p>
 
 </div>
 
@@ -378,7 +384,7 @@
 
   var AGGREGATE_LABEL = "All Farms (Trial Aggregate)";
   var STALE_AFTER_DAYS = 14; // matches every other page on this site
-  var FARM_COLORS = ['#2e6f9e', '#8659a3', '#2e8f8f', '#a3762e', '#5c6bc0']; // same order/palette as Farm Directory, so a given farm reads as the same colour on both tools
+  var FARM_COLORS = ['#1f3a52']; // one colour for every farm (2026-11-25): mint/coral/slate carry meaning, farms do not // same order/palette as Farm Directory, so a given farm reads as the same colour on both tools
   var MINT = '#3aa989', SLATE = '#a9b8c4', RED = '#c0392b';
   var RAIN_BLUE = '#4a90c4', TEMP_ORANGE = '#c9782e';
 
@@ -589,10 +595,15 @@
     if (!rows || !rows.length) { wrap.style.display = 'none'; return; }
     var scopes = [];
     rows.forEach(function(r){ if (scopes.indexOf(r.farm_name) === -1) scopes.push(r.farm_name); });
+    var nameList = allFarms.concat(scopes);
+    scopes = scopes.filter(function(s){ return s === AGGREGATE_LABEL || !LELPortal.isClosed(s, nameList); });
     // trial-wide last, farms alphabetical
     scopes.sort(function(a, b){ return (a === AGGREGATE_LABEL) - (b === AGGREGATE_LABEL) || a.localeCompare(b); });
 
     function cell(scope, win){
+      return cellInner(scope, win).replace('<td>', '<td' + (win < 30 ? ' class="wd-ow-short"' : (win === 90 ? ' class="wd-ow-staple"' : '')) + '>');
+    }
+    function cellInner(scope, win){
       var r = rows.filter(function(x){ return x.farm_name === scope && x.window_days === win; })[0];
       if (scope === AGGREGATE_LABEL && win < TRIAL_MIN_WINDOW) {
         return '<td><span class="wd-ow-na">Not used</span><span class="wd-ow-sub" style="white-space:normal;max-width:150px;">Program-wide uses ' + TRIAL_MIN_WINDOW + ' days or more</span></td>';
@@ -612,21 +623,29 @@
         '<span class="wd-ow-sub">' + animals + '</span></td>';
     }
 
-    var head = '<tr><th></th>' + OW_WINDOWS.map(function(w){ return '<th>' + w + '-day</th>'; }).join('') + '</tr>';
+    var head = '<tr><th></th>' + OW_WINDOWS.map(function(w){ return '<th' + (w < 30 ? ' class="wd-ow-short"' : (w === 90 ? ' class="wd-ow-staple"' : '')) + '>' + w + '-day' + (w === 90 ? ' (headline)' : '') + '</th>'; }).join('') + '</tr>';
     var body = scopes.map(function(scope){
       var isAgg = scope === AGGREGATE_LABEL;
       var dot = isAgg ? '' : '<span class="wd-dot" style="background:' + farmColor(scope, allFarms) + ';"></span>';
-      return '<tr><td class="wd-ow-scope">' + dot + escHtml(isAgg ? 'Program-wide' : scope) +
+      return '<tr><td class="wd-ow-scope">' + dot + (isAgg ? 'Program-wide' : LELPortal.nameHtml(scope, nameList)) +
         (isAgg ? '<small>farm differences combined, weighted by animals</small>' : '') + '</td>' +
         OW_WINDOWS.map(function(w){ return cell(scope, w); }).join('') + '</tr>';
     }).join('');
 
-    card.innerHTML = '<div class="wd-ow-scroll"><table class="wd-ow-table"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' +
-      '<div class="wd-ow-note">OptiWeigh&rsquo;s own average daily gain for each mob, per window, as of the latest daily snapshot (' + fmtDate(rows[0].comparison_date) + '). ' +
-      'The percentage is SeaFeed minus Control over Control. Animal counts are SeaFeed / Control. A figure needs at least 10 animals and 7 days of data per mob. ' +
-      'The 90-day figure is the staple used for the headline, the farm cards and the leaderboard. A farm without enough data for 90 days uses its 30-day figure, then its 14-day figure, so a newly joined farm does not pull the others onto a shorter window. The program-wide row only uses 30 days or more. ' +
-      'The 14, 30, 90 and 180-day windows match OptiWeigh\u2019s own interface. These figures start on 2 Oct 2026 and have no history before that.</div>';
+    card.innerHTML = '<div class="wd-ow-scroll"><table class="wd-ow-table hide-short" id="wd-ow-table"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' +
+      '<div class="wd-ow-note">As of ' + fmtDate(rows[0].comparison_date) + '. Animal counts are SeaFeed / Control. How the windows work is under &ldquo;How this is calculated&rdquo; at the foot of the page.</div>';
+    wireOwToggle();
     wrap.style.display = 'block';
+  }
+  function wireOwToggle(){
+    var btn = document.getElementById('wd-ow-toggle'), table = document.getElementById('wd-ow-table');
+    if (!btn || !table || btn._wired) return;
+    btn._wired = true;
+    btn.addEventListener('click', function(){
+      var show = table.classList.toggle('hide-short') === false;
+      btn.setAttribute('aria-pressed', show ? 'true' : 'false');
+      btn.textContent = show ? 'Hide 14-day' : 'Show 14-day';
+    });
   }
   function escHtml(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
   function escAttr(s){ return escHtml(s); }
@@ -651,7 +670,7 @@
     OW_ROWS = owRows || [];
     // Farms with real OptiWeigh weights only: a farm can be in the Economics table
     // (lick block data) before its OptiWeigh units are installed (TRT Pastoral, 2026-10).
-    var owFarmCount = allFarms.filter(function(f){ return currentByFarm[f] || historyByFarm[f]; }).length;
+    var owFarmCount = allFarms.filter(function(f){ return (currentByFarm[f] || historyByFarm[f]) && !LELPortal.isClosed(f, allFarms); }).length;
     renderKpis(aggEcon, owFarmCount);
     renderOwComparison(owRows, allFarms);
 
@@ -669,27 +688,32 @@
       if (!readings.length) return;
       var mostRecentMs = Math.max.apply(null, readings.map(function(r){ return r.snapshot_date; }));
       if (daysSinceEpochMs(mostRecentMs) > STALE_AFTER_DAYS) {
-        staleItems.push(farm + ': last reading ' + fmtDate(mostRecentMs) + ' (' + Math.floor(daysSinceEpochMs(mostRecentMs)) + ' days ago)');
+        staleItems.push(LELPortal.nameText(farm, allFarms) + ': last reading ' + fmtDate(mostRecentMs) + ' (' + Math.floor(daysSinceEpochMs(mostRecentMs)) + ' days ago)');
       }
     });
 
-    grid.innerHTML = allFarms.map(function(farm, idx){
+    var cardFor = function(farm){
+      var idx = allFarms.indexOf(farm);
       var color = farmColor(farm, allFarms);
       var cur = currentByFarm[farm] || {};
       var econ = econByFarm[farm] || {};
-      var isStale = staleItems.some(function(s){ return s.indexOf(farm + ':') === 0; });
-      var region = FARM_REGION_MAP[farm];
+      var isStale = staleItems.some(function(s){ return s.indexOf(LELPortal.nameText(farm, allFarms) + ':') === 0; });
+      var region = FARM_REGION_MAP[LELPortal.parse(farm).farm];
       var weatherRows = region ? (weatherByRegion[region] || []) : [];
       var weatherEffect = region ? computeWeatherEffect(historyByFarm[farm] || [], weatherRows) : null;
-      return cardHtml('wd-' + idx, farm, color, cur, econ, isStale, weatherEffect, comparisonStartMs(historyByFarm[farm] || []));
-    }).join('');
+      return cardHtml('wd-' + idx, farm, color, cur, econ, isStale, weatherEffect, comparisonStartMs(historyByFarm[farm] || []), allFarms);
+    };
+    var parts = LELPortal.split(allFarms);
+    grid.innerHTML = parts.current.map(cardFor).join('');
+    document.getElementById('wd-archive-wrap').innerHTML = parts.closed.length
+      ? LELPortal.fold('Archive: closed cohorts', '<div class="wd-grid">' + parts.closed.map(cardFor).join('') + '</div>', { cls: 'lp-archive', hint: parts.closed.length + (parts.closed.length === 1 ? ' cohort' : ' cohorts') })
+      : '';
 
-    renderLeaderboard(allFarms, econByFarm);
 
     allFarms.forEach(function(farm, idx){
       var prefix = 'wd-' + idx;
       var rows = historyByFarm[farm] || [];
-      var region = FARM_REGION_MAP[farm];
+      var region = FARM_REGION_MAP[LELPortal.parse(farm).farm];
       var weatherRows = region ? (weatherByRegion[region] || []) : [];
 
       // Heat-stress rug-plot marks: added 2026-09-16, see file header
@@ -762,13 +786,13 @@
     var owCost = !!(sfEcon && ctEcon && sfEcon.cost_per_kg_gain_ow_aud != null && ctEcon.cost_per_kg_gain_ow_aud != null);
     var sfGain = owCost ? sfEcon.cost_per_kg_gain_ow_aud : (sfEcon && sfEcon.cost_per_kg_gain_aud != null ? sfEcon.cost_per_kg_gain_aud : null);
     var ctGain = owCost ? ctEcon.cost_per_kg_gain_ow_aud : (ctEcon && ctEcon.cost_per_kg_gain_aud != null ? ctEcon.cost_per_kg_gain_aud : null);
-    var gainNote = owCost ? 'program-wide, cost and OptiWeigh ADG over the same period' : 'program-wide, to date (older method)';
+    var gainNote = owCost ? 'program-wide, block cost over OptiWeigh gain' : 'program-wide, to date (older method)';
 
     var cards = [
       { label: advLabel, value: pctDisplay, valueClass: pctClass, note: advNote },
-      { label: '$/kg liveweight gain, SeaFeed', value: sfGain != null ? '$' + sfGain.toFixed(2) : '–', note: sfGain != null ? gainNote : 'Not enough data yet' },
-      { label: '$/kg liveweight gain, Control', value: ctGain != null ? '$' + ctGain.toFixed(2) : '–', note: ctGain != null ? gainNote : 'Not enough data yet' },
-      { label: 'Farms reporting', value: String(farmCount), note: farmCount === 1 ? 'farm with live OptiWeigh data' : 'farms with live OptiWeigh data' }
+      { label: 'Block cost per kg gain, SeaFeed', value: sfGain != null ? '$' + sfGain.toFixed(2) : '–', note: sfGain != null ? gainNote : 'Not enough data yet' },
+      { label: 'Block cost per kg gain, Control', value: ctGain != null ? '$' + ctGain.toFixed(2) : '–', note: ctGain != null ? gainNote : 'Not enough data yet' },
+      { label: 'Farms weighing', value: String(farmCount), note: farmCount === 1 ? 'farm with OptiWeigh units, current cohort' : 'farms with OptiWeigh units, current cohort' }
     ];
 
     document.getElementById('wd-kpi-grid').innerHTML = cards.map(function(c){
@@ -1135,10 +1159,10 @@
 
 
 
-  function cardHtml(prefix, farm, color, cur, econ, isStale, weatherEffect, startMs){
+  function cardHtml(prefix, farm, color, cur, econ, isStale, weatherEffect, startMs, allFarms){
     var showFallbackNote = (!econ.seafeed || !econ.control) && (econ.seafeed || econ.control);
     return '<div class="wd-card" style="border-top-color:' + color + ';">' +
-      '<div class="wd-card-head"><span class="wd-dot" style="background:' + color + ';"></span><h2 class="wd-name">' + farm + '</h2>' +
+      '<div class="wd-card-head"><span class="wd-dot" style="background:' + color + ';"></span><h2 class="wd-name">' + LELPortal.nameHtml(farm, allFarms || [farm]) + '</h2>' +
       (isStale ? '<span class="wd-stale-badge">Stale</span>' : '') +
       '</div>' +
       '<div class="wd-weight-row">' +
@@ -1152,11 +1176,13 @@
       '</div>' +
       '<div class="wd-chart-box"><canvas id="' + prefix + '-chart"></canvas><p class="wd-chart-empty" id="' + prefix + '-chart-empty">No weight history to chart yet.</p></div>' +
       (showFallbackNote ? '<p class="wd-fallback-note">Only one treatment group has weight-gain history at this farm yet. The other is likely a newer unit still building up readings.</p>' : '') +
-      (FARM_REGION_MAP[farm] ?
-        '<div class="wd-weather-label"><span class="wd-label">Rainfall &amp; temperature (' + FARM_REGION_MAP[farm] + ')</span><span class="wd-weather-note" id="' + prefix + '-weather-note"></span></div>' +
+      (FARM_REGION_MAP[LELPortal.parse(farm).farm] ?
+        '<details class="lp-fold lp-fold-inline"><summary>Rainfall and temperature, ' + FARM_REGION_MAP[LELPortal.parse(farm).farm] + '</summary><div class="lp-fold-body">' +
+        '<div class="wd-weather-label"><span class="wd-label">Daily rainfall and mean temperature</span><span class="wd-weather-note" id="' + prefix + '-weather-note"></span></div>' +
         '<div class="wd-chart-box wd-weather-box"><canvas id="' + prefix + '-weather-chart"></canvas><p class="wd-chart-empty" id="' + prefix + '-weather-chart-empty">No weather history yet.</p></div>' +
         weatherEffectHtml(weatherEffect) +
-        detailSectionHtml(prefix)
+        detailSectionHtml(prefix) +
+        '</div></details>'
         : '') +
       '</div>';
   }
