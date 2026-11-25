@@ -35,12 +35,12 @@
   ADG ADVANTAGE FORMULA: matches page-5-data.html's loadAdg() and
   farmer-portal-template.html's fetchAdgPairedHistory() exactly: each
   treatment's own weight_gain_kg_per_head / its own days_of_data (never a
-  shared min() of the two), because SeaFeed and Control units at the same
-  farm often start on different dates (see lel_farms.py's SESSION_FARM_MAP: Bowood's Control unit went live over a month after its SeaFeed unit).
+  shared min() of the two), because KleenGrow and Control units at the same
+  farm often start on different dates (see lel_farms.py's SESSION_FARM_MAP: Bowood's Control unit went live over a month after its KleenGrow unit).
   Sharing one days_of_data denominator inflated whichever mob had been
   running longer: this was a real bug, fixed 2026-09-02, don't
   reintroduce it here.
-  UPDATE 2026-09-23: 04. Economics_Pipeline.py now measures SeaFeed and
+  UPDATE 2026-09-23: 04. Economics_Pipeline.py now measures KleenGrow and
   Control over the SAME calendar window (see lel_comparison_window.py), so
   the two days_of_data values are identical per farm. The per-mob formula
   above still holds; the chart and the "over N days from <date>" labels now
@@ -272,7 +272,7 @@
   .wd-fallback-note { font-size: 12px; color: var(--text-muted); margin: 10px 0 0; font-style: italic; }
 
   /* Leaderboard: added 2026-09-07, per Jono's request. Ranks farms by
-     ADG advantage % (SeaFeed vs that farm's OWN Control), the same figure
+     ADG advantage % (KleenGrow vs that farm's OWN Control), the same figure
      already shown on each card below: deliberately not a separate
      computation, see computeAdgPct() in the script. */
   .wd-leaderboard { margin-bottom: 28px; }
@@ -331,7 +331,7 @@
 
 <div class="lp-title">
   <h1>Weights</h1>
-  <p>SeaFeed vs Control weight gain from OptiWeigh. The 90-day figure is the headline across the portal. Shorter windows, weather and closed cohorts are in the folds.</p>
+  <p>KleenGrow vs Control weight gain from OptiWeigh. The 90-day figure is the headline across the portal. Shorter windows, weather and closed cohorts are in the folds.</p>
 </div>
 
 <div class="wd-page">
@@ -351,7 +351,7 @@
 
 
   <div class="wd-ow" id="wd-ow" style="display:none;">
-    <div class="wd-ow-head"><p class="wd-section-label">SeaFeed vs Control average daily gain (OptiWeigh)</p><button type="button" class="wd-ow-toggle" id="wd-ow-toggle" aria-pressed="false">Show 14-day</button></div>
+    <div class="wd-ow-head"><p class="wd-section-label">KleenGrow vs Control average daily gain (OptiWeigh)</p><button type="button" class="wd-ow-toggle" id="wd-ow-toggle" aria-pressed="false">Show 14-day</button></div>
     <div class="wd-ow-card" id="wd-ow-card"></div>
   </div>
 
@@ -372,7 +372,8 @@
   <div id="wd-archive-wrap"></div>
 
   <details class="lp-fold lp-method"><summary>How this is calculated</summary><div class="lp-fold-body">
-    <p>The percentage is SeaFeed minus Control over Control, from OptiWeigh&rsquo;s own average daily gain for each mob. A figure needs at least 10 animals and 7 days of data per mob. The 90-day figure is the headline on every page. A farm without enough data for 90 days uses its 30-day figure, then its 14-day figure. The program-wide row only uses 30 days or more. The 14, 30, 90 and 180-day windows match OptiWeigh&rsquo;s own interface and start on 2 Oct 2026.</p>
+    <p>KleenGrow&trade; is the Sea Forest product in the lick blocks. The Grant Deed and earlier reports call it SeaFeed&trade;; both names mean the same product. The data layers still label it &ldquo;seafeed&rdquo;.</p>
+    <p>The percentage is KleenGrow minus Control over Control, from OptiWeigh&rsquo;s own average daily gain for each mob. A figure needs at least 10 animals and 7 days of data per mob. The 90-day figure is the headline on every page. A farm without enough data for 90 days uses its 30-day figure, then its 14-day figure. The program-wide row only uses 30 days or more. The 14, 30, 90 and 180-day windows match OptiWeigh&rsquo;s own interface and start on 2 Oct 2026.</p>
     <p>Gain since start on each card comes from LEL_Economics_Data and covers the days since the farm&rsquo;s comparison start, so it can differ from the OptiWeigh windows.</p>
     <p>Block cost per kg gain divides block cost by OptiWeigh weight gain over the same period.</p>
     <p>&ldquo;Is the difference real?&rdquo; uses OptiWeigh&rsquo;s 14-day rolling gain for each mob with its 95% range. Where the two ranges overlap, the true averages could be the same, so the mobs can&rsquo;t be told apart on that day. The count covers every day both mobs have a range in this cohort.</p>
@@ -478,7 +479,7 @@
 
   // 2026-09-02 fix (see page-5-data.html's loadAdg()): each treatment's own
   // weight_gain_kg_per_head / its own days_of_data, never a shared min():
-  // SeaFeed and Control units at the same farm can start weeks apart.
+  // KleenGrow and Control units at the same farm can start weeks apart.
   function fetchEconLatest(){
     return q(ECON_URL, {
       where: "farm_name<>'" + AGGREGATE_LABEL + "' AND treatment IN ('seafeed','control')",
@@ -645,7 +646,7 @@
     }).join('');
 
     card.innerHTML = '<div class="wd-ow-scroll"><table class="wd-ow-table hide-short" id="wd-ow-table"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' +
-      '<div class="wd-ow-note">As of ' + fmtDate(rows[0].comparison_date) + '. Animal counts are SeaFeed / Control. How the windows work is under &ldquo;How this is calculated&rdquo; at the foot of the page.</div>';
+      '<div class="wd-ow-note">As of ' + fmtDate(rows[0].comparison_date) + '. Animal counts are KleenGrow / Control. How the windows work is under &ldquo;How this is calculated&rdquo; at the foot of the page.</div>';
     wireOwToggle();
     wrap.style.display = 'block';
   }
@@ -785,8 +786,8 @@
     var pctClass = pct != null && pct < 0 ? ' red' : '';
     var advLabel = useOw ? 'Program ADG advantage, ' + owAgg.window_days + ' days' : 'Program ADG advantage';
     var advNote = useOw
-      ? 'SeaFeed vs Control, OptiWeigh, ' + owAgg.farms_included + (owAgg.farms_included === 1 ? ' farm' : ' farms')
-      : 'SeaFeed vs Control, since program start';
+      ? 'KleenGrow vs Control, OptiWeigh, ' + owAgg.farms_included + (owAgg.farms_included === 1 ? ' farm' : ' farms')
+      : 'KleenGrow vs Control, since program start';
 
     var sfEcon = aggEcon && aggEcon.seafeed;
     var ctEcon = aggEcon && aggEcon.control;
@@ -794,7 +795,7 @@
     // MATCHED-WINDOW figure (cost and OptiWeigh ADG over the same period) when
     // both arms have one, because the older cost_per_kg_gain_aud divides cost
     // since a mob's first block by gain since a later comparison start, which
-    // overstates SeaFeed. Falls back to the older figure for BOTH arms together
+    // overstates KleenGrow. Falls back to the older figure for BOTH arms together
     // if either is missing, so the two are always the same method.
     var owCost = !!(sfEcon && ctEcon && sfEcon.cost_per_kg_gain_ow_aud != null && ctEcon.cost_per_kg_gain_ow_aud != null);
     var sfGain = owCost ? sfEcon.cost_per_kg_gain_ow_aud : (sfEcon && sfEcon.cost_per_kg_gain_aud != null ? sfEcon.cost_per_kg_gain_aud : null);
@@ -803,7 +804,7 @@
 
     var cards = [
       { label: advLabel, value: pctDisplay, valueClass: pctClass, note: advNote },
-      { label: 'Block cost per kg gain, SeaFeed', value: sfGain != null ? '$' + sfGain.toFixed(2) : '–', note: sfGain != null ? gainNote : 'Not enough data yet' },
+      { label: 'Block cost per kg gain, KleenGrow', value: sfGain != null ? '$' + sfGain.toFixed(2) : '–', note: sfGain != null ? gainNote : 'Not enough data yet' },
       { label: 'Block cost per kg gain, Control', value: ctGain != null ? '$' + ctGain.toFixed(2) : '–', note: ctGain != null ? gainNote : 'Not enough data yet' },
       { label: 'Farms weighing', value: String(farmCount), note: farmCount === 1 ? 'farm with OptiWeigh units, current cohort' : 'farms with OptiWeigh units, current cohort' }
     ];
@@ -819,7 +820,7 @@
   // ------------------------------------------------------------
   // IS THE DIFFERENCE REAL? (added 2026-11-26, from the Project Results
   // site). OptiWeigh's 14-day rolling ADG comes with a 95% range. Where
-  // the SeaFeed and Control ranges overlap, the two mobs cannot be told
+  // the KleenGrow and Control ranges overlap, the two mobs cannot be told
   // apart on that day. Counts every day both mobs have a range.
   // ------------------------------------------------------------
   function bandSummary(rows){
@@ -848,7 +849,7 @@
     var state = sf.rolling_adg_ci_lower > ct.rolling_adg_ci_upper ? 'above'
       : sf.rolling_adg_ci_upper < ct.rolling_adg_ci_lower ? 'below' : 'overlap';
     var verdict = state === 'overlap' ? 'Ranges overlap: the mobs can&rsquo;t be told apart yet'
-      : state === 'above' ? 'SeaFeed clearly ahead on the latest day' : 'SeaFeed clearly behind on the latest day';
+      : state === 'above' ? 'KleenGrow clearly ahead on the latest day' : 'KleenGrow clearly behind on the latest day';
     function row(label, r, cls){
       var lo = r.rolling_adg_ci_lower, hi = r.rolling_adg_ci_upper, v = r.rolling_adg;
       return '<div class="wd-band-row"><span class="wd-band-label">' + label + '</span>' +
@@ -857,9 +858,9 @@
     }
     return '<div class="wd-band">' +
       '<span class="wd-label">Is the difference real? 14-day gain, ' + fmtDateShort(sf.snapshot_date) + '</span>' +
-      row('SeaFeed', sf, 'mint') + row('Control', ct, '') +
+      row('KleenGrow', sf, 'mint') + row('Control', ct, '') +
       '<p class="wd-band-verdict ' + state + '">' + verdict + '</p>' +
-      '<p class="wd-band-note">This cohort: ranges overlapped on ' + b.overlap + ' of ' + b.days + ' days (SeaFeed clearly ahead on ' + b.above + ', behind on ' + b.below + ').</p>' +
+      '<p class="wd-band-note">This cohort: ranges overlapped on ' + b.overlap + ' of ' + b.days + ' days (KleenGrow clearly ahead on ' + b.above + ', behind on ' + b.below + ').</p>' +
       '</div>';
   }
   function fmtNum(v, d){ return Number(v).toLocaleString('en-AU', { minimumFractionDigits: d, maximumFractionDigits: d }); }
@@ -878,11 +879,11 @@
   // ------------------------------------------------------------
   // COMPARISON START (2026-09-23, per Jono's call). Mirrors
   // lel_comparison_window.py in 01. Python Scripts: once a farm has both
-  // SeaFeed and Control readings, both are measured from the later unit's
+  // KleenGrow and Control readings, both are measured from the later unit's
   // first reading plus a 7-day warm-up (Bowood: 22 Jun 2026), to the last
   // date both units have a reading. The pipeline's weight-gain figures use
   // that window, so the chart starts there too rather than showing
-  // SeaFeed's earlier solo history. Keep WEIGHT_GAIN_WARMUP_DAYS in step
+  // KleenGrow's earlier solo history. Keep WEIGHT_GAIN_WARMUP_DAYS in step
   // with the Python module if it ever changes.
   // Returns null for a farm with only one treatment logging so far.
   // ------------------------------------------------------------
@@ -935,7 +936,7 @@
       return '<div><span class="wd-label">ADG advantage</span><span class="wd-value">–</span><div class="wd-value-sub">' + reason + '</div></div>';
     }
     var clsS = since >= 0 ? 'mint' : 'red';
-    return '<div><span class="wd-label">ADG advantage, since start</span><span class="wd-value ' + clsS + '">' + fmtPctSigned(since) + '</span><div class="wd-value-sub">SeaFeed vs Control</div></div>';
+    return '<div><span class="wd-label">ADG advantage, since start</span><span class="wd-value ' + clsS + '">' + fmtPctSigned(since) + '</span><div class="wd-value-sub">KleenGrow vs Control</div></div>';
   }
 
 
@@ -1057,7 +1058,7 @@
   }
 
   // ------------------------------------------------------------
-  // DETAIL PANEL DATA: lag profile (r at every lag 0-6 days, SeaFeed
+  // DETAIL PANEL DATA: lag profile (r at every lag 0-6 days, KleenGrow
   // only, to keep the collapsed-by-default panel compact) and scatter
   // pairs (the raw points a reader can eyeball directly, plus a simple
   // least-squares trend line once there's enough of them). Added
@@ -1118,9 +1119,9 @@
     if (!effect) return '';
     return '<div class="wd-corr-panel">' +
       '<div class="wd-corr-row"><span class="wd-corr-row-label">Rainfall &middot; same day</span>' +
-        '<div class="wd-corr-cells">' + corrCellHtml('SeaFeed', effect.rainfall.seafeed) + corrCellHtml('Control', effect.rainfall.control) + '</div></div>' +
+        '<div class="wd-corr-cells">' + corrCellHtml('KleenGrow', effect.rainfall.seafeed) + corrCellHtml('Control', effect.rainfall.control) + '</div></div>' +
       '<div class="wd-corr-row"><span class="wd-corr-row-label">Temperature &middot; effect 3 days after</span>' +
-        '<div class="wd-corr-cells">' + corrCellHtml('SeaFeed', effect.temp.seafeed) + corrCellHtml('Control', effect.temp.control) + '</div></div>' +
+        '<div class="wd-corr-cells">' + corrCellHtml('KleenGrow', effect.temp.seafeed) + corrCellHtml('Control', effect.temp.control) + '</div></div>' +
       '<p class="wd-corr-caveat">Pearson r between daily weight-gain change and weather: screening-level only, not a controlled result. Treat a number here as worth a closer look, not as a finding.</p>' +
       '</div>';
   }
@@ -1134,19 +1135,19 @@
     return '<button type="button" class="wd-detail-toggle" id="' + prefix + '-detail-toggle" aria-expanded="false">Show lag &amp; relationship detail &#9662;</button>' +
       '<div class="wd-detail-panel" id="' + prefix + '-detail-panel" style="display:none;">' +
         '<div class="wd-detail-block">' +
-          '<p class="wd-corr-row-label">Rainfall &middot; r by days-after lag (SeaFeed)</p>' +
+          '<p class="wd-corr-row-label">Rainfall &middot; r by days-after lag (KleenGrow)</p>' +
           '<div class="wd-lag-chart-box"><canvas id="' + prefix + '-lag-rain"></canvas></div>' +
         '</div>' +
         '<div class="wd-detail-block">' +
-          '<p class="wd-corr-row-label">Temperature &middot; r by days-after lag (SeaFeed)</p>' +
+          '<p class="wd-corr-row-label">Temperature &middot; r by days-after lag (KleenGrow)</p>' +
           '<div class="wd-lag-chart-box"><canvas id="' + prefix + '-lag-temp"></canvas></div>' +
         '</div>' +
         '<div class="wd-detail-block">' +
-          '<p class="wd-corr-row-label">Rainfall vs weight-gain change &middot; same day (SeaFeed)</p>' +
+          '<p class="wd-corr-row-label">Rainfall vs weight-gain change &middot; same day (KleenGrow)</p>' +
           '<div class="wd-scatter-chart-box"><canvas id="' + prefix + '-scatter-rain"></canvas><p class="wd-chart-empty" id="' + prefix + '-scatter-rain-empty">Not enough paired data yet.</p></div>' +
         '</div>' +
         '<div class="wd-detail-block">' +
-          '<p class="wd-corr-row-label">Temperature vs weight-gain change &middot; effect 3 days after (SeaFeed)</p>' +
+          '<p class="wd-corr-row-label">Temperature vs weight-gain change &middot; effect 3 days after (KleenGrow)</p>' +
           '<div class="wd-scatter-chart-box"><canvas id="' + prefix + '-scatter-temp"></canvas><p class="wd-chart-empty" id="' + prefix + '-scatter-temp-empty">Not enough paired data yet.</p></div>' +
         '</div>' +
         '<p class="wd-corr-caveat">Every lag and every day shown here, not just the best-looking one: screening-level only, same caveat as above.</p>' +
@@ -1170,8 +1171,8 @@
 
     var useOw = OW_ROWS.length > 0 && allFarms.some(function(f){ return owStapleRow(f); });
     if (title) title.innerHTML = useOw
-      ? 'ADG leaderboard &middot; SeaFeed vs own Control, 90-day (OptiWeigh)'
-      : 'ADG leaderboard &middot; SeaFeed vs own Control';
+      ? 'ADG leaderboard &middot; KleenGrow vs own Control, 90-day (OptiWeigh)'
+      : 'ADG leaderboard &middot; KleenGrow vs own Control';
 
     var ranked = [];
     var unranked = [];
@@ -1227,12 +1228,12 @@
       (isStale ? '<span class="wd-stale-badge">Stale</span>' : '') +
       '</div>' +
       '<div class="wd-weight-row">' +
-      weightStatHtml('SeaFeed', MINT, cur.seafeed) +
+      weightStatHtml('KleenGrow', MINT, cur.seafeed) +
       weightStatHtml('Control', SLATE, cur.control) +
       '</div>' +
       bandHtml(cur.band) +
       '<div class="wd-gain-grid">' +
-      gainCellHtml('Gain (SeaFeed)', econ.seafeed, 'mint', startMs) +
+      gainCellHtml('Gain (KleenGrow)', econ.seafeed, 'mint', startMs) +
       gainCellHtml('Gain (Control)', econ.control, null, startMs) +
       adgAdvantageHtml(econ, farm) +
       '</div>' +
@@ -1251,7 +1252,7 @@
 
   // ------------------------------------------------------------
   // CHART: same lineChart() pattern as farmer-portal-template.html /
-  // page-5-data.html: SeaFeed = mint, Control = slate, spanGaps so a
+  // page-5-data.html: KleenGrow = mint, Control = slate, spanGaps so a
   // missing day on one line doesn't visually break it.
   // ------------------------------------------------------------
   function renderChart(prefix, rows, heatStressDates){
@@ -1267,7 +1268,7 @@
     var dates = Object.keys(byDate).map(Number).sort(function(a, b){ return a - b; });
 
     var datasets = [
-      { label: 'SeaFeed', data: dates.map(function(d){ return byDate[d].seafeed != null ? byDate[d].seafeed : null; }), borderColor: MINT, backgroundColor: 'transparent', spanGaps: true },
+      { label: 'KleenGrow', data: dates.map(function(d){ return byDate[d].seafeed != null ? byDate[d].seafeed : null; }), borderColor: MINT, backgroundColor: 'transparent', spanGaps: true },
       { label: 'Control', data: dates.map(function(d){ return byDate[d].control != null ? byDate[d].control : null; }), borderColor: SLATE, backgroundColor: 'transparent', spanGaps: true }
     ];
 
