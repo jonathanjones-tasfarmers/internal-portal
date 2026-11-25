@@ -32,6 +32,13 @@ function sqlTs(ms) {
 }
 
 const r = (v, d = 1) => (v == null || Number.isNaN(v) ? null : Math.round(v * 10 ** d) / 10 ** d);
+// Mean abatement and intake over readings with from < date <= to.
+function week(em, from, to) {
+  const rows = em.filter((a) => a.record_date > from && a.record_date <= to);
+  if (!rows.length) return null;
+  const pick = (k) => rows.map((a) => a[k]).filter((v) => v != null);
+  return { days: rows.length, mean_abatement_pct: r(mean(pick("abatement_rate"))), mean_intake_g_hd_day: r(mean(pick("intake_g_per_hd_day"))) };
+}
 const mean = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 
 function latestBy(rows, keyFn, dateField) {
@@ -90,6 +97,10 @@ export function buildSnapshot({ headline, emissions, economics, weights, adg, us
           dose_mg_per_kg_dmi: r(lastEm.bromoform_mg_per_kg_dmi, 2),
           intake_g_per_kg_liveweight: r(lastEm.intake_g_per_kg_lw, 3),
         } : null,
+        // Precomputed so the model doesn't have to average rows itself: the 7 days to the latest
+        // reading, and the 7 days before that.
+        last_7_days: lastEm ? week(em, lastEm.record_date - 7 * DAY_MS, lastEm.record_date) : null,
+        previous_7_days: lastEm ? week(em, lastEm.record_date - 14 * DAY_MS, lastEm.record_date - 7 * DAY_MS) : null,
         last_14_days: em.filter((a) => a.record_date >= recentFrom).map((a) => [
           hobartDate(a.record_date), r(a.abatement_rate), r(a.intake_g_per_hd_day), r(a.bromoform_mg_per_kg_dmi, 2),
         ]),

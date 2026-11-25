@@ -71,6 +71,8 @@ test("snapshot: open and closed cohorts, attention flags, dates", () => {
   assert.equal(ebSf.status, "open cohort");
   assert.equal(ebSf.latest.date, "2026-11-23");
   assert.equal(ebSf.last_14_days.length, 14);
+  assert.deepEqual(ebSf.last_7_days, { days: 7, mean_abatement_pct: 6.8, mean_intake_g_hd_day: 44 });
+  assert.equal(ebSf.previous_7_days.days, 7);
   assert.equal(ebSf.economics.adg_g_day, 1168);
   assert.equal(ebSf.economics.intensity_after_abatement_kg_co2e_per_kg_gain, 4.68);
   assert.deepEqual(ebSf.attention, []);
