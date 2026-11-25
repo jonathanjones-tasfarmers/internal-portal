@@ -1079,7 +1079,7 @@
       function cohortCheckHtml(hist, c) {
         var rows = cohortChecks(hist, c).map(function (o) {
           var gain = o.days == null ? '<span class="roi-cc-muted">Needs matched weight data</span>'
-            : '<b class="' + (o.achieved >= o.neededFull ? 'mint' : 'red') + '">' + (o.achieved >= 0 ? '+' : '−') + fmt(Math.abs(o.achieved), 1) + ' kg</b> achieved, ' + fmt(o.neededFull, 1) + ' kg needed <span class="roi-cc-muted">(' + fmt(o.neededFarmer, 1) + ' kg at the farmer share, ' + o.days + ' days)</span>';
+            : '<b class="' + (o.achieved >= o.neededFull ? 'mint' : 'red') + '">' + (o.achieved >= 0 ? '+' : '−') + fmt(Math.abs(o.achieved), 1) + ' kg</b> achieved, ' + fmt(o.neededFull, 1) + ' kg needed <span class="roi-cc-muted">(' + fmt(o.neededFarmer, 1) + ' kg at the farmer share, ' + o.days + ' days' + (o.days < 30 ? ', too early to judge' : '') + ')</span>';
           var rate = o.rate == null ? '' : '<span class="roi-cc-rate">Cost ' + cur(o.rate) + '/head/day, ' + Math.round(o.rate / BUDGET_RATE * 100) + '% of the $0.329 budget rate</span>';
           return '<div class="roi-cc-row"><span class="roi-cc-label">' + o.label + '</span><span class="roi-cc-gain">' + gain + '</span>' + rate + '</div>';
         }).join('');
