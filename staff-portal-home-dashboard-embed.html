@@ -205,7 +205,7 @@
   .sp-roadmap-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
   .sp-roadmap-card { background: var(--surface-card); border: 1px solid var(--border-subtle); border-top: 4px solid var(--border-default); border-radius: var(--radius-lg); padding: 14px 16px; box-sizing: border-box; box-shadow: var(--shadow-sm); }
   .sp-roadmap-card.beef { border-top-color: var(--tf-seafeed); }
-  .sp-roadmap-card.sheep { border-top-color: #2e6f9e; }
+  .sp-roadmap-card.sheep { border-top-color: var(--tf-slate-400); }
   .sp-roadmap-species { font-family: var(--font-display); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 0 0 6px; }
   .sp-roadmap-value { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--text-heading); margin: 0; }
   .sp-roadmap-value .of { font-size: 13px; font-weight: 400; color: var(--text-muted); }
@@ -214,11 +214,13 @@
   .sp-roadmap-note.behind { color: var(--tf-red); font-weight: 700; }
   .sp-roadmap-note.muted { color: var(--text-muted); }
 </style>
+<link rel="stylesheet" href="portal-common.css" />
+<script src="portal-common.js"></script>
 </head>
 <body>
 
 <p class="sp-section-label">Your farms</p>
-<p class="sp-section-sub">Lick block supply, weight gain, and visit status for each participating farm, at a glance.</p>
+<p class="sp-section-sub">Visits, weight gain and lick block supply for each farm's current cohort.</p>
 
 <div class="sp-alert-banner" id="sp-alert-banner">
   <span class="sp-alert-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L14.71 3.86a2 2 0 0 0-3.42 0Z"></path></svg></span>
@@ -256,7 +258,7 @@
 
 <div class="sp-roadmap-section">
   <div class="sp-roadmap-head">
-    <p class="sp-section-label" style="margin-bottom:0;">Onboarding roadmap, this quarter</p>
+    <p class="sp-section-label" style="margin-bottom:0;">Onboarding against plan, this quarter</p>
   </div>
   <div class="sp-roadmap-grid" id="sp-roadmap-grid">
     <div class="sp-roadmap-card beef" aria-hidden="true"><p class="sp-roadmap-species">Beef farms</p><p class="sp-roadmap-value"><span class="pp-skel pp-skel-sm" style="height:18px;"></span></p></div>
@@ -414,6 +416,7 @@
 
   function computeReorderRows(usageHistory, orders){
     var farms = Array.from(new Set(usageHistory.map(function(r){ return r.trial_site; }))).sort();
+    farms = LELPortal.split(farms).current; // closed cohorts are in each page's Archive (2026-11-25)
     var rows = [];
     farms.forEach(function(farm){
       var farmHistory = usageHistory.filter(function(r){ return r.trial_site === farm; });
@@ -569,7 +572,9 @@
     if (visitMs != null) {
       var visitDays = (visitMs - Date.now()) / 86400000;
       visitPillClass = visitDays < 0 ? 'overdue' : (visitDays <= VISIT_SOON_DAYS ? 'soon' : '');
-      visitText = 'Next visit ' + fmtDate(visitMs);
+      visitText = visitDays < 0
+        ? 'Visit overdue, ' + Math.ceil(-visitDays) + (Math.ceil(-visitDays) === 1 ? ' day' : ' days')
+        : 'Next visit ' + fmtDate(visitMs);
     }
 
     return '' +
@@ -628,6 +633,7 @@
     OW_ROWS = results[4] || [];
 
     var farms = Array.from(new Set(usageHistory.map(function(r){ return r.trial_site; }))).sort();
+    farms = LELPortal.split(farms).current; // closed cohorts are in each page's Archive (2026-11-25)
     var reorderRows = computeReorderRows(usageHistory, orders);
 
     // econRows is sorted calculation_date DESC already (from the query),

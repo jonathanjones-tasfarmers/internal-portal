@@ -1,0 +1,157 @@
+/* ============================================================
+   LEL Staff Portal: shared rules (added 2026-11-25, portal
+   simplification). Every *-portal.html page and the Home embeds
+   link this file. It holds only what must look the same on every
+   page: the compact page title, fold-out sections, the cohort label
+   and the Archive section for closed cohorts. Colours and fonts
+   reuse the tokens each page already defines on :root.
+   ============================================================ */
+
+/* Compact page title. The Hub header already says "LEL Staff Portal"
+   and names the page in its menu, so each page keeps one short title
+   and a one-line subtitle, without the icon and eyebrow it used to
+   repeat. */
+.lp-title {
+  max-width: 1320px;
+  margin: 0 auto 24px;
+  padding: 24px 32px 16px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--border-subtle, #dde4ea);
+}
+.lp-title h1 {
+  font-family: var(--font-display, Tahoma, Verdana, sans-serif);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-heading, #041221);
+  margin: 0 0 4px;
+}
+.lp-title p {
+  font-size: 13.5px;
+  color: var(--text-muted, #5f6f7c);
+  margin: 0;
+  line-height: 1.5;
+  max-width: 760px;
+}
+@media (max-width: 720px) {
+  .lp-title {
+    padding: 18px 16px 12px;
+    margin-bottom: 18px;
+  }
+  .lp-title h1 {
+    font-size: 21px;
+  }
+}
+
+/* Section heading used between blocks of a merged page. */
+.lp-section {
+  font-family: var(--font-display, Tahoma, Verdana, sans-serif);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-heading, #041221);
+  margin: 40px 0 6px;
+}
+.lp-section-sub {
+  font-size: 13px;
+  color: var(--text-muted, #5f6f7c);
+  margin: 0 0 18px;
+  line-height: 1.5;
+  max-width: 760px;
+}
+
+/* Fold-out section: detail that used to sit open on the page. */
+details.lp-fold {
+  border: 1px solid var(--border-subtle, #dde4ea);
+  border-radius: var(--radius-lg, 12px);
+  background: var(--surface-card, #fff);
+  margin: 16px 0;
+}
+details.lp-fold > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 12px 18px;
+  font-family: var(--font-display, Tahoma, Verdana, sans-serif);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-heading, #041221);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+details.lp-fold > summary::-webkit-details-marker {
+  display: none;
+}
+details.lp-fold > summary::before {
+  content: "\25B8";
+  color: var(--tf-seafeed, #3aa989);
+  transition: transform 0.15s ease;
+}
+details.lp-fold[open] > summary::before {
+  transform: rotate(90deg);
+}
+details.lp-fold > summary .lp-fold-hint {
+  font-weight: 400;
+  color: var(--text-muted, #5f6f7c);
+  font-size: 12px;
+}
+details.lp-fold > .lp-fold-body {
+  padding: 4px 18px 18px;
+}
+/* A quieter fold inside a card. */
+details.lp-fold.lp-fold-inline {
+  border: none;
+  border-top: 1px solid var(--border-subtle, #dde4ea);
+  border-radius: 0;
+  margin: 14px 0 0;
+  background: transparent;
+}
+details.lp-fold.lp-fold-inline > summary {
+  padding: 10px 0 4px;
+  font-size: 12px;
+  color: var(--text-muted, #5f6f7c);
+}
+details.lp-fold.lp-fold-inline > .lp-fold-body {
+  padding: 6px 0 0;
+}
+/* Method notes at the foot of a page. */
+details.lp-fold.lp-method > .lp-fold-body {
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--text-muted, #5f6f7c);
+}
+details.lp-fold.lp-method > .lp-fold-body p {
+  margin: 0 0 10px;
+}
+
+/* Cohort label beside a farm name, e.g. "Bowood Farm  Cohort 2". */
+.lp-cohort {
+  display: inline-block;
+  font-family: var(--font-display, Tahoma, Verdana, sans-serif);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--text-muted, #5f6f7c);
+  border: 1px solid var(--border-default, #c3cfd8);
+  border-radius: 999px;
+  padding: 2px 8px;
+  margin-left: 6px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.lp-cohort.closed {
+  background: var(--tf-slate-100, #eef2f5);
+}
+
+/* Archive of closed cohorts, folded at the bottom of a page. */
+details.lp-fold.lp-archive {
+  background: transparent;
+}
+
+/* Page footer note, the same on every page. */
+.lp-footer {
+  font-family: var(--font-display, Tahoma, Verdana, sans-serif);
+  font-size: 11px;
+  color: var(--text-muted, #5f6f7c);
+  text-align: center;
+  margin-top: 28px;
+  line-height: 1.6;
+}

@@ -137,6 +137,31 @@
 
   .lbp-card { background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 20px 22px; box-shadow: var(--shadow-sm); box-sizing: border-box; }
 
+  /* Next reorder line and intake bars (2026-11-25) */
+  .lbp-next { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; background: var(--surface-card); border: 1px solid var(--border-subtle); border-left: 4px solid var(--tf-seafeed); border-radius: var(--radius-lg); padding: 14px 20px; margin-bottom: 28px; box-shadow: var(--shadow-sm); }
+  .lbp-next-label { font-family: var(--font-display); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+  .lbp-next-main { font-family: var(--font-display); font-size: 24px; font-weight: 700; color: var(--text-heading); }
+  .lbp-next-main.overdue { color: var(--tf-red); }
+  .lbp-next-detail { font-size: 13px; color: var(--text-body); }
+  .lbp-intake { padding: 18px 22px 12px; margin-bottom: 28px; }
+  .lbp-intake-farm { padding: 4px 0 12px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 12px; }
+  .lbp-intake-farm:last-of-type { border-bottom: none; margin-bottom: 4px; }
+  .lbp-intake-name { font-family: var(--font-display); font-size: 14px; font-weight: 700; color: var(--text-heading); margin: 0 0 8px; }
+  .lbp-bar-row { display: grid; grid-template-columns: 70px minmax(120px, 1fr) 60px minmax(160px, 1.2fr); align-items: center; gap: 10px; margin: 6px 0; }
+  .lbp-bar-label { font-family: var(--font-display); font-size: 12px; color: var(--text-muted); }
+  .lbp-bar-track { position: relative; height: 14px; background: var(--tf-slate-100); border-radius: 4px; }
+  .lbp-bar { height: 100%; border-radius: 4px; background: var(--tf-slate-400); }
+  .lbp-bar.seafeed { background: var(--tf-seafeed); }
+  .lbp-bar-mark { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--tf-navy-900); opacity: 0.55; }
+  .lbp-bar-value { font-family: var(--font-display); font-size: 15px; font-weight: 700; color: var(--text-heading); text-align: right; }
+  .lbp-bar-value.seafeed { color: var(--tf-seafeed); }
+  .lbp-bar-meta { font-size: 11.5px; color: var(--text-muted); }
+  .lbp-intake-key { font-size: 11.5px; color: var(--text-muted); margin: 6px 0 0; display: flex; align-items: center; gap: 8px; }
+  .lbp-bar-mark-key { display: inline-block; width: 2px; height: 14px; background: var(--tf-navy-900); opacity: 0.55; }
+  @media (max-width: 720px) {
+    .lbp-bar-row { grid-template-columns: 62px 1fr 52px; }
+    .lbp-bar-meta { grid-column: 2 / -1; margin-top: -4px; }
+  }
   .lbp-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 10px; }
   .lbp-kpi-card { background: var(--surface-sunken); border-radius: var(--radius-lg); padding: 16px 18px; box-sizing: border-box; border-left: 4px solid var(--border-default); }
   .lbp-kpi-label { font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 6px; }
@@ -176,6 +201,7 @@
 
   .lbp-chart-card { height: 260px; }
   .lbp-chart-card canvas { max-height: 210px; }
+  @media (max-width: 720px) { .lbp-farm-grid { grid-template-columns: 1fr !important; } } /* stack supply and chart on phones (2026-11-25) */
   .lbp-chart-empty { font-family: var(--font-display); font-size: 12px; color: var(--text-muted); text-align: center; padding: 60px 0; display: none; }
 
   .lbp-filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
@@ -231,16 +257,14 @@
   .pp-skel-sm { width:40px; }
   @media (prefers-reduced-motion: reduce) { .pp-skel { animation: none !important; } }
 </style>
+<link rel="stylesheet" href="portal-common.css" />
+<script src="portal-common.js"></script>
 </head>
 <body>
 
-<div class="lbp-hero">
-  <div class="lbp-hero-icon" aria-hidden="true">
-    <svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="1.5"></rect><path d="M3 11h18"></path><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-  </div>
-  <p class="lbp-eyebrow">TasFarmers &middot; Low Emissions Livestock Project</p>
-  <h1>Lick Block Usage</h1>
-  <p class="lbp-hero-sub">Low Emissions Livestock program: internal project team view</p>
+<div class="lp-title">
+  <h1>Lick Blocks</h1>
+  <p>Supply on hand, when to reorder, and how much each mob is eating. Closed cohorts are in the Archive at the foot of the page.</p>
 </div>
 
 <div class="lbp-page">
@@ -250,12 +274,11 @@
     <div class="lbp-alert-banner-text" id="lbp-alert-banner-text"></div>
   </div>
 
-  <p class="lbp-section-label">Average consumption per animal, per treatment</p>
-  <div class="lbp-kpi-grid" id="lbp-kpi-grid">
-    <div class="lbp-kpi-card" aria-hidden="true"><p class="lbp-kpi-label"><span class="pp-skel pp-skel-md" style="height:9px;"></span></p><p class="lbp-kpi-value"><span class="pp-skel pp-skel-lg" style="height:22px;"></span></p><p class="lbp-kpi-note"><span class="pp-skel pp-skel-sm" style="height:9px;"></span></p></div>
-    <div class="lbp-kpi-card" aria-hidden="true"><p class="lbp-kpi-label"><span class="pp-skel pp-skel-md" style="height:9px;"></span></p><p class="lbp-kpi-value"><span class="pp-skel pp-skel-lg" style="height:22px;"></span></p><p class="lbp-kpi-note"><span class="pp-skel pp-skel-sm" style="height:9px;"></span></p></div>
-    <div class="lbp-kpi-card" aria-hidden="true"><p class="lbp-kpi-label"><span class="pp-skel pp-skel-md" style="height:9px;"></span></p><p class="lbp-kpi-value"><span class="pp-skel pp-skel-lg" style="height:22px;"></span></p><p class="lbp-kpi-note"><span class="pp-skel pp-skel-sm" style="height:9px;"></span></p></div>
-    <div class="lbp-kpi-card" aria-hidden="true"><p class="lbp-kpi-label"><span class="pp-skel pp-skel-md" style="height:9px;"></span></p><p class="lbp-kpi-value"><span class="pp-skel pp-skel-lg" style="height:22px;"></span></p><p class="lbp-kpi-note"><span class="pp-skel pp-skel-sm" style="height:9px;"></span></p></div>
+  <div class="lbp-next" id="lbp-next" style="display:none;"></div>
+
+  <p class="lbp-section-label">Block intake, grams per head per day (latest visit interval)</p>
+  <div class="lbp-card lbp-intake" id="lbp-kpi-grid">
+    <p class="lbp-table-loading"><span class="pp-skel pp-skel-lg"></span></p>
   </div>
 
   <div id="lbp-farm-sections"><!-- one block per farm, built by JS: reorder card + trend chart --></div>
@@ -319,9 +342,12 @@
     </details>
   </div>
 
-  <p class="lbp-footer-note">
-    Fed daily by 06. Lick_Block_Portal_Feed.py &middot; Orders logged directly in ArcGIS Online (LEL_Lick_Block_Orders) &middot; Not for external distribution
-  </p>
+  <details class="lp-fold lp-method"><summary>How this is calculated</summary><div class="lp-fold-body">
+    <p>Intake is grams of block per head per day over the latest interval between two visits to the same trough or unit. The whole-cohort figure is all block mass placed since the cohort started, per head per day.</p>
+    <p>On hand is blocks ordered less blocks used. Days to empty divides on hand by the current use rate. Reorder by allows a 40-day lead time.</p>
+    <p>Sources: LEL_Lick_Block_Usage_History (fed daily by 06. Lick_Block_Portal_Feed.py) &middot; LEL_LickBlock_Placements &middot; orders logged directly in ArcGIS Online (LEL_Lick_Block_Orders).</p>
+  </div></details>
+  <p class="lp-footer">Not for external distribution</p>
 
 </div>
 
@@ -367,7 +393,7 @@
   // farm count ever exceeds the palette length; ALL_FARMS (set once the
   // data loads) is the shared source of truth so a given farm always gets
   // the same colour in the section heading AND the placements table.
-  var FARM_COLORS = ['#2e6f9e', '#8659a3', '#2e8f8f', '#a3762e', '#5c6bc0'];
+  var FARM_COLORS = ['#1f3a52']; // one colour for every farm (2026-11-25): mint/coral/slate carry meaning, farms do not
   var ALL_FARMS = [];
   function farmColor(farm){
     var idx = ALL_FARMS.indexOf(farm);
@@ -664,23 +690,39 @@
       return;
     }
 
-    var html = '';
-    farms.forEach(function(farm){
-      var color = farmColor(farm);
-      var tint = farmTint(farm);
-      ['seafeed', 'control'].forEach(function(treatment){
-        var r = latestByKey[farm + '|' + treatment];
-        var wc = wholeCohortRate(placements, farm, treatment);
-        var valueClass = treatment === 'seafeed' ? 'lbp-kpi-value seafeed' : 'lbp-kpi-value';
-        html += '<div class="lbp-kpi-card" style="border-left-color:' + color + ';background:' + tint + ';">' +
-          '<p class="lbp-kpi-label">' + farm + ': ' + treatmentLabel(treatment) + '</p>' +
-          '<p class="' + valueClass + '">' + (r ? fmtNum(r.avg_consumption_g_per_hd_day, 0) + ' g' : '–') + '</p>' +
-          '<p class="lbp-kpi-note">' + (r ? (r.head_count != null ? r.head_count + ' head · as of ' + fmtDate(r.snapshot_date) : 'as of ' + fmtDate(r.snapshot_date)) : 'No data yet') + '</p>' +
-          (wc != null ? '<p class="lbp-kpi-note" title="Total block mass placed per head per day across the whole cohort, not just the latest interval">Whole cohort: ' + fmtNum(wc, 0) + ' g</p>' : '') +
-          '</div>';
+    // Intake bars (2026-11-25): one row per farm, SeaFeed and Control
+    // side by side on one scale, replacing six separate tiles. The latest
+    // interval is the bar; head count, date and the whole-cohort figure
+    // sit under it in small text, so nothing the tiles showed is lost.
+    var rows = farms.map(function(farm){
+      var out = { farm: farm };
+      ['seafeed', 'control'].forEach(function(t){
+        var r = latestByKey[farm + '|' + t];
+        out[t] = { r: r, g: r && r.avg_consumption_g_per_hd_day != null ? Number(r.avg_consumption_g_per_hd_day) : null, wc: wholeCohortRate(placements, farm, t) };
       });
+      return out;
     });
-    grid.innerHTML = html;
+    var max = 0;
+    rows.forEach(function(o){ ['seafeed', 'control'].forEach(function(t){ if (o[t].g != null) max = Math.max(max, o[t].g); if (o[t].wc != null) max = Math.max(max, o[t].wc); }); });
+    if (!max) max = 1;
+    function bar(o, t){
+      var x = o[t], r = x.r;
+      var w = x.g != null ? Math.max(0.5, x.g / max * 100) : 0;
+      var meta = r ? ((r.head_count != null ? r.head_count + ' head, ' : '') + 'as of ' + fmtDate(r.snapshot_date)) : 'No data yet';
+      if (x.wc != null) meta += ' &middot; whole cohort ' + fmtNum(x.wc, 0) + ' g';
+      return '<div class="lbp-bar-row">' +
+        '<span class="lbp-bar-label">' + treatmentLabel(t) + '</span>' +
+        '<div class="lbp-bar-track"><div class="lbp-bar ' + t + '" style="width:' + w.toFixed(1) + '%;"></div>' +
+        (x.wc != null ? '<div class="lbp-bar-mark" style="left:' + Math.min(100, x.wc / max * 100).toFixed(1) + '%;" title="Whole cohort: ' + fmtNum(x.wc, 0) + ' g"></div>' : '') +
+        '</div>' +
+        '<span class="lbp-bar-value ' + t + '">' + (x.g != null ? fmtNum(x.g, 0) + ' g' : '–') + '</span>' +
+        '<span class="lbp-bar-meta">' + meta + '</span>' +
+        '</div>';
+    }
+    grid.innerHTML = rows.map(function(o){
+      return '<div class="lbp-intake-farm"><p class="lbp-intake-name">' + LELPortal.nameHtml(o.farm, farms) + '</p>' + bar(o, 'seafeed') + bar(o, 'control') + '</div>';
+    }).join('') +
+    '<p class="lbp-intake-key"><span class="lbp-bar-mark-key"></span> Tick mark: whole-cohort average, for comparison with the latest interval.</p>';
   }
 
   // ------------------------------------------------------------
@@ -753,6 +795,7 @@
 
     var alertItems = [];
     var html = '';
+    var reorders = []; // every projected reorder date, for the "next reorder" line
 
     // PASS 1 — build the markup for every farm and set it in ONE shot.
     // Bug fixed 2026-08-24: this used to call container.innerHTML = html
@@ -772,7 +815,7 @@
       var color = farmColor(farm);
 
       html += '<div class="lbp-farm-card" style="border-top-color:' + color + ';">' +
-        '  <div class="lbp-farm-head"><span class="lbp-farm-dot" style="background:' + color + ';"></span><h2 class="lbp-farm-name">' + farm + '</h2></div>' +
+        '  <div class="lbp-farm-head"><span class="lbp-farm-dot" style="background:' + color + ';"></span><h2 class="lbp-farm-name">' + LELPortal.nameHtml(farm, farms) + '</h2></div>' +
         '  <div style="display:grid; grid-template-columns: 1.1fr 1fr; gap:16px;" class="lbp-farm-grid">' +
         '    <div class="lbp-panel">' +
         '      <p class="lbp-section-label" style="margin-bottom:14px;">Lick block supply</p>' +
@@ -889,6 +932,7 @@
         var outOfStock = onHand <= 0;
         var overdue = reorderByMs <= Date.now() || outOfStock;
 
+        reorders.push({ farm: farm, treatment: treatment, onHand: onHand, days: daysToEmpty, reorderByMs: reorderByMs, overdue: overdue });
         daysEl.textContent = Math.max(0, Math.round(daysToEmpty)) + ' days';
         dateEl.textContent = fmtDate(reorderByMs);
         daysEl.classList.toggle('overdue', overdue);
@@ -898,9 +942,21 @@
         else if (overdue) { noteEl.textContent = 'Past reorder date: order now'; noteEl.classList.add('stale'); }
         else { noteEl.textContent = latest._provisional ? 'Estimate: previous cohort\u2019s rate (' + rate.toFixed(2) + ' blocks/day) until a second visit is logged' : 'At current rate (' + rate.toFixed(2) + ' blocks/day)'; }
 
-        if (overdue) alertItems.push(farm + ', ' + treatmentLabel(treatment) + ': ' + (outOfStock ? 'out of stock' : Math.max(0, Math.round(daysToEmpty)) + ' day(s) of supply left'));
+        if (overdue) alertItems.push(LELPortal.nameText(farm, farms) + ', ' + treatmentLabel(treatment) + ': ' + (outOfStock ? 'out of stock' : Math.max(0, Math.round(daysToEmpty)) + ' day(s) of supply left'));
       });
     });
+
+    var nextEl = document.getElementById('lbp-next');
+    if (reorders.length) {
+      reorders.sort(function(a, b){ return a.reorderByMs - b.reorderByMs; });
+      var n = reorders[0];
+      nextEl.innerHTML = '<span class="lbp-next-label">Next reorder</span>' +
+        '<span class="lbp-next-main' + (n.overdue ? ' overdue' : '') + '">' + fmtDate(n.reorderByMs) + '</span>' +
+        '<span class="lbp-next-detail">' + LELPortal.nameHtml(n.farm, farms) + ', ' + treatmentLabel(n.treatment) + ': ' + fmtNum(n.onHand, 0) + ' blocks on hand, about ' + Math.max(0, Math.round(n.days)) + ' days of supply</span>';
+      nextEl.style.display = 'flex';
+    } else {
+      nextEl.style.display = 'none';
+    }
 
     if (alertItems.length) {
       var banner = document.getElementById('lbp-alert-banner');

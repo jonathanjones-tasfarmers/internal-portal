@@ -114,12 +114,32 @@
   .sp-standing-pill { font-family: var(--font-display); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 3px 8px; border-radius: 999px; white-space: nowrap; background: var(--tf-slate-100) !important; color: var(--text-muted) !important; }
   .sp-standing-desc { font-size: 12.5px; color: var(--text-body) !important; line-height: 1.5; margin: 0 0 8px; }
   .sp-standing-date { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: var(--text-heading) !important; margin: 0; }
+  /* Next milestone and next report, chain in a fold (2026-11-25) */
+  .sp-next-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 8px 0 14px; }
+  .sp-next-card { background: var(--surface-card) !important; border: 1px solid var(--border-subtle); border-left: 4px solid var(--tf-warning); border-radius: var(--radius-lg); padding: 14px 16px; box-shadow: var(--shadow-sm); }
+  .sp-next-card.standing { border-left-color: var(--tf-slate-400); }
+  .sp-next-label { font-family: var(--font-display); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted) !important; margin: 0 0 4px; }
+  .sp-next-value { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--text-heading) !important; margin: 0 0 4px; }
+  .sp-next-desc { font-size: 12.5px; color: var(--text-body) !important; line-height: 1.5; margin: 0; }
+  .sp-fold > summary { cursor: pointer; font-family: var(--font-display); font-size: 12.5px; font-weight: 700; color: var(--text-heading); padding: 6px 2px; }
 </style>
 
 <div class="sp-page-milestones">
-  <p class="sp-section-label">Milestones &amp; Reporting</p>
-  <p class="sp-section-sub">Grant Deed milestones and standing reporting obligations, per the TLEL Project Design and Budget (28 Jul 2026).</p>
-
+  <p class="sp-section-label">Milestones and reporting</p>
+  <div class="sp-next-grid">
+    <div class="sp-next-card">
+      <p class="sp-next-label">Next milestone</p>
+      <p class="sp-next-value">Milestone 4</p>
+      <p class="sp-next-desc">Active grazing trials and reporting. September 2026 (indicative).</p>
+    </div>
+    <div class="sp-next-card standing">
+      <p class="sp-next-label">Next six-monthly report</p>
+      <p class="sp-next-value">January 2027</p>
+      <p class="sp-next-desc">Progress to the Grantor, including the 60% producer co-contribution threshold. Due every January and July.</p>
+    </div>
+  </div>
+  <details class="sp-fold"><summary>All milestones</summary>
+  <p class="sp-section-sub" style="margin-top:12px;">Grant Deed milestones, per the TLEL Project Design and Budget (28 Jul 2026).</p>
   <div class="sp-chain">
     <div class="sp-chain-step done">
       <span class="sp-chain-node done">&check;</span>
@@ -169,13 +189,5 @@
       </div>
     </div>
   </div>
-
-  <div class="sp-standing-card">
-    <div class="sp-standing-top">
-      <p class="sp-standing-name">Six-monthly reporting</p>
-      <span class="sp-standing-pill">Ongoing</span>
-    </div>
-    <p class="sp-standing-desc">Standing progress report to the Grantor, including progress against the 60% producer co-contribution threshold. Runs alongside the milestones above, not as a step in the sequence.</p>
-    <p class="sp-standing-date">January &amp; July, annually</p>
-  </div>
+  </details>
 </div>
