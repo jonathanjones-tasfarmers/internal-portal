@@ -1,18 +1,21 @@
-// LEL Staff Portal assistant (logic; src/worker.js is the Worker entry): a Cloudflare Worker that holds the Anthropic API key, reads the
-// public LEL layers and answers staff questions. Read-only: it never writes to ArcGIS.
+// LEL Staff Portal assistant (logic; src/worker.js is the Worker entry): a Cloudflare Worker that reads the
+// public LEL layers and answers staff questions with a free Cloudflare Workers AI model (the AI binding,
+// so no API key is needed). Read-only: it never writes to ArcGIS.
 //
 // POST /chat   {"code": "<staff access code>", "messages": [{"role": "user"|"assistant", "content": "..."}]}
 //          ->  {"answer": "..."}  or  {"error": "..."}
 // GET  /health ->  {"ok": true, "snapshot_as_of": "..."}
 //
-// Secrets (wrangler secret put): ANTHROPIC_API_KEY, STAFF_CODE.
-// Vars (wrangler.toml): ALLOWED_ORIGINS (comma separated).
+// Secret (set in Cloudflare): STAFF_CODE.
+// Vars (wrangler.toml): ALLOWED_ORIGINS (comma separated), MODEL (optional Workers AI model id).
+// Binding (wrangler.toml): AI.
 
-import Anthropic from "@anthropic-ai/sdk";
 import { fetchSnapshot } from "./data.js";
 import { SYSTEM_RULES, snapshotBlock } from "./prompt.js";
 
-export const MODEL = "claude-opus-5-5";
+// Workers AI model. Changing it only needs a new MODEL var in wrangler.toml and a deploy.
+export const MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+const MAX_OUTPUT_TOKENS = 700;
 const SNAPSHOT_TTL_MS = 30 * 60 * 1000;
 const MAX_TURNS = 12;          // most recent messages kept
 const MAX_CHARS = 2000;        // per message
@@ -71,24 +74,13 @@ async function getSnapshot(fetchFn, now) {
   return cache.snapshot;
 }
 
-export async function answer(client, snapshot, messages) {
-  const response = await client.beta.messages.create({
-    model: MODEL,
-    max_tokens: 4000,
-    betas: ["server-side-fallback-2026-07-01"],
-    fallbacks: "default",
-    output_config: { effort: "medium" },
-    system: [
-      { type: "text", text: SYSTEM_RULES, cache_control: { type: "ephemeral" } },
-      { type: "text", text: snapshotBlock(snapshot), cache_control: { type: "ephemeral" } },
-    ],
-    messages,
+export async function answer(ai, model, snapshot, messages) {
+  const result = await ai.run(model, {
+    messages: [{ role: "system", content: SYSTEM_RULES + "\n\n" + snapshotBlock(snapshot) }, ...messages],
+    max_tokens: MAX_OUTPUT_TOKENS,
+    temperature: 0.2,
   });
-  if (response.stop_reason === "refusal") {
-    return "Sorry, I can't help with that one. Try asking about the Project's mobs, figures or methods.";
-  }
-  const text = response.content.filter((b) => b.type === "text").map((b) => b.text).join("\n").trim();
-  if (response.stop_reason === "max_tokens") return text + "\n\n(Answer cut short. Ask a narrower question.)";
+  const text = String((result && result.response) || "").trim();
   return text || "Sorry, I didn't get an answer for that. Please try again.";
 }
 
@@ -127,12 +119,13 @@ export default {
       return json({ error: "I couldn't read the Project data just now. Please try again in a minute." }, 502, headers);
     }
     try {
-      const client = deps.client || new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
-      return json({ answer: await answer(client, snapshot, messages), as_of: snapshot.as_of }, 200, headers);
+      const ai = deps.ai || env.AI;
+      return json({ answer: await answer(ai, env.MODEL || MODEL, snapshot, messages), as_of: snapshot.as_of }, 200, headers);
     } catch (e) {
       console.error("answer failed", e);
-      const busy = e instanceof Anthropic.RateLimitError || (e && e.status >= 500);
-      return json({ error: busy ? "The assistant is busy. Please try again in a minute." : "Something went wrong answering that." }, 502, headers);
+      // Workers AI reports a used-up free daily allowance (and overload) as an error from run().
+      const busy = /limit|capacity|neuron|429|exceed/i.test(String((e && e.message) || e));
+      return json({ error: busy ? "The assistant has reached today's free limit or is busy. Please try again later." : "Something went wrong answering that." }, 502, headers);
     }
   },
 };

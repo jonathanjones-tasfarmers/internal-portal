@@ -3,8 +3,8 @@ name: Staff assistant
 # Added 2026-11-24 (Stage 4). The assistant service lives in _assistant/ (a Cloudflare Worker).
 #   Pull request or "check": runs the tests and prints the live data snapshot (public layers only).
 #   "deploy": publishes the Worker. Needs repository secrets CLOUDFLARE_API_TOKEN and
-#   CLOUDFLARE_ACCOUNT_ID; the Worker's own secrets (ANTHROPIC_API_KEY, STAFF_CODE) are set once
-#   in Cloudflare and never pass through GitHub.
+#   CLOUDFLARE_ACCOUNT_ID; the Worker's own secret (STAFF_CODE) is set once in Cloudflare and
+#   never passes through GitHub. Answers come from the free Workers AI binding (no API key).
 on:
   pull_request:
     paths: ["_assistant/**", ".github/workflows/assistant.yml"]

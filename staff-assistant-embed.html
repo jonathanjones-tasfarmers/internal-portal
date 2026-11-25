@@ -7,8 +7,8 @@
   LEL Staff Portal: AI assistant panel (Stage 4 of the Sea Forest Hub requests, 24 Nov 2026).
   Embed in the Staff Portal home page with an iframe, like the other *-embed.html pages.
   The page itself holds no key: it sends questions to the assistant service in _assistant/
-  (a Cloudflare Worker), which keeps the AI key, reads the Project's public data layers and
-  answers. Staff enter the shared staff access code once; it is remembered in this browser.
+  (a Cloudflare Worker), which reads the Project's public data layers and answers with
+  Cloudflare's free Workers AI. Staff enter the shared staff access code once; it is remembered in this browser.
   Set ASSISTANT_URL below once the service is deployed.
 -->
 <title>LEL Assistant</title>
@@ -71,7 +71,7 @@
       <button class="send" id="send" type="submit">Ask</button>
     </form>
   </div>
-  <p class="foot">Abatement, CO2e and intensity figures are modelled, not measured at the animal. The assistant reads the Project's public data only and cannot change anything. Questions are answered by Anthropic's Claude AI service. <button class="link" id="forget" type="button">Change access code</button></p>
+  <p class="foot">Abatement, CO2e and intensity figures are modelled, not measured at the animal. The assistant reads the Project's public data only and cannot change anything. Questions are answered by a free AI model run by Cloudflare. Check important figures on the portal pages. <button class="link" id="forget" type="button">Change access code</button></p>
 </div>
 <script>
 (function(){

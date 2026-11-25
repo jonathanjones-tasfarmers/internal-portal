@@ -6,7 +6,7 @@ import { buildSnapshot, closedFarms } from "../src/data.js";
 const DAY = 86400000;
 const NOW = Date.UTC(2026, 10, 24, 5, 0);   // 24 Nov 2026, 4 pm Hobart
 const ORIGIN = "https://jonathanjones-tasfarmers.github.io";
-const ENV = { ALLOWED_ORIGINS: ORIGIN, STAFF_CODE: "lel-staff", ANTHROPIC_API_KEY: "unused" };
+const ENV = { ALLOWED_ORIGINS: ORIGIN, STAFF_CODE: "lel-staff" };
 
 const em = (farm, t, daysAgo, extra = {}) => ({
   farm_name: farm, treatment: t, record_date: NOW - daysAgo * DAY, abatement_rate: t === "seafeed" ? 6.8 : 0,
@@ -48,9 +48,9 @@ const fakeFetch = async (url) => {
   return new Response(JSON.stringify({ features: (FIXTURE[layer] || []).map((a) => ({ attributes: a })) }));
 };
 
-function fakeClient(reply = { stop_reason: "end_turn", content: [{ type: "text", text: "Eastbourne is at 6.8% (modelled)." }] }) {
+function fakeAI(reply = { response: "Eastbourne is at 6.8% (modelled)." }) {
   const calls = [];
-  return { calls, beta: { messages: { create: async (p) => { calls.push(p); return reply; } } } };
+  return { calls, run: async (model, p) => { calls.push({ model, ...p }); if (reply instanceof Error) throw reply; return reply; } };
 }
 
 const post = (body, origin = ORIGIN) => new Request("https://assistant.example/chat", {
@@ -87,45 +87,46 @@ test("snapshot: open and closed cohorts, attention flags, dates", () => {
 });
 
 test("chat: answers with the snapshot in the system prompt and the right request shape", async () => {
-  const client = fakeClient();
+  const ai = fakeAI();
   const res = await worker.fetch(post({ code: "lel-staff", messages: [{ role: "user", content: "How is Eastbourne going?" }] }),
-    ENV, {}, { fetch: fakeFetch, client, now: NOW });
+    ENV, {}, { fetch: fakeFetch, ai, now: NOW });
   assert.equal(res.status, 200);
   assert.equal(res.headers.get("Access-Control-Allow-Origin"), ORIGIN);
   const body = await res.json();
   assert.match(body.answer, /6\.8%/);
-  const p = client.calls[0];
+  const p = ai.calls[0];
   assert.equal(p.model, MODEL);
-  assert.equal(p.fallbacks, "default");
-  assert.deepEqual(p.betas, ["server-side-fallback-2026-07-01"]);
-  assert.equal(p.thinking, undefined);
-  assert.match(p.system[1].text, /Eastbourne Farm - Cohort 2/);
-  assert.match(p.system[0].text, /never "trial"/);
+  assert.equal(p.messages[0].role, "system");
+  assert.match(p.messages[0].content, /never "trial"/);
+  assert.match(p.messages[0].content, /Eastbourne Farm - Cohort 2/);
+  assert.deepEqual(p.messages.slice(1), [{ role: "user", content: "How is Eastbourne going?" }]);
+  assert.ok(p.max_tokens > 0);
   assert.equal(urls.length, 7);
   assert.ok(urls.every((u) => u.startsWith("https://services6.arcgis.com/")));
 });
 
 test("chat: snapshot is reused within 30 minutes", async () => {
-  const client = fakeClient();
-  const ask = () => worker.fetch(post({ code: "lel-staff", messages: [{ role: "user", content: "hi" }] }), ENV, {}, { fetch: fakeFetch, client, now: NOW });
+  const ai = fakeAI();
+  const ask = () => worker.fetch(post({ code: "lel-staff", messages: [{ role: "user", content: "hi" }] }), ENV, {}, { fetch: fakeFetch, ai, now: NOW });
   await ask(); await ask();
   assert.equal(urls.length, 7);
 });
 
-test("chat: wrong code, wrong origin, empty question, refusal", async () => {
-  const deps = { fetch: fakeFetch, client: fakeClient(), now: NOW };
+test("chat: wrong code, wrong origin, empty question, used-up allowance", async () => {
+  const deps = { fetch: fakeFetch, ai: fakeAI(), now: NOW };
   assert.equal((await worker.fetch(post({ code: "nope", messages: [{ role: "user", content: "x" }] }), ENV, {}, deps)).status, 401);
   assert.equal((await worker.fetch(post({ code: "lel-staff", messages: [{ role: "user", content: "x" }] }, "https://evil.example"), ENV, {}, deps)).status, 403);
   assert.equal((await worker.fetch(post({ code: "lel-staff", messages: [] }), ENV, {}, deps)).status, 400);
-  const refused = await worker.fetch(post({ code: "lel-staff", messages: [{ role: "user", content: "x" }] }), ENV, {},
-    { ...deps, client: fakeClient({ stop_reason: "refusal", content: [] }) });
-  assert.match((await refused.json()).answer, /can't help with that/);
+  const spent = await worker.fetch(post({ code: "lel-staff", messages: [{ role: "user", content: "x" }] }), ENV, {},
+    { ...deps, ai: fakeAI(new Error("4006: you have used up your daily free allocation of 10,000 neurons")) });
+  assert.equal(spent.status, 502);
+  assert.match((await spent.json()).error, /free limit/);
 });
 
 test("chat: a broken data layer gives a friendly error, not a crash", async () => {
   const badFetch = async () => new Response(JSON.stringify({ error: { message: "Invalid query" } }));
   const res = await worker.fetch(post({ code: "lel-staff", messages: [{ role: "user", content: "x" }] }), ENV, {},
-    { fetch: badFetch, client: fakeClient(), now: NOW });
+    { fetch: badFetch, ai: fakeAI(), now: NOW });
   assert.equal(res.status, 502);
   assert.match((await res.json()).error, /couldn't read the Project data/);
 });

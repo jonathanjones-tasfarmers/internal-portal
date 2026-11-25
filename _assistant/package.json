@@ -6,9 +6,6 @@
     "test": "node --test test/*.test.js",
     "deploy": "wrangler deploy"
   },
-  "dependencies": {
-    "@anthropic-ai/sdk": "1.13.0"
-  },
   "devDependencies": {
     "wrangler": "4.167.0"
   }
