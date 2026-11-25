@@ -20,10 +20,13 @@ __STYLE__
       <h1 id="h1"></h1>
       <div class="status" id="status"></div>
     </div>
-    <div class="ctrls">
-      <select id="farm" aria-label="Choose a farm"></select>
-      <div class="seg" id="seg" role="group" aria-label="Choose a cohort"><button data-c="1">Cohort 1</button><button data-c="2">Cohort 2</button></div>
-    </div>
+  </div>
+</header>
+<div class="layout">
+<aside class="rail" aria-label="Choose what to show">
+  <div class="ctrls">
+    <select id="farm" aria-label="Choose a farm"></select>
+    <div class="seg" id="seg" role="group" aria-label="Choose a cohort"><button data-c="1">Cohort 1</button><button data-c="2">Cohort 2</button></div>
   </div>
   <nav id="nav" aria-label="Pages">
     <button data-p="p1" class="on">Summary</button>
@@ -31,8 +34,7 @@ __STYLE__
     <button data-p="p3">Productivity</button>
     <button data-p="p4">Progress</button>
   </nav>
-</header>
-<div class="layout">
+</aside>
 <main>
 
 <section class="page on" id="p1">

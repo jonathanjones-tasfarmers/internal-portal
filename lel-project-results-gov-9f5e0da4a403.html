@@ -270,6 +270,35 @@ h3.sec,.page .grid,.page>.card{scroll-margin-top:150px}
  .chart,.chart.short{height:280px}
  h3.sec,.page .grid,.page>.card{scroll-margin-top:12px}
 }
+/* ===== v5 layout 2026-11-26: nothing pinned across the top. Title scrolls away; farm, cohort and page
+   choices sit in a side rail on laptops (pinned to the left, so they stay in reach) and in a plain,
+   non-pinned bar under the title on phones. Shared by the Government page via build_government.py. ===== */
+header.top{position:static}
+aside.rail{border:0;background:transparent;height:auto}
+.rail nav{counter-reset:pg}
+.rail nav button{width:100%}
+@media(min-width:901px){
+ .top-row{padding-top:18px;padding-bottom:16px}
+ .layout{display:grid;grid-template-columns:224px minmax(0,1fr);max-width:1320px;margin:0 auto}
+ aside.rail{display:block;position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:24px 16px 24px 32px}
+ .rail .ctrls{display:flex;flex-direction:column;align-items:stretch;gap:10px;margin-bottom:16px}
+ .rail .ctrls select{width:100%;min-width:0}
+ .rail .ctrls .seg{display:flex}.rail .ctrls .seg button{flex:1 1 0;padding:7px 6px}
+ .rail nav{display:block;padding-top:14px;border-top:1px solid var(--line)}
+ .rail nav button{display:flex;padding:9px 12px;font-size:14px;margin-bottom:2px}
+ main{padding:28px 32px 56px 16px}
+ h3.sec,.page .grid,.page>.card{scroll-margin-top:16px}
+}
+@media(max-width:900px){
+ header.top{border-bottom:0}
+ .layout{display:block}
+ aside.rail{display:block;position:static;padding:0 16px 12px;background:var(--panel);border-bottom:1px solid var(--line)}
+ .rail nav{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-top:10px;padding-bottom:2px;-webkit-mask-image:linear-gradient(90deg,#000 82%,transparent);mask-image:linear-gradient(90deg,#000 82%,transparent)}
+ .rail nav::-webkit-scrollbar{display:none}
+ .rail nav.end{-webkit-mask-image:none;mask-image:none}
+ .rail nav button{width:auto;flex:0 0 auto;border:1px solid var(--line);border-radius:99px;padding:6px 14px;font-size:13px;margin:0}
+ .rail nav button.on{border-color:var(--ink)}
+}
 </style>
 <style>
 .ack{color:var(--dim);font-size:12px;line-height:1.5;margin-top:32px;padding-top:14px;border-top:1px solid var(--line)}
@@ -284,10 +313,13 @@ h3.sec,.page .grid,.page>.card{scroll-margin-top:150px}
       <h1 id="h1"></h1>
       <div class="status" id="status"></div>
     </div>
-    <div class="ctrls">
-      <select id="farm" aria-label="Choose a farm"></select>
-      <div class="seg" id="seg" role="group" aria-label="Choose a cohort"><button data-c="1">Cohort 1</button><button data-c="2">Cohort 2</button></div>
-    </div>
+  </div>
+</header>
+<div class="layout">
+<aside class="rail" aria-label="Choose what to show">
+  <div class="ctrls">
+    <select id="farm" aria-label="Choose a farm"></select>
+    <div class="seg" id="seg" role="group" aria-label="Choose a cohort"><button data-c="1">Cohort 1</button><button data-c="2">Cohort 2</button></div>
   </div>
   <nav id="nav" aria-label="Pages">
     <button data-p="p1" class="on">Summary</button>
@@ -295,8 +327,7 @@ h3.sec,.page .grid,.page>.card{scroll-margin-top:150px}
     <button data-p="p3">Productivity</button>
     <button data-p="p4">Progress</button>
   </nav>
-</header>
-<div class="layout">
+</aside>
 <main>
 
 <section class="page on" id="p1">
