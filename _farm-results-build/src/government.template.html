@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>LEL Project Results</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+__STYLE__
+<style>
+.ack{color:var(--dim);font-size:12px;line-height:1.5;margin-top:32px;padding-top:14px;border-top:1px solid var(--line)}
+.verdict{font-size:16px;line-height:1.6;max-width:74ch;margin-bottom:28px}
+.kpi .v.txt{font-size:18px;font-weight:600;white-space:normal;line-height:1.35;color:var(--ink)}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-row">
+    <div class="ttl">
+      <h1 id="h1"></h1>
+      <div class="status" id="status"></div>
+    </div>
+    <div class="ctrls">
+      <select id="farm" aria-label="Choose a farm"></select>
+      <div class="seg" id="seg" role="group" aria-label="Choose a cohort"><button data-c="1">Cohort 1</button><button data-c="2">Cohort 2</button></div>
+    </div>
+  </div>
+  <nav id="nav" aria-label="Pages">
+    <button data-p="p1" class="on">Summary</button>
+    <button data-p="p2">Emissions</button>
+    <button data-p="p3">Productivity</button>
+    <button data-p="p4">Progress</button>
+  </nav>
+</header>
+<div class="layout">
+<main>
+
+<section class="page on" id="p1">
+  <h2>Summary</h2>
+  <p class="verdict" id="verdict"></p>
+  <div class="grid g4">
+    <div class="card kpi"><div class="t">Modelled methane abatement</div><div class="v" id="s_ab"></div><div class="d" id="s_ab_d"></div></div>
+    <div class="card kpi"><div class="t">CO₂e abated, KleenGrow mob</div><div class="v" id="s_co2"></div><div class="d" id="s_co2_d"></div></div>
+    <div class="card kpi"><div class="t" id="s_g_t"></div><div class="v ctl" id="s_g"></div><div class="d" id="s_g_d"></div></div>
+    <div class="card kpi"><div class="t">Cost against gain</div><div class="v txt" id="s_cost"></div></div>
+  </div>
+  <p class="note">Abatement is modelled from block intake, not measured on the animal. CO₂e converts methane into the same warming effect as carbon dioxide (1 kg of methane = 28 kg CO₂e).</p>
+</section>
+
+<section class="page" id="p2">
+  <h2>Emissions</h2>
+  <p class="sub" id="esub"></p>
+  <div class="grid g3">
+    <div class="card kpi"><div class="t">Modelled methane abatement</div><div class="v" id="e_ab"></div><div class="d">KleenGrow mob</div></div>
+    <div class="card kpi"><div class="t">CO₂e abated, KleenGrow mob</div><div class="v" id="e_co2"></div><div class="d" id="e_co2_d"></div></div>
+    <div class="card kpi"><div class="t">Intake against the model dose</div><div class="v" id="e_pct"></div><div class="d">Share of the dose the methane model assumes</div></div>
+  </div>
+  <div class="grid g2">
+    <div class="card kpi"><div class="t">Emissions intensity, KleenGrow</div><div class="v" id="e_ei"></div><div class="d" id="e_ei_d"></div></div>
+    <div class="card kpi"><div class="t">Emissions intensity, control</div><div class="v ctl" id="e_ec"></div><div class="d">Standard block, no abatement modelled</div></div>
+  </div>
+  <div class="grid g1">
+    <div class="card"><h4>Modelled methane abatement over time (%)</h4><div class="chart"><canvas id="c_ab"></canvas></div></div>
+    <div class="card"><h4>Intake as a share of the model dose (%)</h4><div class="chart"><canvas id="c_pct"></canvas></div><p class="note">Intake is what was put out, so the records cannot show whether cattle would have eaten more.</p></div>
+  </div>
+  <p class="note">Emissions intensity is modelled methane over the same days as the weight gain, as CO₂e, divided by that gain. It covers the Project period only, not a whole-of-life footprint. Measured methane at the animal is not yet included.</p>
+</section>
+
+<section class="page" id="p3">
+  <h2>Productivity</h2>
+  <p class="sub" id="gsub"></p>
+  <div class="card" id="gtbl" style="margin-bottom:var(--gap)"></div>
+  <div class="grid g1">
+    <div class="card"><h4>Rolling 14-day ADG with 95% band (g/day)</h4><div class="chart"><canvas id="c_adg"></canvas></div><p class="note">ADG is average daily gain. The shaded bands are the 95% range: where the two bands overlap, the mobs cannot be told apart.</p></div>
+    <div class="card"><h4>KleenGrow minus control: weight difference (kg)</h4><div class="chart"><canvas id="c_diff"></canvas></div><p class="note">Above zero, the KleenGrow mob is heavier on average; below zero, the control mob is heavier.</p></div>
+  </div>
+  <p class="note">Mobs are compared over the same dates and the same number of days. Mobs are not randomised, so start weights and grazing differ.</p>
+</section>
+
+<section class="page" id="p4">
+  <h2>Project progress</h2>
+  <p class="sub">What the Project has delivered so far, and what is still to come.</p>
+  <div class="grid g4">
+    <div class="card kpi"><div class="t">Farms reporting</div><div class="v">2</div><div class="d">Of 3 onboarded</div></div>
+    <div class="card kpi"><div class="t">Completed cohorts</div><div class="v">2</div><div class="d">One per farm</div></div>
+    <div class="card kpi"><div class="t">Cohorts in progress</div><div class="v ctl">2</div><div class="d">Plus one farm onboarding</div></div>
+    <div class="card kpi"><div class="t">Cattle compared</div><div class="v">700+</div><div class="d">KleenGrow and standard combined</div></div>
+  </div>
+  <div class="card" style="margin-bottom:var(--gap)"><h4>Farms and cohorts</h4><table id="reg"></table></div>
+  <div class="grid g2">
+    <div class="card"><h4>Key messages so far</h4><ul class="tick" id="msgs"></ul></div>
+    <div class="card"><h4>What comes next</h4><ul class="tick" id="next"></ul></div>
+  </div>
+  <div class="card" style="margin-top:var(--gap)"><h4>Milestones against the Grant Deed</h4><table class="ms" id="ms"></table><p class="note">Status as at 17 November 2026. The Deed allows milestones to complete about eight weeks after the dates shown (clause 4.1(d)).</p></div>
+</section>
+
+<p class="ack">The Tasmanian Low Emissions Livestock Project is supported by the Tasmanian Government. KleenGrow™ is the Sea Forest product fed in the Project (called SeaFeed™ in the Grant Deed). Results are early and indicative. <span id="asof"></span></p>
+</main></div>
+
+<script>
+const V = __VIEW__;
+const G='#3aa989', W='#041221', C='#c0392b', GR='#eeece6', TX='#5b6b78';
+Chart.defaults.color=TX;Chart.defaults.font.family='-apple-system,BlinkMacSystemFont,"Segoe UI",Aptos,"Helvetica Neue",Arial,sans-serif';Chart.defaults.font.size=12;Chart.defaults.elements.line.borderWidth=2.5;
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const fmtD=x=>{const m=/^(\d{4})-(\d\d)-(\d\d)$/.exec(x);return m?(+m[3])+' '+MON[+m[2]-1]:x};
+const sm=(a,n)=>a.map((_,i)=>{const s=a.slice(Math.max(0,i-n+1),i+1).filter(v=>v!=null);return s.length?s.reduce((x,y)=>x+y,0)/s.length:null});
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const n0=v=>Math.round(v).toLocaleString('en-AU'), sgn=v=>(v>0?'+':'')+v;
+const FARMS=Object.keys(V.farms);
+let F=FARMS[0], coh=2, charts=[];
+const CV={};document.querySelectorAll('canvas').forEach(c=>CV[c.id]=[c.parentElement,c.parentElement.innerHTML]);
+
+function line(id,labels,sets,yt,o={}){
+  charts.push(new Chart($(id),{type:'line',data:{labels,datasets:sets.map(s=>({label:s.l,data:s.d,borderColor:s.c,backgroundColor:s.bg||s.c,borderWidth:s.w??2,pointRadius:0,tension:.35,spanGaps:true,fill:s.fill||false,segment:s.seg}))},
+   options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{position:'bottom',display:sets.filter(s=>!s.l.startsWith('_')).length>1,labels:{boxWidth:10,usePointStyle:true,filter:i=>!i.text.startsWith('_')}},tooltip:{filter:i=>!i.dataset.label.startsWith('_'),callbacks:{title:it=>it.length?fmtD(it[0].label):''}}},
+    scales:{x:{grid:{display:false},ticks:{maxTicksLimit:innerWidth<600?5:8,maxRotation:0,callback:function(v){return fmtD(this.getLabelForValue(v))}}},y:{beginAtZero:!!o.zero,grid:{color:GR},border:{display:false},title:{display:true,text:yt}}}}}));
+}
+const PH=(id,t)=>{const p=$(id).parentElement;p.classList.add('empty');p.innerHTML=`<div class="ph">${t}</div>`};
+
+function render(){
+  charts.forEach(c=>c.destroy());charts=[];
+  Object.values(CV).forEach(([p,h])=>{p.innerHTML=h;p.classList.remove('empty')});
+  const cs=V.farms[F]; if(!cs[coh])coh=+Object.keys(cs).sort().pop();
+  const k=cs[coh], e=k.em, ei=k.ei;
+  document.querySelectorAll('#seg button').forEach(b=>{b.classList.toggle('on',+b.dataset.c==coh);b.style.display=cs[b.dataset.c]?'':'none'});
+  $('farm').innerHTML=FARMS.map(f=>`<option ${f==F?'selected':''}>${esc(f)}</option>`).join('');
+  $('h1').innerHTML=`${esc(F)}<span class="h1-sub">KleenGrow™ Project results</span>`;
+  $('status').innerHTML=`<span><span class="chip ${k.chip}">${k.label}</span><b>Cohort ${coh}</b></span><span>${esc(k.status)} · data to ${esc(V.data_to)}</span>`;
+  $('verdict').textContent=k.verdict;
+  // summary tiles
+  const ab=e.rate!=null?`${e.rate} <small>%</small>`:'—';
+  const co2=e.co2!=null?`${e.co2} <small>t</small>`:'—';
+  $('s_ab').innerHTML=ab;$('s_ab_d').textContent=e.rate!=null?(k.open?`Latest, ${e.to}`:'End of cohort'):'Needs liveweight data';
+  $('s_co2').innerHTML=co2;$('s_co2_d').textContent=e.co2!=null?`Modelled, ${e.n} days of data`:'Needs liveweight data';
+  $('s_g_t').textContent=k.adg?k.adg.lab:'Growth, KleenGrow vs control';
+  if(k.adg&&k.adg.gain!=null){$('s_g').innerHTML=`${k.adg.gain} <small>kg</small>`;$('s_g_d').textContent=k.adg.note}
+  else if(k.adg){$('s_g').innerHTML=`${k.adg.diff>0?'+':''}${n0(k.adg.diff)} <small>g/day</small>`;$('s_g_d').textContent=`${n0(k.adg.k)} vs ${n0(k.adg.c)} · ${k.adg.note}`}
+  else{$('s_g').innerHTML='—';$('s_g_d').textContent='No weight data yet'}
+  $('s_cost').textContent=k.cost;
+  // emissions
+  $('esub').textContent=e.n?`${e.n} days of modelled emissions, to ${e.to}. Modelled abatement follows intake, and intake was below the dose the model assumes.`:'No modelled emissions yet.';
+  $('e_ab').innerHTML=ab;$('e_co2').innerHTML=co2;$('e_co2_d').textContent=e.co2!=null?'Modelled, GWP100 28':'Needs liveweight data';
+  $('e_pct').innerHTML=e.pct!=null?`${e.pct} <small>%</small>`:'—';
+  $('e_ei').innerHTML=ei.k!=null?`${ei.k} <small>kg CO₂e/kg gain</small>`:'—';$('e_ei_d').textContent=ei.k!=null?`${ei.when} · ${ei.k0} with no abatement`:'Needs at least 14 days of weight gain';
+  $('e_ec').innerHTML=ei.c!=null?`${ei.c} <small>kg CO₂e/kg gain</small>`:'—';
+  const es=k.em_series, ed=es.map(r=>r[0]);
+  if(es.some(r=>r[1]!=null))line('c_ab',ed,[{l:'Abatement',d:es.map(r=>r[1]),c:G}],'% abatement');else PH('c_ab','No modelled abatement yet: it needs liveweight data.');
+  if(es.length)line('c_pct',ed,[{l:'Intake',d:es.map(r=>r[2]),c:G},{l:'Model dose',d:es.map(()=>100),c:'#a9b8c4',w:1.5}],'% of model dose');else PH('c_pct','No intake records yet.');
+  // productivity
+  $('gsub').textContent=k.gsub;
+  $('gtbl').innerHTML=k.growth?`<h4>Matched comparison, Cohort ${coh}</h4><table><tr><th>Measure</th><th>KleenGrow</th><th>Control</th><th>Difference</th></tr>`+k.growth.map(r=>`<tr><td>${esc(r[0])}<br><span class="note">${esc(r[1])}</span></td><td>${r[2]}</td><td>${r[3]}</td><td class="${r[4].startsWith('-')?'neg':'pos'}">${r[4]}</td></tr>`).join('')+'</table>'
+    :`<h4>Matched comparison, Cohort ${coh}</h4><div class="ph">${k.days?'No matched 30-day window yet: it needs about 30 days of data.':'No weight data yet.'}</div>`;
+  const S=k.ser;
+  if(S.length){
+    const lab=S.map(r=>r[0]), col=i=>S.map(r=>r[i]), b=(i)=>sm(col(i),k.open?1:7), z='rgba(0,0,0,0)';
+    line('c_adg',lab,[{l:'_a',d:b(3),c:z,w:0},{l:'_b',d:b(4),c:z,w:0,fill:'-1',bg:'rgba(58,169,137,.18)'},{l:'_c',d:b(7),c:z,w:0},{l:'_d',d:b(8),c:z,w:0,fill:'-1',bg:'rgba(4,18,33,.10)'},{l:'KleenGrow',d:b(2),c:G},{l:'Control',d:b(6),c:W}],'g/day');
+    const md=S.filter(r=>r[1]!=null&&r[5]!=null);
+    line('c_diff',md.map(r=>r[0]),[{l:'KleenGrow minus control',d:md.map(r=>+(r[1]-r[5]).toFixed(1)),c:G,fill:{target:'origin',above:'rgba(58,169,137,.16)',below:'rgba(192,57,43,.14)'},seg:{borderColor:c=>(c.p0.parsed.y<0||c.p1.parsed.y<0)?C:G}}],'kg',{zero:true});
+  }else{PH('c_adg','No weight data yet.');PH('c_diff','No weight data yet.')}
+  requestAnimationFrame(()=>charts.forEach(c=>c.resize()));
+}
+
+// static: register, messages, milestones
+$('reg').innerHTML='<tr><th>Farm and cohort</th><th>Head (KleenGrow / standard, rounded)</th><th>Days compared</th><th>Status</th></tr>'+V.register.map(r=>{const k=V.farms[r[0]][r[1]];return `<tr><td>${esc(r[0])}, Cohort ${r[1]}</td><td>${r[2]}</td><td>${k&&k.days?k.days:'–'}</td><td><span class="chip ${r[3]}">${r[4]}</span></td></tr>`}).join('');
+$('msgs').innerHTML=V.messages.map(t=>`<li><span class="y">→</span>${esc(t)}</li>`).join('');
+$('next').innerHTML=V.next.map(t=>`<li><span class="p">→</span>${esc(t)}</li>`).join('');
+$('ms').innerHTML='<tr><th>Milestone</th><th>Period</th><th>Deliverables</th><th>Funding</th><th>Status</th></tr>'+V.milestones.map(m=>`<tr><td>${m[0]}. ${esc(m[1])}</td><td>${esc(m[2])}</td><td>${esc(m[3])}</td><td>${esc(m[4])}</td><td><span class="chip ${m[5]}">${m[6]}</span><br><span class="note">${esc(m[7])}</span></td></tr>`).join('');
+$('asof').textContent=`Data to ${V.data_to}.`;
+document.querySelectorAll('table').forEach(tb=>{const r0=tb.rows[0];if(!r0||r0.cells.length<4)return;tb.classList.add('stk');r0.classList.add('hd');const h=[...r0.cells].map(c=>c.textContent.trim());[...tb.rows].slice(1).forEach(r=>[...r.cells].forEach((c,i)=>c.setAttribute('data-label',h[i]||'')))});
+
+function showPage(id){document.querySelectorAll('#nav button,.page').forEach(e=>e.classList.remove('on'));document.querySelector(`#nav button[data-p="${id}"]`).classList.add('on');$(id).classList.add('on');window.scrollTo(0,0);charts.forEach(c=>c.resize());requestAnimationFrame(()=>charts.forEach(c=>c.resize()))}
+document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>showPage(b.dataset.p));
+document.querySelectorAll('#seg button').forEach(b=>b.onclick=()=>{coh=+b.dataset.c;render()});
+$('farm').onchange=ev=>{F=ev.target.value;coh=2;render()};
+render();
+</script></body></html>
