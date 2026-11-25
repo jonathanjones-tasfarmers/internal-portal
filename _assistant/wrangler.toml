@@ -1,0 +1,17 @@
+name = "lel-staff-assistant"
+main = "src/worker.js"
+compatibility_date = "2026-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+# Pages allowed to call the assistant. The Staff Portal pages are served from GitHub Pages and
+# shown inside the Hub in an iframe, so the calling origin is the GitHub Pages one.
+ALLOWED_ORIGINS = "https://jonathanjones-tasfarmers.github.io"
+
+# Free Cloudflare Workers AI model. Uses the account's free daily allowance; no API key needed.
+MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+
+[ai]
+binding = "AI"
+
+# Secret, set once in Cloudflare (Workers > lel-staff-assistant > Settings > Variables and Secrets): STAFF_CODE
