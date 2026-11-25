@@ -267,6 +267,16 @@
       .roi-monthly-table td.red { color: var(--tf-red); font-weight: 700; }
       .roi-monthly-table td.muted { color: var(--text-muted); }
       .roi-monthly-badge { font-family: var(--font-display); font-size: 10.5px; font-weight: 700; border-radius: 999px; padding: 3px 10px; }
+      /* To-date verdict (2026-11-25) */
+      .roi-verdict { display: flex; align-items: baseline; gap: 10px; margin: 0 0 6px; }
+      .roi-verdict-label { font-family: var(--font-display); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+      .roi-verdict-value { font-family: var(--font-display); font-size: 24px; font-weight: 700; }
+      .roi-verdict.ahead .roi-verdict-value { color: var(--tf-seafeed); }
+      .roi-verdict.behind .roi-verdict-value { color: var(--tf-red); }
+      .roi-month-label { font-size: 11px; color: var(--text-muted); }
+      .roi-monthly-table b.mint { color: var(--tf-seafeed); font-size: 15px; }
+      .roi-monthly-table b.red { color: var(--tf-red); font-size: 15px; }
+      .roi-plan { margin-top: 14px; }
       .roi-monthly-badge.mint { background: rgba(58,169,137,0.16); color: #1f6e56; }
       .roi-monthly-badge.red { background: rgba(192,57,43,0.13); color: var(--tf-red); }
       .roi-monthly-badge.muted { background: var(--border-subtle); color: var(--text-muted); }
@@ -274,29 +284,23 @@
         .roi-monthly-table { display: block; overflow-x: auto; }
       }
     </style>
-  </head>
+  <link rel="stylesheet" href="portal-common.css" />
+<script src="portal-common.js"></script>
+</head>
   <body>
-    <div class="roi-hero">
-      <div class="roi-hero-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><rect x="4" y="2.5" width="16" height="19" rx="2"></rect><line x1="8" y1="6.5" x2="16" y2="6.5"></line><line x1="7.5" y1="11" x2="9.5" y2="11"></line><line x1="11" y1="11" x2="13" y2="11"></line><line x1="14.5" y1="11" x2="16.5" y2="11"></line><line x1="7.5" y1="14.5" x2="9.5" y2="14.5"></line><line x1="11" y1="14.5" x2="13" y2="14.5"></line><line x1="14.5" y1="14.5" x2="16.5" y2="14.5"></line><line x1="7.5" y1="18" x2="16.5" y2="18"></line></svg>
-      </div>
-      <p class="roi-eyebrow">TasFarmers &middot; Low Emissions Livestock Project</p>
-      <h1>Farm ROI</h1>
-      <p class="roi-hero-sub">Real SeaFeed cost accruing month by month at each participating farm, and whether the observed SeaFeed-vs-Control gain is currently ahead or behind that cost. Built for conversations in the paddock: one card per farm, edit head count and assumptions on the spot.</p>
-    </div>
+    <div class="lp-title">
+  <h1>Farm ROI</h1>
+  <p>Is each farm&rsquo;s SeaFeed gain ahead or behind its share of SeaFeed cost, to date? Edit head count and assumptions on a card when you are talking with a farmer.</p>
+</div>
 
     <div class="roi-page">
       <div class="roi-alert-banner">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L14.71 3.86a2 2 0 0 0-3.42 0Z"></path></svg>
-        <div class="roi-alert-banner-text">
-          <b>The producer contribution rate is not a fixed charge.</b> It's tied to the Producer Co-Contribution Principle: producers are only asked to contribute if the project can show a productivity, performance or price benefit of at least equivalent value. The <span class="roi-live-rate" id="live-rate-label">60.23%</span> figure below is the current project-wide rate (Project Budget!D86): use it as the working number for a conversation, not a guarantee the farmer owes it.
-        </div>
+        <div class="roi-alert-banner-text">The <span class="roi-live-rate" id="live-rate-label">60.23%</span> contribution rate is a working number for a conversation, not a charge. Producers contribute only if the Project shows a benefit of at least equal value.</div>
       </div>
 
-      <div class="roi-summary" id="roi-summary"></div>
-
       <div class="roi-monthly-wrap">
-        <p class="roi-section-label">Net position &middot; this month, at a glance</p>
+        <p class="roi-section-label">Ahead or behind, to date</p>
         <p class="roi-monthly-note" id="roi-monthly-note">Loading real cost &amp; benefit history&hellip;</p>
         <div id="roi-monthly-strip"></div>
       </div>
@@ -307,9 +311,18 @@
       </div>
       <div class="roi-grid" id="roi-grid"></div>
 
-      <p class="roi-footer-note">
-        The "SeaFeed gaining Xg/day" stat, the cost-accrual chart, the ahead/behind line and the monthly snapshot strip all read real history from LEL_Economics_Data (cumulative_cost_aud and weight_gain_kg_per_head, one row per farm/treatment per day since that farm's program start): genuine SeaFeed cost accrued from real lick blocks fed out and real observed weight gain, with SeaFeed and Control compared at the same number of days of weight data, not a projection, and this is the page's only "ahead or behind" verdict. The farmer/grant split on the cost chart, and every "net" figure, apply each card's own Contribution rate (%) assumption to that real cost: edit it in Adjust assumptions if the project-wide rate changes, and every real-data figure on the card updates together. Sale price (used to value the ADG advantage) auto-fills from the MLA National Heavy Steer Indicator: edit it once and this page stops touching it. The separate "Modelled annual estimate" block on each card is a projection from the assumptions in Adjust assumptions (dose &times; price &times; 365; the visitation rate is applied only to a planned dose, not to a live one, because a live dose already covers the whole mob), useful for "what would justify this" conversations, but it won't match the real cumulative figure above it unless every assumption happens to hold exactly, and it carries no verdict of its own. SeaFeed cost, contribution rate and benefit-pathway defaults in that modelled estimate reproduce the live TLEL Project Budget model (Supplement Costs, Farmer Break-Even, Project Budget sheets, as at 8 Sep 2026). Head counts default to each farm's 2026 deployment from the Beef Farm Head/Mob table: edit them to match what's actually on the ground when you're talking to a farmer. Dose auto-fills per farm from the Lick Block Tracker's own measured consumption rate (LEL_Lick_Block_Usage_History): edit it once and this page stops touching it. Cards and any farms you add are saved in this browser only.
-      </p>
+      <details class="lp-fold"><summary>Modelled annual totals, all farms <span class="lp-fold-hint">projection from each card&rsquo;s assumptions</span></summary><div class="lp-fold-body">
+        <div class="roi-summary" id="roi-summary"></div>
+      </div></details>
+
+      <details class="lp-fold lp-method"><summary>How this is calculated</summary><div class="lp-fold-body">
+        <p>&ldquo;Ahead or behind&rdquo; is the only verdict on this page. It compares the value of the extra weight SeaFeed cattle gained over Control cattle (at the same number of days of weight data, valued at the sale price) with the farmer&rsquo;s share of real SeaFeed cost. Both come from LEL_Economics_Data: real lick blocks fed out and real observed weight gain since each farm&rsquo;s start, with later cohorts chained onto the first.</p>
+        <p>&ldquo;This month so far&rdquo; is the change in the same figures since the start of the month, so it grows through the month. A farm can be behind to date and still gain ground this month.</p>
+        <p>The g/day gain on each card is since the farm&rsquo;s start, from the same economics data. The 90-day OptiWeigh figure on the Weights page uses a different window, so the two can differ.</p>
+        <p>The farmer and grant split, and every net figure, use the card&rsquo;s own contribution rate. Change it under Planning a conversation if the Project-wide rate changes. Sale price fills from the MLA National Heavy Steer Indicator and dose fills from the Lick Blocks page, until you type your own figure. Head count follows the latest SeaFeed head in the economics data.</p>
+        <p>The modelled annual estimate is a projection (dose &times; price &times; 365, with the visitation rate applied only to a planned dose). It will not match the real figures unless every assumption holds. Its defaults come from the TLEL Project Budget model (Supplement Costs, Farmer Break-Even and Project Budget sheets, 8 Sep 2026). Cards and added farms are saved in this browser only.</p>
+      </div></details>
+      <p class="lp-footer">Not for external distribution</p>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
@@ -891,7 +904,7 @@
           var netSeries = buildNetSeriesForHist(hist, c.salePrice, c.contributionRate);
           var snap = computeMonthlySnapshot(netSeries);
           if (!snap) return;
-          rows.push({ name: c.name, snap: snap });
+          rows.push({ name: c.name, snap: snap, toDate: netSeries[netSeries.length - 1].net });
         });
 
         if (!rows.length) {
@@ -900,22 +913,21 @@
           return;
         }
 
-        noteEl.textContent = 'Value generated and net cost are both "this month so far": figures grow through the month as more data lands, same as the charts below.';
+        noteEl.textContent = 'To date is since each farm started. This month so far grows through the month as data lands.';
 
         wrap.innerHTML =
           '<table class="roi-monthly-table">' +
-            '<thead><tr><th>Farm</th><th>Month</th><th class="num">Value generated</th><th class="num">Net cost (after contribution rate)</th><th class="num">Net position</th><th></th></tr></thead>' +
+            '<thead><tr><th>Farm</th><th>To date</th><th class="num">This month so far</th><th class="num">Value of extra gain</th><th class="num">Farmer share of cost</th></tr></thead>' +
             '<tbody>' +
               rows.map(function (row) {
                 var s = row.snap;
-                var ahead = s.net >= 0;
+                var ahead = row.toDate >= 0;
                 return '<tr>' +
                   '<td class="farm-name">' + escapeAttr(row.name) + '</td>' +
-                  '<td class="muted">' + s.label + '</td>' +
-                  '<td class="num tabular">' + cur(s.valueGenerated, 0) + '</td>' +
-                  '<td class="num tabular">' + cur(s.netCost, 0) + '</td>' +
-                  '<td class="num tabular ' + (ahead ? 'mint' : 'red') + '">' + (ahead ? '+' : '−') + cur(Math.abs(s.net), 0) + '</td>' +
-                  '<td><span class="roi-monthly-badge ' + (ahead ? 'mint' : 'red') + '">' + (ahead ? 'Ahead' : 'Behind') + '</span></td>' +
+                  '<td><span class="roi-monthly-badge ' + (ahead ? 'mint' : 'red') + '">' + (ahead ? 'Ahead' : 'Behind') + '</span> <b class="tabular ' + (ahead ? 'mint' : 'red') + '">' + cur(Math.abs(row.toDate), 0) + '</b></td>' +
+                  '<td class="num tabular muted">' + (s.net >= 0 ? '+' : '−') + cur(Math.abs(s.net), 0) + ' <span class="roi-month-label">(' + s.label + ')</span></td>' +
+                  '<td class="num tabular muted">' + cur(s.valueGenerated, 0) + '</td>' +
+                  '<td class="num tabular muted">' + cur(s.netCost, 0) + '</td>' +
                 '</tr>';
               }).join('') +
             '</tbody>' +
@@ -957,7 +969,7 @@
 
         var advantage = currentAdvantageGPerDay(hist);
         var advantageLine = advantage
-          ? '<p class="roi-real-data-stat">Right now: SeaFeed gaining <b class="' + (advantage.advantageGPerDay >= 0 ? 'mint' : 'red') + '">' + (advantage.advantageGPerDay >= 0 ? '+' : '−') + fmt(Math.abs(advantage.advantageGPerDay), 0) + 'g/day</b> ' + (advantage.advantageGPerDay >= 0 ? 'more' : 'less') + ' than Control (' + advantage.days + ' days of paired data)</p>'
+          ? '<p class="roi-real-data-stat">Since start: SeaFeed gaining <b class="' + (advantage.advantageGPerDay >= 0 ? 'mint' : 'red') + '">' + (advantage.advantageGPerDay >= 0 ? '+' : '−') + fmt(Math.abs(advantage.advantageGPerDay), 0) + 'g/day</b> ' + (advantage.advantageGPerDay >= 0 ? 'more' : 'less') + ' than Control (' + advantage.days + ' days of paired data)</p>'
           : '<p class="roi-real-data-stat">Not enough paired SeaFeed/Control weight data yet to state a current advantage.</p>';
 
         var monthlyRows = monthlyCostAccrual(hist.seafeed);
@@ -994,17 +1006,31 @@
             '<div class="roi-real-data-col">' +
               '<p class="roi-real-data-title">Ahead or behind on ROI, over time</p>' +
               '<div class="roi-chart-box"><canvas id="' + netCanvasId + '"></canvas></div>' +
-              '<p class="roi-chart-caption">Currently <b class="' + (latestNet >= 0 ? 'mint' : 'red') + '">' + (latestNet >= 0 ? 'ahead' : 'behind') + ' by ' + cur(Math.abs(latestNet), 0) + '</b>: observed SeaFeed-vs-Control gain (compared at the same number of days of weight data) valued at ' + cur(c.salePrice) + '/kg, against the farmer&rsquo;s own ' + fmt(c.contributionRate, 0) + '% share of real SeaFeed cost. The line starts already carrying whatever cost had accrued before enough paired weight data existed to measure a gain: real upfront spend, not a data error.</p>' +
+              '<p class="roi-chart-caption">Extra gain valued at ' + cur(c.salePrice) + '/kg, less the farmer&rsquo;s ' + fmt(c.contributionRate, 0) + '% share of SeaFeed cost. The line starts below zero because blocks were fed out before there was enough weight data to measure a gain.</p>' +
             '</div>';
         }
 
+        var verdictHtml = '';
+        if (netSeries.length >= 2) {
+          var vNet = netSeries[netSeries.length - 1].net;
+          verdictHtml = '<p class="roi-verdict ' + (vNet >= 0 ? 'ahead' : 'behind') + '"><span class="roi-verdict-label">To date</span><span class="roi-verdict-value tabular">' + (vNet >= 0 ? 'Ahead by ' : 'Behind by ') + cur(Math.abs(vNet), 0) + '</span></p>';
+        }
         return (
           '<div class="roi-real-data">' +
+            verdictHtml +
             advantageLine +
             '<div class="roi-real-data-charts">' + costCol + netCol + '</div>' +
           '</div>'
         );
       }
+
+      var openPlans = {}; // which cards have "Planning a conversation" open, kept across re-renders
+      document.getElementById('roi-grid').addEventListener('toggle', function (e) {
+        var d = e.target;
+        if (!d.classList || !d.classList.contains('roi-plan')) return;
+        var cardEl = d.closest('.roi-card[data-id]');
+        if (cardEl) openPlans[cardEl.getAttribute('data-id')] = d.open;
+      }, true);
 
       function cardHtml(c, idx) {
         var r = compute(c);
@@ -1020,6 +1046,7 @@
               '<span class="roi-headcount-label">' + (c.headCountAuto !== false ? 'SeaFeed head, live from program data' : 'head (your figure)') + '</span>' +
             '</div>' +
             realDataSectionHtml(c, idx) +
+            '<details class="lp-fold lp-fold-inline roi-plan"' + (openPlans[c.id] ? ' open' : '') + '><summary>Planning a conversation</summary><div class="lp-fold-body">' +
             '<div class="roi-annual-wrap">' +
               '<p class="roi-annual-label">Modelled annual estimate: projected from assumptions below, not actual spend</p>' +
               '<div class="roi-results">' +
@@ -1047,6 +1074,7 @@
                 salePriceFieldHtml(c) +
               '</div>' +
             '</div>' +
+            '</div></details>' +
           '</div>'
         );
       }
