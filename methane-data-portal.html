@@ -319,6 +319,7 @@
   @media (prefers-reduced-motion: reduce) { .ag-skel { animation: none !important; } }
 
   .ag-page.ag-embedded { max-width: none; padding: 0; }
+  .ag-page.ag-embedded .ag-kpi-grid + .ag-section-label { margin-top: 28px; }
 </style>
 <link rel="stylesheet" href="portal-common.css" />
 <script src="portal-common.js"></script>
@@ -829,7 +830,8 @@
     var intCtl = fmtInt(econCtl, 'ch4_intensity_baseline_kg_co2e_per_kg_lwg');
 
     var nameH = LELPortal.nameHtml(farm, allFarms || [farm]);
-    if (!latest) {
+    var noData = !latest || (latest.abatement_rate == null && latest.methane_abated_g_per_hd_day == null);
+    if (noData) {
       return '<div class="mt-card" style="border-top-color:' + color + ';">' +
         '<div class="mt-card-head"><span class="mt-dot" style="background:' + color + ';"></span><h2 class="mt-name">' + nameH + '</h2></div>' +
         '<p class="mt-empty-line">No emissions data yet. The model needs liveweight from OptiWeigh to estimate intake.</p>' +
