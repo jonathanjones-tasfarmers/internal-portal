@@ -281,7 +281,6 @@ h3.sec,.page .grid,.page>.card{scroll-margin-top:150px}
     <div class="ctrls">
       <select id="farm" aria-label="Choose a farm"></select>
       <div class="seg" id="seg" role="group" aria-label="Choose a cohort"><button data-c="1" class="on">Cohort 1</button><button data-c="2">Cohort 2</button></div>
-      <div class="view" id="aud" role="group" aria-label="View for"><button data-a="g" class="on">Governance</button><button data-a="p">Government</button></div>
     </div>
   </div>
   <nav id="nav" aria-label="Pages">
@@ -454,7 +453,7 @@ h3.sec,.page .grid,.page>.card{scroll-margin-top:150px}
     <div class="card"><h4>For the committee to note</h4><ul class="tick" id="notes_g"></ul></div>
     <div class="card"><h4>Decisions and open questions</h4><ul class="tick" id="dec_g"></ul></div>
   </div>
-  <div class="card" style="margin-top:var(--gap)"><h4>Milestones against the Grant Deed</h4><table class="ms"></table><p class="note">Status as at 17 November 2026: Milestones 3 and 4 accepted by the Grantor (acceptance dates to be added). The Deed allows milestones to complete about eight weeks after the dates shown (clause 4.1(d)). The Grant Deed refers to the product as KleenGrow; the public website uses KleenGrow.</p></div>
+  <div class="card" style="margin-top:var(--gap)"><h4>Milestones against the Grant Deed</h4><table class="ms"></table><p class="note">Status as at 17 November 2026: Milestones 3 and 4 accepted by the Grantor (acceptance dates to be added). The Deed allows milestones to complete about eight weeks after the dates shown (clause 4.1(d)). The Grant Deed refers to the product as SeaFeed; the website uses KleenGrow.</p></div>
 </section>
 
 <!-- P7 pub -->
@@ -480,7 +479,7 @@ h3.sec,.page .grid,.page>.card{scroll-margin-top:150px}
       <li><span class="p">→</span>Measured methane to test the modelled abatement</li>
       <li><span class="p">→</span>A full finishing period before economic conclusions</li></ul></div>
   </div>
-  <div class="card" style="margin-top:var(--gap)"><h4>Milestones against the Grant Deed</h4><table class="ms"></table><p class="note">Status as at 17 November 2026: Milestones 3 and 4 accepted by the Grantor (acceptance dates to be added). The Deed allows milestones to complete about eight weeks after the dates shown (clause 4.1(d)). The Grant Deed refers to the product as KleenGrow; the public website uses KleenGrow.</p></div>
+  <div class="card" style="margin-top:var(--gap)"><h4>Milestones against the Grant Deed</h4><table class="ms"></table><p class="note">Status as at 17 November 2026: Milestones 3 and 4 accepted by the Grantor (acceptance dates to be added). The Deed allows milestones to complete about eight weeks after the dates shown (clause 4.1(d)). The Grant Deed refers to the product as SeaFeed; the website uses KleenGrow.</p></div>
 </section>
 
 <!-- P8 -->
@@ -936,7 +935,7 @@ document.querySelectorAll('#aud button').forEach(b=>b.onclick=()=>{document.quer
 const MS=[['1','Foundation Activities','19 Jun to 27 Sep 2024','Project plan and budget, data protocols, animal ethics approval, historical data, on-farm technical leads','Drawdown 1: $1,500,000','done','COMPLETE','Approved 27 Sep 2024'],
 ['2','On-Farm Induction Activities','Oct 2024 to 5 May 2025','Progress Report on feed protocols, animal induction and baseline data; quarterly stakeholder reports','Instalment 2: $600,000','done','COMPLETE','Approved; paid 5 May 2025'],
 ['3','On-Farm Activities and Reporting, Phase 1','Jun to Aug 2026','Execution of Variation 1; updated Project Plan, Risk Management Plan and Agreed Budget','Drawdown 2(a) $750,000 and 2(b) $750,000','done','COMPLETE','Accepted by the Grantor'],
-['4','On-Farm Activities and Reporting, Phase 2','Jul to Aug 2026','Continuous grazing trials for beef and sheep; formal Progress Report by 30 Sep 2026','Drawdown 3: $800,000','done','COMPLETE','Progress Report 5 accepted by the Grantor'],
+['4','On-Farm Activities and Reporting, Phase 2','Jul to Aug 2026','Continuous grazing on Program farms for beef and sheep; formal Progress Report by 30 Sep 2026','Drawdown 3: $800,000','done','COMPLETE','Progress Report 5 accepted by the Grantor'],
 ['5','On-Farm Activities and Reporting, Phase 3','Sep 2026 to 31 Dec 2028','Long-term pasture-based beef and sheep/wool cohorts; bi-annual Progress and Data Reports','Not drawdown-linked','live','IN PROGRESS','Under way following acceptance of Milestone 4'],
 ['6','Final Project Report and Publication','Jan to 1 Feb 2029','Final Report, audited Financial Acquittal, producer handbook, economic feasibility calculator, viability report','Drawdown 4: $200,000','pend','DUE 1 FEB 2029','Not started']];
 document.querySelectorAll('table.ms:not(.dsrc)').forEach(t=>t.innerHTML='<tr><th>Milestone</th><th>Period</th><th>Deliverables</th><th>Funding</th><th>Status</th></tr>'+MS.map(m=>`<tr><td>${m[0]}. ${m[1]}</td><td>${m[2]}</td><td>${m[3]}</td><td>${m[4]}</td><td><span class="chip ${m[5]}">${m[6]}</span><br><span class="note">${m[7]}</span></td></tr>`).join(''));
