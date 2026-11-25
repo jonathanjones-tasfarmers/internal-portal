@@ -49,11 +49,11 @@
     3. Farm card grid: one card per farm with usage history (currently
        Bowood Farm, Eastbourne Farm), each with:
          - Farm name + "Next visit due" (from LEL_Farm_Directory).
-         - ADG advantage (SeaFeed vs Control, same g/day-advantage-%
+         - ADG advantage (KleenGrow vs Control, same g/day-advantage-%
            formula the public site uses), colour-flagged on a swing vs
            the previous reading.
-         - Cost per kg gain, SeaFeed vs Control.
-         - Lick block supply, two columns (SeaFeed | Control): on hand,
+         - Cost per kg gain, KleenGrow vs Control.
+         - Lick block supply, two columns (KleenGrow | Control): on hand,
            days left, reorder-by date/status.
        No footer links to the Lick Block Tracker / Farm Directory pages:
        removed 2026-09-02 per Jono's call, kept the cards self-contained
@@ -236,7 +236,7 @@
     </div>
     <p class="sp-supply-label">Lick block supply</p>
     <div class="sp-supply-grid">
-      <div class="sp-supply-col"><p class="sp-supply-treatment seafeed">SeaFeed</p><p class="sp-supply-stat"><span class="pp-skel pp-skel-md" style="height:11px;"></span></p><p class="sp-supply-stat"><span class="pp-skel pp-skel-sm" style="height:11px;"></span></p><p class="sp-supply-reorder"><span class="pp-skel pp-skel-md" style="height:11px;"></span></p></div>
+      <div class="sp-supply-col"><p class="sp-supply-treatment seafeed">KleenGrow</p><p class="sp-supply-stat"><span class="pp-skel pp-skel-md" style="height:11px;"></span></p><p class="sp-supply-stat"><span class="pp-skel pp-skel-sm" style="height:11px;"></span></p><p class="sp-supply-reorder"><span class="pp-skel pp-skel-md" style="height:11px;"></span></p></div>
       <div class="sp-supply-col"><p class="sp-supply-treatment">Control</p><p class="sp-supply-stat"><span class="pp-skel pp-skel-md" style="height:11px;"></span></p><p class="sp-supply-stat"><span class="pp-skel pp-skel-sm" style="height:11px;"></span></p><p class="sp-supply-reorder"><span class="pp-skel pp-skel-md" style="height:11px;"></span></p></div>
     </div>
   </div>
@@ -248,7 +248,7 @@
     </div>
     <p class="sp-supply-label">Lick block supply</p>
     <div class="sp-supply-grid">
-      <div class="sp-supply-col"><p class="sp-supply-treatment seafeed">SeaFeed</p><p class="sp-supply-stat"><span class="pp-skel pp-skel-md" style="height:11px;"></span></p><p class="sp-supply-stat"><span class="pp-skel pp-skel-sm" style="height:11px;"></span></p><p class="sp-supply-reorder"><span class="pp-skel pp-skel-md" style="height:11px;"></span></p></div>
+      <div class="sp-supply-col"><p class="sp-supply-treatment seafeed">KleenGrow</p><p class="sp-supply-stat"><span class="pp-skel pp-skel-md" style="height:11px;"></span></p><p class="sp-supply-stat"><span class="pp-skel pp-skel-sm" style="height:11px;"></span></p><p class="sp-supply-reorder"><span class="pp-skel pp-skel-md" style="height:11px;"></span></p></div>
       <div class="sp-supply-col"><p class="sp-supply-treatment">Control</p><p class="sp-supply-stat"><span class="pp-skel pp-skel-md" style="height:11px;"></span></p><p class="sp-supply-stat"><span class="pp-skel pp-skel-sm" style="height:11px;"></span></p><p class="sp-supply-reorder"><span class="pp-skel pp-skel-md" style="height:11px;"></span></p></div>
     </div>
   </div>
@@ -305,7 +305,7 @@
     });
   }
 
-  // OptiWeigh's own SeaFeed vs Control comparison, newest day's rows (written daily
+  // OptiWeigh's own KleenGrow vs Control comparison, newest day's rows (written daily
   // by 01. Optiweigh_Liveweight_Sync_v2.py). Non-fatal: the card falls back to the
   // older figure if this is unavailable.
   function fetchAdgComparison(){
@@ -412,7 +412,7 @@
     var days = Math.round(hours / 24);
     return days + (days === 1 ? " day ago" : " days ago");
   }
-  function treatmentLabel(t){ return t === 'seafeed' ? 'SeaFeed' : 'Control'; }
+  function treatmentLabel(t){ return t === 'seafeed' ? 'KleenGrow' : 'Control'; }
 
   function computeReorderRows(usageHistory, orders){
     var farms = Array.from(new Set(usageHistory.map(function(r){ return r.trial_site; }))).sort();
@@ -468,7 +468,7 @@
   // days_of_data (2026-09-02 fix: a shared min(sf.days, ct.days)
   // denominator, used here until now, inflates whichever mob has been
   // running longer whenever the two mobs' start dates differ, e.g.
-  // Bowood's SeaFeed ~mid-May vs Control 15 Jun: confirmed live producing
+  // Bowood's KleenGrow ~mid-May vs Control 15 Jun: confirmed live producing
   // a >100% "advantage" figure), as a % of control's own g/day rate.
   function computeFarmAdgPct(sf, ct){
     if (!sf || !ct || !sf.weight_gain_kg_per_head || !ct.weight_gain_kg_per_head || !sf.days_of_data || !ct.days_of_data) return null;
@@ -544,13 +544,13 @@
       adgLabel = 'ADG advantage, ' + owBest.window_days + ' days';
       adgValue = signedPct(owBest.diff_pct);
       adgClass = owBest.diff_pct >= 0 ? 'ok' : 'neg';
-      adgNote = 'SeaFeed vs Control, OptiWeigh';
+      adgNote = 'KleenGrow vs Control, OptiWeigh';
     } else {
       var adgPct = computeFarmAdgPct(sfEcon, ctEcon);
       if (adgPct != null) {
         adgValue = signedPct(adgPct);
         adgClass = adgPct >= 0 ? 'ok' : 'neg';
-        adgNote = 'SeaFeed vs Control, since program start';
+        adgNote = 'KleenGrow vs Control, since program start';
       }
     }
 
@@ -560,10 +560,10 @@
     // cost and OptiWeigh ADG over the same period. Used when both arms have it,
     // otherwise the older figure for both arms, so the two are the same method.
     if (sfEcon && ctEcon && sfEcon.cost_per_kg_gain_ow_aud != null && ctEcon.cost_per_kg_gain_ow_aud != null) {
-      costValue = 'SeaFeed $' + sfEcon.cost_per_kg_gain_ow_aud.toFixed(2) + ' · Control $' + ctEcon.cost_per_kg_gain_ow_aud.toFixed(2);
+      costValue = 'KleenGrow $' + sfEcon.cost_per_kg_gain_ow_aud.toFixed(2) + ' · Control $' + ctEcon.cost_per_kg_gain_ow_aud.toFixed(2);
       costClass = '';
     } else if (sfEcon && ctEcon && sfEcon.cost_per_kg_gain_aud != null && ctEcon.cost_per_kg_gain_aud != null) {
-      costValue = 'SeaFeed $' + sfEcon.cost_per_kg_gain_aud.toFixed(2) + ' · Control $' + ctEcon.cost_per_kg_gain_aud.toFixed(2);
+      costValue = 'KleenGrow $' + sfEcon.cost_per_kg_gain_aud.toFixed(2) + ' · Control $' + ctEcon.cost_per_kg_gain_aud.toFixed(2);
       costClass = '';
     }
 
@@ -597,7 +597,7 @@
         '<p class="sp-supply-label">Lick block supply</p>' +
         '<div class="sp-supply-grid">' +
           '<div class="sp-supply-col">' +
-            '<p class="sp-supply-treatment seafeed">SeaFeed</p>' +
+            '<p class="sp-supply-treatment seafeed">KleenGrow</p>' +
             renderSupplyCol(sfReorder) +
           '</div>' +
           '<div class="sp-supply-col">' +

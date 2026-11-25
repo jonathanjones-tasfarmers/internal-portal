@@ -1020,6 +1020,7 @@
       <div class="lp-card" id="pq-card"><p class="lp-lead">Loading pasture results&hellip;</p></div>
 
       <details class="lp-fold lp-method"><summary>How this is calculated</summary><div class="lp-fold-body">
+    <p>KleenGrow&trade; is the Sea Forest product in the lick blocks. The Grant Deed and earlier reports call it SeaFeed&trade;; both names mean the same product. The data layers still label it &ldquo;seafeed&rdquo;.</p>
         <p>Farms come from lick block usage (LEL_Lick_Block_Usage_History) and the Farm Directory table. A farm&rsquo;s later cohorts (&ldquo;&hellip; - Cohort 2&rdquo;) show on that farm&rsquo;s card, not as farms of their own. Contact details stay private in ArcGIS Online (LEL_Farm_Directory) and are edited there when signed in, along with species, committed head, stage and go-live quarter.</p>
         <p>Pasture quality is Forage Lab Australia NIR analysis of paddock samples for each mob (LEL_Pasture_Quality): crude protein and aNDF (fibre) as % of dry matter, and metabolisable energy (ME) in MJ per kg of dry matter. Higher protein and ME, and lower fibre, mean better feed. One sampling is a snapshot of that day only.</p>
         <p>A visit is overdue once its next-visit date has passed. Targets are cumulative farms and head per quarter from LEL_Onboarding_Targets, seeded from the funded budget and edited directly in ArcGIS Online. A farm counts as committed when its stage is Active, or when it has lick block usage and no stage set.</p>
@@ -1125,7 +1126,7 @@
           return FARM_COLORS[idx % FARM_COLORS.length];
         }
         function treatmentLabel(t) {
-          return t === "seafeed" ? "SeaFeed" : "Control";
+          return t === "seafeed" ? "KleenGrow" : "Control";
         }
 
         // A farm with real lick block usage history and no pipeline_stage
@@ -1739,17 +1740,17 @@
               var date = new Date(g.date).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
               var name = LELPortal.esc(LELPortal.parse(g.farm).farm);
               var out = "";
-              [["SeaFeed mob", s], ["Control mob", c]].forEach(function (m, i) {
+              [["KleenGrow mob", s], ["Control mob", c]].forEach(function (m, i) {
                 if (!m[1]) return;
                 out += "<tr><td>" + (i === 0 || !s ? "<b>" + name + "</b><br><span class=\"muted\">" + date + "</span>" : "") + "</td><td>" + m[0] + "</td>" +
                   '<td class="num">' + n(m[1].crude_protein_pct_dm, 1) + '</td><td class="num">' + n(m[1].andf_pct_dm, 1) + '</td><td class="num">' + n(m[1].me_mj_per_kg, 2) + "</td></tr>";
               });
               if (s && c) {
                 var dp = s.crude_protein_pct_dm - c.crude_protein_pct_dm, df = s.andf_pct_dm - c.andf_pct_dm, de = s.me_mj_per_kg - c.me_mj_per_kg;
-                out += '<tr><td></td><td class="muted">SeaFeed minus Control</td>' +
+                out += '<tr><td></td><td class="muted">KleenGrow minus Control</td>' +
                   '<td class="num ' + (dp < 0 ? "bad" : "good") + '">' + sd(dp, 1) + '</td><td class="num ' + (df > 0 ? "bad" : "good") + '">' + sd(df, 1) + '</td><td class="num ' + (de < 0 ? "bad" : "good") + '">' + sd(de, 2) + "</td></tr>";
-                if (dp < 0 && de < 0) notes.push(name + "&rsquo;s SeaFeed mob was on poorer pasture than its Control mob on " + date + " (lower protein and energy), which works against the SeaFeed weight result.");
-                else if (dp > 0 && de > 0) notes.push(name + "&rsquo;s SeaFeed mob was on better pasture than its Control mob on " + date + " (higher protein and energy), which flatters the SeaFeed weight result.");
+                if (dp < 0 && de < 0) notes.push(name + "&rsquo;s KleenGrow mob was on poorer pasture than its Control mob on " + date + " (lower protein and energy), which works against the KleenGrow weight result.");
+                else if (dp > 0 && de > 0) notes.push(name + "&rsquo;s KleenGrow mob was on better pasture than its Control mob on " + date + " (higher protein and energy), which flatters the KleenGrow weight result.");
               }
               return out;
             }).join("");

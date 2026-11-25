@@ -299,7 +299,7 @@
   <body>
     <div class="lp-title">
   <h1>Farm ROI</h1>
-  <p>Is each farm&rsquo;s SeaFeed gain ahead or behind its share of SeaFeed cost, to date? Edit head count and assumptions on a card when you are talking with a farmer.</p>
+  <p>Is each farm&rsquo;s KleenGrow gain ahead or behind its share of KleenGrow cost, to date? Edit head count and assumptions on a card when you are talking with a farmer.</p>
 </div>
 
     <div class="roi-page">
@@ -325,11 +325,12 @@
       </div></details>
 
       <details class="lp-fold lp-method"><summary>How this is calculated</summary><div class="lp-fold-body">
-        <p>&ldquo;Ahead or behind&rdquo; is the only verdict on this page. It compares the value of the extra weight SeaFeed cattle gained over Control cattle (at the same number of days of weight data, valued at the sale price) with the farmer&rsquo;s share of real SeaFeed cost. Both come from LEL_Economics_Data: real lick blocks fed out and real observed weight gain since each farm&rsquo;s start, with later cohorts chained onto the first.</p>
+    <p>KleenGrow&trade; is the Sea Forest product in the lick blocks. The Grant Deed and earlier reports call it SeaFeed&trade;; both names mean the same product. The data layers still label it &ldquo;seafeed&rdquo;.</p>
+        <p>&ldquo;Ahead or behind&rdquo; is the only verdict on this page. It compares the value of the extra weight KleenGrow cattle gained over Control cattle (at the same number of days of weight data, valued at the sale price) with the farmer&rsquo;s share of real KleenGrow cost. Both come from LEL_Economics_Data: real lick blocks fed out and real observed weight gain since each farm&rsquo;s start, with later cohorts chained onto the first.</p>
         <p>&ldquo;This month so far&rdquo; is the change in the same figures since the start of the month, so it grows through the month. A farm can be behind to date and still gain ground this month.</p>
         <p>The g/day gain on each card is since the farm&rsquo;s start, from the same economics data. The 90-day OptiWeigh figure on the Weights page uses a different window, so the two can differ.</p>
-        <p>Extra gain needed is the full SeaFeed cost per head for that cohort divided by the sale price, so it is the kg SeaFeed cattle must gain over Control to pay for the blocks with no subsidy; the farmer-share figure applies the contribution rate. Achieved is the SeaFeed minus Control gain at the same number of days of weight data. The cost rate is compared with the Project budget rate of $0.329 per head per day (90 g at $3.66/kg).</p>
-        <p>The farmer and grant split, and every net figure, use the card&rsquo;s own contribution rate. Change it under Planning a conversation if the Project-wide rate changes. Sale price fills from the MLA National Heavy Steer Indicator and dose fills from the Lick Blocks page, until you type your own figure. Head count follows the latest SeaFeed head in the economics data.</p>
+        <p>Extra gain needed is the full KleenGrow cost per head for that cohort divided by the sale price, so it is the kg KleenGrow cattle must gain over Control to pay for the blocks with no subsidy; the farmer-share figure applies the contribution rate. Achieved is the KleenGrow minus Control gain at the same number of days of weight data. The cost rate is compared with the Project budget rate of $0.329 per head per day (90 g at $3.66/kg).</p>
+        <p>The farmer and grant split, and every net figure, use the card&rsquo;s own contribution rate. Change it under Planning a conversation if the Project-wide rate changes. Sale price fills from the MLA National Heavy Steer Indicator and dose fills from the Lick Blocks page, until you type your own figure. Head count follows the latest KleenGrow head in the economics data.</p>
         <p>The modelled annual estimate is a projection (dose &times; price &times; 365, with the visitation rate applied only to a planned dose). It will not match the real figures unless every assumption holds. Its defaults come from the TLEL Project Budget model (Supplement Costs, Farmer Break-Even and Project Budget sheets, 8 Sep 2026). Cards and added farms are saved in this browser only.</p>
       </div></details>
       <p class="lp-footer">Not for external distribution</p>
@@ -342,7 +343,7 @@
 
       var GLOBAL_DEFAULTS = {
         dose: 150,            // g/head/day
-        price: 3.66,          // $/kg SeaFeed
+        price: 3.66,          // $/kg KleenGrow
         visitation: 60,       // %
         contributionRate: 60.23, // % (live rate, Project Budget!D86)
         carryingCost: 1.00,   // $/head/day
@@ -353,7 +354,7 @@
       };
 
       var SEED_FARMS = [
-        // CHANGED 2026-10-30: seed head counts match the trial's SeaFeed
+        // CHANGED 2026-10-30: seed head counts match the trial's KleenGrow
         // head on the public LEL site; they then follow the live
         // representative_head_count (see headCountAuto below).
         { id: 'bowood',     name: 'Bowood Farm',     headCount: 160 },
@@ -440,7 +441,7 @@
         }).catch(function (err) { console.error('MLA price fetch failed:', err); return null; });
       }
 
-      // Real per-farm SeaFeed dose rate, added 2026-09-17 per Jono's call:
+      // Real per-farm KleenGrow dose rate, added 2026-09-17 per Jono's call:
       // instead of every card assuming the same 150g/head/day, pull what
       // each farm's own lick blocks are actually delivering. Same table
       // (LEL_Lick_Block_Usage_History) and field the Lick Block Tracker
@@ -450,7 +451,7 @@
       // 06. Lick_Block_Portal_Feed.py's own comment on that field), so the
       // single latest snapshot per farm IS the right "current rate" to use
       // here too, no extra averaging needed. seafeed-only: this dose field
-      // feeds the SeaFeed cost calc specifically, Control's own consumption
+      // feeds the KleenGrow cost calc specifically, Control's own consumption
       // (if tracked) isn't part of what a farmer contributes toward.
       var USAGE_HISTORY_URL = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Lick_Block_Usage_History/FeatureServer/0/query";
       var doseByFarm = {};
@@ -517,7 +518,7 @@
       // a new key in the data ("Bowood Farm - Cohort 2") whose cumulative
       // cost and weight gain start again at zero. A card named "Bowood Farm"
       // therefore chains every cohort of that farm:
-      //   - SeaFeed cost: cumulative_cost_aud of each later cohort is
+      //   - KleenGrow cost: cumulative_cost_aud of each later cohort is
       //     offset by everything spent in the earlier ones, so the cost
       //     line carries on instead of dropping back to $0.
       //   - Benefit: each cohort's extra-kg-vs-control benefit is worked out
@@ -642,7 +643,7 @@
         return out;
       }
 
-      // Real per-farm SeaFeed cost, bucketed to calendar months and capped
+      // Real per-farm KleenGrow cost, bucketed to calendar months and capped
       // to the most recent MAX_CHART_MONTHS; trimmed AFTER computing
       // deltas across the farm's FULL history (not before), so an
       // established farm's 13th month onward doesn't inherit an inflated
@@ -658,7 +659,7 @@
         return monthly.length > MAX_CHART_MONTHS ? monthly.slice(monthly.length - MAX_CHART_MONTHS) : monthly;
       }
 
-      // Day-matched SeaFeed vs Control running series -> cumulative $
+      // Day-matched KleenGrow vs Control running series -> cumulative $
       // benefit (extra kg gained so far, valued at the card's sale price)
       // and the farmer's own cumulative cost (gross cost x contribution
       // rate; the farmer's real share, not the full gross figure).
@@ -667,11 +668,11 @@
       // per-card caption and the monthly snapshot strip all read from, so
       // none of them can quietly disagree with each other.
       function buildNetPositionSeries(sfRows, ctRows, salePrice, contributionRate) {
-        // CHANGED 2026-10-30: match SeaFeed and Control at the same number of
+        // CHANGED 2026-10-30: match KleenGrow and Control at the same number of
         // DAYS OF WEIGHT DATA, not the same calendar day. The two mobs can start
         // weighing on different dates (Bowood control started a week before
-        // SeaFeed), and a calendar match then compares 130 days of control gain
-        // with 123 days of SeaFeed gain. Last row wins for a given day count.
+        // KleenGrow), and a calendar match then compares 130 days of control gain
+        // with 123 days of KleenGrow gain. Last row wins for a given day count.
         var ctByDays = {};
         ctRows.forEach(function (r) { if (r.weight_gain_kg_per_head != null && r.days_of_data) ctByDays[r.days_of_data] = r; });
 
@@ -761,7 +762,7 @@
       // coral = behind): the same "single delta line, segment-coloured
       // shading" pattern the dashboard-design guidance calls for over two
       // raw overlapping lines, since a reader would otherwise have to do
-      // the SeaFeed-minus-cost subtraction in their head.
+      // the KleenGrow-minus-cost subtraction in their head.
       function renderNetPositionChart(canvasId, netSeries) {
         destroyChart(canvasId);
         var canvas = document.getElementById(canvasId);
@@ -842,7 +843,7 @@
       // ------------------------------------------------------------
       // AUDIT NOTE, 2026-09-18: this page used to carry a separate "Live
       // Check" panel (per card) plus a "Live check · trial to date" strip
-      // at the top, comparing the real observed SeaFeed-vs-Control gain
+      // at the top, comparing the real observed KleenGrow-vs-Control gain
       // against the MODELLED annual cost (compute().contributionPerHead:
       // dose x price x visitation x 365, not a real dollar figure). That
       // made sense as a stop-gap on 2026-09-16, before real cost history
@@ -853,7 +854,7 @@
       // cumulative $ total), which is exactly the kind of contradiction
       // that would undermine a conversation with a farmer over real money.
       // Removed for that reason. The one genuinely useful, non-duplicated
-      // thing Live Check surfaced (the observed SeaFeed advantage in
+      // thing Live Check surfaced (the observed KleenGrow advantage in
       // g/day, an easy stat to say out loud) is kept below, computed
       // straight from the same history the real charts already use, with
       // no second dollar verdict attached to it.
@@ -870,7 +871,7 @@
           var ctRate = (ct.weight_gain_kg_per_head / ct.days_of_data) * 1000;
           return { advantageGPerDay: sfRate - ctRate, days: Math.min(sf.days_of_data, ct.days_of_data) };
         }
-        return null; // no matched SeaFeed/Control day with both past the pipeline's own warm-up gate yet
+        return null; // no matched KleenGrow/Control day with both past the pipeline's own warm-up gate yet
       }
 
       function updateSummary() {
@@ -885,7 +886,7 @@
         el.innerHTML =
           '<div class="roi-summary-item"><div class="rs-label">Farms on this page</div><div class="rs-value tabular">' + cards.length + '</div><div class="rs-note">cattle program enterprises</div></div>' +
           '<div class="roi-summary-item"><div class="rs-label">Total head</div><div class="rs-value tabular">' + int(totalHead) + '</div><div class="rs-note">across all cards below</div></div>' +
-          '<div class="roi-summary-item"><div class="rs-label">Combined SeaFeed cost</div><div class="rs-value tabular">' + cur(totalCost, 0) + '</div><div class="rs-note">per year, at each card’s own settings</div></div>' +
+          '<div class="roi-summary-item"><div class="rs-label">Combined KleenGrow cost</div><div class="rs-value tabular">' + cur(totalCost, 0) + '</div><div class="rs-note">per year, at each card’s own settings</div></div>' +
           '<div class="roi-summary-item"><div class="rs-label">Combined contribution needed</div><div class="rs-value tabular" style="color:var(--tf-seafeed)">' + cur(totalContribution, 0) + '</div><div class="rs-note">at each card’s own rate</div></div>';
       }
 
@@ -970,17 +971,17 @@
       // ------------------------------------------------------------
       function realDataSectionHtml(c, idx) {
         if (!econHistoryReady) {
-          return '<div class="roi-real-data"><p class="roi-real-data-loading">Loading real SeaFeed cost &amp; benefit history&hellip;</p></div>';
+          return '<div class="roi-real-data"><p class="roi-real-data-loading">Loading real KleenGrow cost &amp; benefit history&hellip;</p></div>';
         }
         var hist = econHistoryByFarm[c.name];
         if (!hist || !hist.seafeed.length) {
-          return '<div class="roi-real-data"><p class="roi-real-data-empty">No live SeaFeed cost history found under the farm name &ldquo;' + escapeAttr(c.name) + '&rdquo; yet. Rename this card to match a live participating farm, or check back once it has logged Lick Block data.</p></div>';
+          return '<div class="roi-real-data"><p class="roi-real-data-empty">No live KleenGrow cost history found under the farm name &ldquo;' + escapeAttr(c.name) + '&rdquo; yet. Rename this card to match a live participating farm, or check back once it has logged Lick Block data.</p></div>';
         }
 
         var advantage = currentAdvantageGPerDay(hist);
         var advantageLine = advantage
-          ? '<p class="roi-real-data-stat">Since start: SeaFeed gaining <b class="' + (advantage.advantageGPerDay >= 0 ? 'mint' : 'red') + '">' + (advantage.advantageGPerDay >= 0 ? '+' : '−') + fmt(Math.abs(advantage.advantageGPerDay), 0) + 'g/day</b> ' + (advantage.advantageGPerDay >= 0 ? 'more' : 'less') + ' than Control (' + advantage.days + ' days of paired data)</p>'
-          : '<p class="roi-real-data-stat">Not enough paired SeaFeed/Control weight data yet to state a current advantage.</p>';
+          ? '<p class="roi-real-data-stat">Since start: KleenGrow gaining <b class="' + (advantage.advantageGPerDay >= 0 ? 'mint' : 'red') + '">' + (advantage.advantageGPerDay >= 0 ? '+' : '−') + fmt(Math.abs(advantage.advantageGPerDay), 0) + 'g/day</b> ' + (advantage.advantageGPerDay >= 0 ? 'more' : 'less') + ' than Control (' + advantage.days + ' days of paired data)</p>'
+          : '<p class="roi-real-data-stat">Not enough paired KleenGrow/Control weight data yet to state a current advantage.</p>';
 
         var monthlyRows = monthlyCostAccrual(hist.seafeed);
         var totalCost = monthlyRows.length ? monthlyRows[monthlyRows.length - 1].cumAtEnd : 0;
@@ -989,7 +990,7 @@
         var costCanvasId = 'roi-cost-chart-' + idx;
         var costCol =
           '<div class="roi-real-data-col">' +
-            '<p class="roi-real-data-title">SeaFeed cost accrued &middot; last ' + monthlyRows.length + (monthlyRows.length === 1 ? ' month' : ' months') + '</p>' +
+            '<p class="roi-real-data-title">KleenGrow cost accrued &middot; last ' + monthlyRows.length + (monthlyRows.length === 1 ? ' month' : ' months') + '</p>' +
             '<div class="roi-chart-box"><canvas id="' + costCanvasId + '"></canvas></div>' +
             '<p class="roi-chart-caption">Cumulative to date: <b>' + cur(totalCost, 0) + '</b> (farmer ' + cur(farmerTotal, 0) + ' &middot; grant-covered ' + cur(grantTotal, 0) + ', at the current ' + fmt(c.contributionRate, 0) + '% contribution rate)</p>' +
           '</div>';
@@ -1000,13 +1001,13 @@
           netCol =
             '<div class="roi-real-data-col">' +
               '<p class="roi-real-data-title">Ahead or behind on ROI, over time</p>' +
-              '<p class="roi-real-data-empty">Needs paired SeaFeed/Control weight readings before an ahead/behind line can be drawn. Check back as more data comes in.</p>' +
+              '<p class="roi-real-data-empty">Needs paired KleenGrow/Control weight readings before an ahead/behind line can be drawn. Check back as more data comes in.</p>' +
             '</div>';
         } else {
           var netCanvasId = 'roi-net-chart-' + idx;
           var latestNet = netSeries[netSeries.length - 1].net;
           // "Starts underwater" caveat: the line's first plotted point is
-          // real cost already accrued (weeks of SeaFeed fed out) BEFORE the
+          // real cost already accrued (weeks of KleenGrow fed out) BEFORE the
           // Economics pipeline had enough paired weight data to compute a
           // gain at all, so it opens at a large negative number rather than
           // ramping up from zero. That's a genuine early-trial pattern
@@ -1016,7 +1017,7 @@
             '<div class="roi-real-data-col">' +
               '<p class="roi-real-data-title">Ahead or behind on ROI, over time</p>' +
               '<div class="roi-chart-box"><canvas id="' + netCanvasId + '"></canvas></div>' +
-              '<p class="roi-chart-caption">Extra gain valued at ' + cur(c.salePrice) + '/kg, less the farmer&rsquo;s ' + fmt(c.contributionRate, 0) + '% share of SeaFeed cost. The line starts below zero because blocks were fed out before there was enough weight data to measure a gain.</p>' +
+              '<p class="roi-chart-caption">Extra gain valued at ' + cur(c.salePrice) + '/kg, less the farmer&rsquo;s ' + fmt(c.contributionRate, 0) + '% share of KleenGrow cost. The line starts below zero because blocks were fed out before there was enough weight data to measure a gain.</p>' +
             '</div>';
         }
 
@@ -1045,9 +1046,9 @@
 
       // ------------------------------------------------------------
       // COHORT CHECK (added 2026-11-26, from the Project Results site):
-      // for each cohort, the extra kg per head SeaFeed would need to gain to
+      // for each cohort, the extra kg per head KleenGrow would need to gain to
       // pay for itself against the extra kg it actually gained over the same
-      // number of days of weight data, plus the SeaFeed cost rate against
+      // number of days of weight data, plus the KleenGrow cost rate against
       // the Project budget rate (90 g/head/day x $3.66/kg = $0.329).
       // ------------------------------------------------------------
       var BUDGET_RATE = 0.329;
@@ -1083,7 +1084,7 @@
           var rate = o.rate == null ? '' : '<span class="roi-cc-rate">Cost ' + cur(o.rate) + '/head/day, ' + Math.round(o.rate / BUDGET_RATE * 100) + '% of the $0.329 budget rate</span>';
           return '<div class="roi-cc-row"><span class="roi-cc-label">' + o.label + '</span><span class="roi-cc-gain">' + gain + '</span>' + rate + '</div>';
         }).join('');
-        return '<div class="roi-cc"><p class="roi-real-data-title">Extra gain per head: needed to cover full SeaFeed cost vs achieved</p>' + rows + '</div>';
+        return '<div class="roi-cc"><p class="roi-real-data-title">Extra gain per head: needed to cover full KleenGrow cost vs achieved</p>' + rows + '</div>';
       }
 
       function cardHtml(c, idx) {
@@ -1097,15 +1098,15 @@
             '</div>' +
             '<div class="roi-headcount-row">' +
               '<input class="roi-headcount-input tabular" type="number" min="0" step="10" value="' + c.headCount + '" data-field="headCount">' +
-              '<span class="roi-headcount-label">' + (c.headCountAuto !== false ? 'SeaFeed head, live from program data' : 'head (your figure)') + '</span>' +
+              '<span class="roi-headcount-label">' + (c.headCountAuto !== false ? 'KleenGrow head, live from program data' : 'head (your figure)') + '</span>' +
             '</div>' +
             realDataSectionHtml(c, idx) +
             '<details class="lp-fold lp-fold-inline roi-plan"' + (openPlans[c.id] ? ' open' : '') + '><summary>Planning a conversation</summary><div class="lp-fold-body">' +
             '<div class="roi-annual-wrap">' +
               '<p class="roi-annual-label">Modelled annual estimate: projected from assumptions below, not actual spend</p>' +
               '<div class="roi-results">' +
-                '<div class="roi-result-row"><span class="roi-result-label">SeaFeed cost / head / year</span><span class="roi-result-value tabular">' + cur(r.costPerHeadYear) + '</span></div>' +
-                '<div class="roi-result-row"><span class="roi-result-label">Farm SeaFeed cost / year</span><span class="roi-result-value tabular">' + cur(r.totalAnnualCost, 0) + '</span></div>' +
+                '<div class="roi-result-row"><span class="roi-result-label">KleenGrow cost / head / year</span><span class="roi-result-value tabular">' + cur(r.costPerHeadYear) + '</span></div>' +
+                '<div class="roi-result-row"><span class="roi-result-label">Farm KleenGrow cost / year</span><span class="roi-result-value tabular">' + cur(r.totalAnnualCost, 0) + '</span></div>' +
                 '<div class="roi-result-row"><span class="roi-result-label">Contribution rate</span><span class="roi-result-value tabular">' + fmt(c.contributionRate, 2) + '%</span></div>' +
                 '<div class="roi-result-row roi-headline"><span class="roi-result-label">Farmer needs to contribute / head</span><span class="roi-result-value tabular">' + cur(r.contributionPerHead) + '</span></div>' +
                 '<div class="roi-result-row roi-headline"><span class="roi-result-label">Total for this farm</span><span class="roi-result-value tabular">' + cur(r.totalContribution, 0) + '</span></div>' +
@@ -1114,10 +1115,10 @@
             '</div>' +
             '<button type="button" class="roi-toggle-btn" data-action="toggle">' + (isOpen ? 'Hide assumptions' : 'Adjust assumptions') + '</button>' +
             '<div class="roi-inline-form' + (isOpen ? ' open' : '') + '">' +
-              '<div class="roi-field-group-label">SeaFeed dosing &amp; cost</div>' +
+              '<div class="roi-field-group-label">KleenGrow dosing &amp; cost</div>' +
               '<div class="roi-field-grid">' +
                 doseFieldHtml(c) +
-                field('SeaFeed price ($/kg)', 'price', c.price, 0.01) +
+                field('KleenGrow price ($/kg)', 'price', c.price, 0.01) +
                 field('Visitation rate (%), planned dose only', 'visitation', c.visitation, 1) +
                 field('Contribution rate (%)', 'contributionRate', c.contributionRate, 0.01) +
               '</div>' +
@@ -1284,8 +1285,8 @@
         var r = compute(card);
         var resultsEl = cardEl.querySelector('.roi-results');
         resultsEl.innerHTML =
-          '<div class="roi-result-row"><span class="roi-result-label">SeaFeed cost / head / year</span><span class="roi-result-value tabular">' + cur(r.costPerHeadYear) + '</span></div>' +
-          '<div class="roi-result-row"><span class="roi-result-label">Farm SeaFeed cost / year</span><span class="roi-result-value tabular">' + cur(r.totalAnnualCost, 0) + '</span></div>' +
+          '<div class="roi-result-row"><span class="roi-result-label">KleenGrow cost / head / year</span><span class="roi-result-value tabular">' + cur(r.costPerHeadYear) + '</span></div>' +
+          '<div class="roi-result-row"><span class="roi-result-label">Farm KleenGrow cost / year</span><span class="roi-result-value tabular">' + cur(r.totalAnnualCost, 0) + '</span></div>' +
           '<div class="roi-result-row"><span class="roi-result-label">Contribution rate</span><span class="roi-result-value tabular">' + fmt(card.contributionRate, 2) + '%</span></div>' +
           '<div class="roi-result-row roi-headline"><span class="roi-result-label">Farmer needs to contribute / head</span><span class="roi-result-value tabular">' + cur(r.contributionPerHead) + '</span></div>' +
           '<div class="roi-result-row roi-headline"><span class="roi-result-label">Total for this farm</span><span class="roi-result-value tabular">' + cur(r.totalContribution, 0) + '</span></div>';
@@ -1388,7 +1389,7 @@
         econHistoryByFarm = chainCohortHistories(results[2]);
         econHistoryReady = true;
 
-        // CHANGED 2026-10-30: head count follows the SeaFeed head in the
+        // CHANGED 2026-10-30: head count follows the KleenGrow head in the
         // latest economics row, the same figure the public LEL site shows.
         // A typed head count (headCountAuto false) is left alone.
         cards.forEach(function (c) {

@@ -120,7 +120,7 @@
      newer top-border card language used across Farm Directory/Weight
      Data/Lick Block Tracker's farm cards. One accent colour (mint) per
      the dashboard-design conventions: these are all "good news" figures
-     about SeaFeed's effect, so no red/amber semantic colouring needed
+     about KleenGrow's effect, so no red/amber semantic colouring needed
      here the way a stale-data badge would use it. */
   .mt-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 28px; }
   .mt-kpi-card { background: var(--surface-card); border: 1px solid var(--border-subtle); border-top: 4px solid var(--tf-seafeed); border-radius: var(--radius-lg); padding: 18px 20px; box-shadow: var(--shadow-sm); box-sizing: border-box; }
@@ -137,7 +137,7 @@
 
   /* Leaderboard: added 2026-09-08, per Jono's request, mirrors Weight
      Data's ADG leaderboard pattern. Ranks farms by abatement rate %
-     (latest SeaFeed reading) rather than raw CH4 abated or cumulative
+     (latest KleenGrow reading) rather than raw CH4 abated or cumulative
      CO2e: a rate is fair to compare across farms of different herd
      sizes and different trial start dates, where a cumulative figure
      would just reward whichever farm has been running longest. Same
@@ -328,7 +328,7 @@
 
 <div class="lp-title">
   <h1>Methane</h1>
-  <p>Modelled methane abatement from SeaFeed for every farm, then measured breath methane from the AgScent sensor at Bowood. Closed cohorts are in the Archive.</p>
+  <p>Modelled methane abatement from KleenGrow for every farm, then measured breath methane from the AgScent sensor at Bowood. Closed cohorts are in the Archive.</p>
 </div>
 
 <div class="mt-page">
@@ -365,7 +365,7 @@
 
   <section id="agscent">
     <h2 class="lp-section">Measured with AgScent</h2>
-    <p class="lp-section-sub">Breath methane measured by the AgScent sensor on Bowood&rsquo;s OptiWeigh unit, SeaFeed animals only, compared with what an untreated animal of the same weight would be expected to emit.</p>
+    <p class="lp-section-sub">Breath methane measured by the AgScent sensor on Bowood&rsquo;s OptiWeigh unit, KleenGrow animals only, compared with what an untreated animal of the same weight would be expected to emit.</p>
     <select class="ag-select" id="ag-farm" aria-label="Farm" style="display:none;"></select>
 <div class="ag-page ag-embedded">
 
@@ -391,7 +391,7 @@
     <div class="ag-grid" style="margin-top:16px;">
       <div class="ag-card">
         <h3>Each animal against its expectation</h3>
-        <p class="ag-card-sub">Measured g CH4/day as a % of the Charmley expectation for that animal's weight. The top line is the untreated expectation (100%). The dashed line is where the pipeline's modelled abatement says SeaFeed animals should sit.</p>
+        <p class="ag-card-sub">Measured g CH4/day as a % of the Charmley expectation for that animal's weight. The top line is the untreated expectation (100%). The dashed line is where the pipeline's modelled abatement says KleenGrow animals should sit.</p>
         <div class="ag-chart-box tall"><canvas id="ag-ch-ratio" aria-label="Measured as a share of expected, by animal"></canvas></div>
         <div class="ag-empty" id="ag-ratio-empty">Not enough animals pass the quality filters yet.</div>
       </div>
@@ -461,7 +461,7 @@
     <details class="lp-fold"><summary>Animals <span class="lp-fold-hint">one row per EID, with CSV export</span></summary><div class="lp-fold-body">
 
     
-    <p class="ag-section-intro">One row per EID. Reliability is by valid visit count: Reliable <span id="ag-minrel"></span> or more, Indicative <span id="ag-minind2"></span> to <span id="ag-minrel2"></span>, Too few below that. All animals are in the SeaFeed treatment group.</p>
+    <p class="ag-section-intro">One row per EID. Reliability is by valid visit count: Reliable <span id="ag-minrel"></span> or more, Indicative <span id="ag-minind2"></span> to <span id="ag-minrel2"></span>, Too few below that. All animals are in the KleenGrow treatment group.</p>
     <div class="ag-table-wrap">
       <div class="ag-table-tools">
         <input class="ag-input" id="ag-search" type="search" placeholder="Search EID" aria-label="Search EID">
@@ -499,9 +499,9 @@
         <li>The sensor samples an animal's breath during voluntary visits to the OptiWeigh unit. It is a short window, so it ranks animals against each other better than it gives an absolute daily total.</li>
         <li>Only visits where AgScent found a methane peak get an emission estimate. Longer visits are far more likely to, so the estimates describe those visits, not every visit.</li>
         <li>Estimates are in grams of CH4 per day. AgScent's export does not say which method (Bell or Madsen) produced them, or whether the AVG or MAX column is the one to use, and the two give very different results.</li>
-        <li>Expected methane is Charmley's equation applied to each animal's weight. TIA found this same sensor reads roughly a third of that on untreated animals, so a measured figure well below 100% is not by itself proof of SeaFeed's effect.</li>
+        <li>Expected methane is Charmley's equation applied to each animal's weight. TIA found this same sensor reads roughly a third of that on untreated animals, so a measured figure well below 100% is not by itself proof of KleenGrow's effect.</li>
         <li>Individual visits vary a lot. Use animal figures only when marked Reliable, and herd trends only where the week has enough visits.</li>
-        <li>All readings are from SeaFeed-fed animals. Bowood is the only farm with a unit, so there is no control group in this data and no comparison to draw from it.</li>
+        <li>All readings are from KleenGrow-fed animals. Bowood is the only farm with a unit, so there is no control group in this data and no comparison to draw from it.</li>
       </ul>
     </div></div></details>
   </div>
@@ -509,9 +509,10 @@
   </section>
 
   <details class="lp-fold lp-method"><summary>How this is calculated</summary><div class="lp-fold-body">
+    <p>KleenGrow&trade; is the Sea Forest product in the lick blocks. The Grant Deed and earlier reports call it SeaFeed&trade;; both names mean the same product. The data layers still label it &ldquo;seafeed&rdquo;.</p>
     <p id="mt-method-text">Loading methodology note&hellip;</p>
     <p>Emissions intensity is modelled CH4 over the same days as the mob&rsquo;s weight gain, divided by that gain, in kg CO2e per kg liveweight gain. Control uses the standard block.</p>
-    <p>Lab results are AST laboratory bromoform tests (mg/kg, wet matter basis) of the outer and inner layers of sampled blocks, from LEL_Lickblock_Sampling. A farm&rsquo;s figure is the mean of its SeaFeed samples. Change in storage compares the same pallet sampled at the start and the end. The methane model uses the single figure in LEL_Model_Assumptions_Public for every block, so where the lab finds less, modelled abatement is likely too high.</p>
+    <p>Lab results are AST laboratory bromoform tests (mg/kg, wet matter basis) of the outer and inner layers of sampled blocks, from LEL_Lickblock_Sampling. A farm&rsquo;s figure is the mean of its KleenGrow samples. Change in storage compares the same pallet sampled at the start and the end. The methane model uses the single figure in LEL_Model_Assumptions_Public for every block, so where the lab finds less, modelled abatement is likely too high.</p>
     <p>Sources: LEL_Emissions_Data (daily abatement rate and CH4) &middot; LEL_Economics_Data (cumulative CO2e, emissions intensity) &middot; LEL_Industry_Benchmarks (AR5 100-year GWP) &middot; LEL_Methane_Visits (AgScent visits, loaded by 16. AgScent_Methane_Import.py; times in Tasmanian local time).</p>
   </div></details>
   <p class="lp-footer">Not for external distribution</p>
@@ -535,7 +536,7 @@
   var MINT = '#3aa989', SLATE = '#a9b8c4';
   var DEFAULT_GWP = 28; // AR5 100-year methane GWP: same fallback page-5-data.html uses if the benchmarks lookup fails
 
-  var FALLBACK_METHOD_TEXT = "Baseline enteric methane is modelled from each animal's liveweight using Charmley et al. (2016)'s universal equation for forage-fed cattle (CH4 g/day = 20.7 x dry matter intake), with intake estimated at 2.5% of bodyweight per Sea Forest's guidance. The abatement rate applied against that baseline comes from the bromoform each animal eats per kg of dry matter (SeaFeed block intake x 700 mg bromoform per kg of block), through the beef dose-response in Goloja et al. (2026), BMC Agriculture 2:4. CO2e figures use the AR5 100-year methane global warming potential factor.";
+  var FALLBACK_METHOD_TEXT = "Baseline enteric methane is modelled from each animal's liveweight using Charmley et al. (2016)'s universal equation for forage-fed cattle (CH4 g/day = 20.7 x dry matter intake), with intake estimated at 2.5% of bodyweight per Sea Forest's guidance. The abatement rate applied against that baseline comes from the bromoform each animal eats per kg of dry matter (KleenGrow block intake x 700 mg bromoform per kg of block), through the beef dose-response in Goloja et al. (2026), BMC Agriculture 2:4. CO2e figures use the AR5 100-year methane global warming potential factor.";
 
   function q(url, params){
     return fetch(url + "?" + new URLSearchParams(params)).then(function(res){ return res.json(); }).then(function(data){
@@ -584,7 +585,7 @@
       if (!row || row.dmi_pct_of_bodyweight == null || row.charmley_my_g_per_kg_dmi == null) return FALLBACK_METHOD_TEXT;
       var dmiPct = (row.dmi_pct_of_bodyweight * 100).toFixed(1);
       return "Baseline enteric methane is modelled from each animal's liveweight: estimated dry matter intake (" + dmiPct + "% of bodyweight) x " +
-        row.charmley_my_g_per_kg_dmi + " g CH4/kg DMI (" + (row.ym_source_note || "Charmley et al. 2016") + "). The abatement rate applied against that baseline comes from the bromoform each animal eats per kg of dry matter (SeaFeed block intake x 700 mg bromoform per kg of block), through the beef dose-response in Goloja et al. (2026), BMC Agriculture 2:4. CO2e figures use the AR5 100-year methane global warming potential factor.";
+        row.charmley_my_g_per_kg_dmi + " g CH4/kg DMI (" + (row.ym_source_note || "Charmley et al. 2016") + "). The abatement rate applied against that baseline comes from the bromoform each animal eats per kg of dry matter (KleenGrow block intake x 700 mg bromoform per kg of block), through the beef dose-response in Goloja et al. (2026), BMC Agriculture 2:4. CO2e figures use the AR5 100-year methane global warming potential factor.";
     }).catch(function(){ return FALLBACK_METHOD_TEXT; });
   }
 
@@ -688,7 +689,7 @@
 
     renderKpis(gwp, historyByFarm, econByFarm, farms);
 
-    // Latest SeaFeed reading per farm: computed once, shared by the farm
+    // Latest KleenGrow reading per farm: computed once, shared by the farm
     // cards and the leaderboard below, so the two can never disagree with
     // each other (same "single source of truth" convention as
     // computeAdgPct() on the Weight Data page).
@@ -763,9 +764,9 @@
     }).length;
 
     var cards = [
-      { label: 'Program CO2e abated to date', value: totalTonnesCo2e > 0 ? co2eDisplay : '–', note: 'All cohorts, SeaFeed vs modelled baseline' },
+      { label: 'Program CO2e abated to date', value: totalTonnesCo2e > 0 ? co2eDisplay : '–', note: 'All cohorts, KleenGrow vs modelled baseline' },
       { label: 'Current abatement rate', value: latestAgg && latestAgg.abatement_rate != null ? latestAgg.abatement_rate + '%' : '–', note: latestAgg ? 'as of ' + fmtDate(latestAgg.record_date) : 'No data yet' },
-      { label: 'Current SeaFeed intake', value: latestAgg && latestAgg.intake_g_per_hd_day != null ? Math.round(latestAgg.intake_g_per_hd_day) + ' g/hd/day' : '–', note: 'Program-wide, head-count-weighted' },
+      { label: 'Current KleenGrow intake', value: latestAgg && latestAgg.intake_g_per_hd_day != null ? Math.round(latestAgg.intake_g_per_hd_day) + ' g/hd/day' : '–', note: 'Program-wide, head-count-weighted' },
       { label: 'Farms with methane data', value: String(farmsReporting), note: 'current cohorts' }
     ];
 
@@ -775,7 +776,7 @@
   }
 
   // ------------------------------------------------------------
-  // LEADERBOARD: ranks farms by abatement rate % (latest SeaFeed
+  // LEADERBOARD: ranks farms by abatement rate % (latest KleenGrow
   // reading, same figure shown on each card below, deliberately not a
   // separate computation, see latestByFarm in render()). Farms with no
   // reading yet are listed separately, unranked, rather than silently
@@ -841,13 +842,13 @@
         '<p class="mt-empty-line">No emissions data yet. The model needs liveweight from OptiWeigh to estimate intake.</p>' +
         '</div>';
     }
-    // Intensity as three bars on one scale (2026-11-25): Control, SeaFeed with no
-    // abatement, SeaFeed after abatement. Same three figures the card used to show
+    // Intensity as three bars on one scale (2026-11-25): Control, KleenGrow with no
+    // abatement, KleenGrow after abatement. Same three figures the card used to show
     // as separate tiles.
     var ints = [
       { label: 'Control', v: econCtl && econCtl.ch4_intensity_baseline_kg_co2e_per_kg_lwg, cls: 'ctl', note: 'standard block' },
-      { label: 'SeaFeed, no abatement', v: econ && econ.ch4_intensity_baseline_kg_co2e_per_kg_lwg, cls: 'base', note: 'modelled baseline' },
-      { label: 'SeaFeed, after abatement', v: econ && econ.ch4_intensity_kg_co2e_per_kg_lwg, cls: 'net', note: 'net of SeaFeed' }
+      { label: 'KleenGrow, no abatement', v: econ && econ.ch4_intensity_baseline_kg_co2e_per_kg_lwg, cls: 'base', note: 'modelled baseline' },
+      { label: 'KleenGrow, after abatement', v: econ && econ.ch4_intensity_kg_co2e_per_kg_lwg, cls: 'net', note: 'net of KleenGrow' }
     ];
     var intMax = Math.max.apply(null, ints.map(function(i){ return i.v || 0; })) || 1;
     var intHtml = ints.some(function(i){ return i.v != null; })
@@ -870,8 +871,8 @@
       '<div class="mt-chart-box"><canvas id="' + prefix + '-chart"></canvas><p class="mt-chart-empty" id="' + prefix + '-chart-empty">No emissions history to chart yet.</p></div>' +
       '<details class="lp-fold lp-fold-inline"><summary>Dose and intake detail</summary><div class="lp-fold-body">' +
       '<div class="mt-stat-grid">' +
-      '<div><span class="mt-stat-label">Bromoform dose</span><span class="mt-stat-value">' + dose + '</span><span class="mt-stat-sub">mg/kg DMI, SeaFeed</span></div>' +
-      '<div><span class="mt-stat-label">Intake per kg LW</span><span class="mt-stat-value">' + perKg + '</span><span class="mt-stat-sub">g/kg/day, SeaFeed</span></div>' +
+      '<div><span class="mt-stat-label">Bromoform dose</span><span class="mt-stat-value">' + dose + '</span><span class="mt-stat-sub">mg/kg DMI, KleenGrow</span></div>' +
+      '<div><span class="mt-stat-label">Intake per kg LW</span><span class="mt-stat-value">' + perKg + '</span><span class="mt-stat-sub">g/kg/day, KleenGrow</span></div>' +
       '<div><span class="mt-stat-label">Control per kg LW</span><span class="mt-stat-value">' + perKgCtl + '</span><span class="mt-stat-sub">g/kg/day, standard block</span></div>' +
       '</div>' +
       '<p class="mt-chart-title">Bromoform dose (mg/kg DMI)</p>' +
@@ -883,7 +884,7 @@
   }
 
   // ------------------------------------------------------------
-  // CHART: baseline CH4 (what this mob would emit without SeaFeed, slate
+  // CHART: baseline CH4 (what this mob would emit without KleenGrow, slate
   // dashed) vs CH4 abated (mint, the actual cut): same lineChart()
   // conventions as Weight Data / farmer-portal-template.html, spanGaps so
   // a missing day doesn't visually break the line.
@@ -921,9 +922,9 @@
   }
 
   // ------------------------------------------------------------
-  // DOSE + INTAKE PER KG CHARTS (added 2026-11-24). Dose: SeaFeed only,
+  // DOSE + INTAKE PER KG CHARTS (added 2026-11-24). Dose: KleenGrow only,
   // with the model's 35.7 mg/kg ceiling noted in the tooltip title. Intake
-  // per kg: SeaFeed (mint) against the standard-block control (slate), on
+  // per kg: KleenGrow (mint) against the standard-block control (slate), on
   // the same day axis.
   // ------------------------------------------------------------
   function smallLine(canvas, labels, sets, unit, places){
@@ -955,7 +956,7 @@
     if (sf.some(function(r){ return r.bromoform_mg_per_kg_dmi != null; })) {
       document.getElementById(prefix + '-dose-empty').style.display = 'none';
       smallLine(doseCanvas, sf.map(function(r){ return fmtDateShort(r.record_date); }),
-        [{ label: 'SeaFeed dose', data: sf.map(function(r){ return r.bromoform_mg_per_kg_dmi; }), color: MINT }], 'mg/kg DMI', 1);
+        [{ label: 'KleenGrow dose', data: sf.map(function(r){ return r.bromoform_mg_per_kg_dmi; }), color: MINT }], 'mg/kg DMI', 1);
     } else { doseCanvas.style.display = 'none'; document.getElementById(prefix + '-dose-empty').style.display = 'block'; }
 
     var kgCanvas = document.getElementById(prefix + '-perkg');
@@ -963,7 +964,7 @@
       document.getElementById(prefix + '-perkg-empty').style.display = 'none';
       var pick = function(t){ return days.map(function(k){ var r = byDay[k][t]; return r && r.intake_g_per_kg_lw != null ? r.intake_g_per_kg_lw : null; }); };
       smallLine(kgCanvas, days, [
-        { label: 'SeaFeed', data: pick('seafeed'), color: MINT },
+        { label: 'KleenGrow', data: pick('seafeed'), color: MINT },
         { label: 'Control', data: pick('control'), color: SLATE, dash: [4, 3] }
       ], 'g/kg', 3);
     } else { kgCanvas.style.display = 'none'; document.getElementById(prefix + '-perkg-empty').style.display = 'block'; }
@@ -1103,7 +1104,7 @@
       kpi('Visits', fmtInt(rows.length), fmtDay(first) + ' to ' + fmtDay(last)) +
       kpi('With an estimate', Math.round(withEst.length / rows.length * 100) + '%', fmtInt(withEst.length) + ' of ' + fmtInt(rows.length) + ' visits', withEst.length / rows.length < 0.5 ? 'warn' : '') +
       kpi('Days with data', dayKeys.length + ' of ' + span, Math.round(dayKeys.length / span * 100) + '% of the period', dayKeys.length / span < 0.7 ? 'warn' : '') +
-      kpi('Group', 'SeaFeed', 'All readings are treatment animals') +
+      kpi('Group', 'KleenGrow', 'All readings are treatment animals') +
       kpi('Median estimate', fmt1(medEst), 'g CH4/day per valid visit (sensor reads low, see below)');
 
     renderEstimate(rows);
@@ -1309,18 +1310,18 @@
     var neg = function(v){ return (v < 0 ? '\u2212' : '') + Math.abs(Math.round(v * 100)) + '%'; };
     var modelled = MODEL.abate != null ? 1 - MODEL.abate / 100 : null;
     grid.innerHTML =
-      cell('Expected without SeaFeed', fmt1(expected) + ' g', 'Charmley: weight x ' + (MODEL.dmi * 100).toFixed(1) + '% intake x ' + MODEL.my + ' g CH4/kg, averaged over these animals.') +
+      cell('Expected without KleenGrow', fmt1(expected) + ' g', 'Charmley: weight x ' + (MODEL.dmi * 100).toFixed(1) + '% intake x ' + MODEL.my + ' g CH4/kg, averaged over these animals.') +
       cell('Measured', fmt1(measured) + ' g', 'AgScent, g CH4/day. ' + animals.length + ' animals, ' + fmtInt(used.length) + ' visits.') +
       cell('Measured vs expected', pctTxt(k), 'Under 100% means below the untreated expectation.') +
       cell('Below expected by', neg(below), 'Range ' + neg(lo) + ' to ' + neg(hi) + ' (95%, sampling only)', true) +
-      cell('Modelled abatement', MODEL.abate != null ? MODEL.abate.toFixed(1) + '%' : '\u2013', modelled != null ? 'Pipeline figure. The model puts SeaFeed animals at about ' + pctTxt(modelled) + ' of expected.' : 'Pipeline figure for this farm.');
+      cell('Modelled abatement', MODEL.abate != null ? MODEL.abate.toFixed(1) + '%' : '\u2013', modelled != null ? 'Pipeline figure. The model puts KleenGrow animals at about ' + pctTxt(modelled) + ' of expected.' : 'Pipeline figure for this farm.');
 
     var v = 'Averaged over ' + animals.length + ' animals, measured methane is ' + neg(below) + ' ' + (below >= 0 ? 'below' : 'above') + ' Charmley\'s expectation for animals of their weight (95% range ' + neg(lo) + ' to ' + neg(hi) + ').';
     if (modelled != null) {
       var mo = MODEL.abate / 100;
       v += ' The pipeline\'s modelled abatement is ' + MODEL.abate.toFixed(1) + '%, so the measured figure is ' + (below > mo ? 'further below expected than the model predicts' : (below < mo ? 'not as far below expected as the model predicts' : 'in line with the model')) + '.';
     }
-    v += ' Caution: TIA found this same sensor reading about a third of Charmley on untreated animals, so this gap is not all SeaFeed.';
+    v += ' Caution: TIA found this same sensor reading about a third of Charmley on untreated animals, so this gap is not all KleenGrow.';
     verdict.textContent = v;
 
     // Chart: each animal as % of expectation.
@@ -1333,7 +1334,7 @@
       { type: 'bar', label: 'Bowood animal', data: animals.map(function(a){ return a.ratio * 100; }), backgroundColor: MINT, borderWidth: 0, order: 3 },
       line('Charmley expectation (untreated)', 1, NAVY, [], 2)
     ];
-    if (modelled != null) ds.push(line('Modelled with SeaFeed', modelled, AMBER, [6, 4], 2));
+    if (modelled != null) ds.push(line('Modelled with KleenGrow', modelled, AMBER, [6, 4], 2));
     ds.push(line('Bowood average', k, BLUE, [], 2));
     charts.ratio = new Chart($('ag-ch-ratio'), { data: { labels: animals.map(function(a){ return a.eid; }), datasets: ds }, options: o });
 
@@ -1347,7 +1348,7 @@
       { type: 'bar', label: 'Bowood', data: months.map(function(m){ return byM[m].n >= MIN_MONTH_VISITS ? byM[m].est / byM[m].exp * 100 : null; }), backgroundColor: MINT, borderWidth: 0 },
       mline('Charmley expectation (untreated)', 1, NAVY, [])
     ];
-    if (modelled != null) mds.push(mline('Modelled with SeaFeed', modelled, AMBER, [6, 4]));
+    if (modelled != null) mds.push(mline('Modelled with KleenGrow', modelled, AMBER, [6, 4]));
     charts.ratioM = new Chart($('ag-ch-ratio-m'), { data: { labels: months.map(mlabel), datasets: mds }, options: om });
   }
 
@@ -1505,8 +1506,8 @@
         '<td>' + storage + '</td>' +
         '<td class="muted">' + d(o.last) + '</td></tr>';
     }).join('');
-    el.innerHTML = '<p class="lp-lead">The methane model assumes <b>' + n0(assumed) + ' mg/kg</b> in every SeaFeed block. Lab results so far range from <b>' + n0(Math.min.apply(null, allSf)) + ' to ' + n0(Math.max.apply(null, allSf)) + ' mg/kg</b>, so where a farm sits below the model, its modelled abatement is likely too high.</p>' +
-      '<div class="lp-table-wrap"><table class="lp-table"><thead><tr><th>Farm</th><th class="num">SeaFeed mean</th><th class="num">Range</th><th class="num">Against model</th><th class="num">Control mean</th><th>Change in storage</th><th>Latest sample</th></tr></thead><tbody>' + body + '</tbody></table></div>' +
+    el.innerHTML = '<p class="lp-lead">The methane model assumes <b>' + n0(assumed) + ' mg/kg</b> in every KleenGrow block. Lab results so far range from <b>' + n0(Math.min.apply(null, allSf)) + ' to ' + n0(Math.max.apply(null, allSf)) + ' mg/kg</b>, so where a farm sits below the model, its modelled abatement is likely too high.</p>' +
+      '<div class="lp-table-wrap"><table class="lp-table"><thead><tr><th>Farm</th><th class="num">KleenGrow mean</th><th class="num">Range</th><th class="num">Against model</th><th class="num">Control mean</th><th>Change in storage</th><th>Latest sample</th></tr></thead><tbody>' + body + '</tbody></table></div>' +
       '<p class="lp-note">mg/kg, wet matter basis. ' + rows.length + ' samples (outer and inner layers). Sea Forest is to add a specification range.</p>';
   }).catch(function(err){ console.error('Lab results failed:', err); el.innerHTML = '<p class="lp-lead">Could not load lab results.</p>'; });
 })();

@@ -293,7 +293,7 @@
     <div class="lbp-filters">
       <input type="text" id="lbp-search" placeholder="Search asset, farm, location type...">
       <select id="lbp-filter-farm"><option value="">All farms</option></select>
-      <select id="lbp-filter-treatment"><option value="">All treatments</option><option value="seafeed">SeaFeed</option><option value="control">Control</option></select>
+      <select id="lbp-filter-treatment"><option value="">All treatments</option><option value="seafeed">KleenGrow</option><option value="control">Control</option></select>
     </div>
     <div class="lbp-table-wrap">
       <table class="lbp-table" id="lbp-placements-table">
@@ -348,6 +348,7 @@
   </div>
 
   <details class="lp-fold lp-method"><summary>How this is calculated</summary><div class="lp-fold-body">
+    <p>KleenGrow&trade; is the Sea Forest product in the lick blocks. The Grant Deed and earlier reports call it SeaFeed&trade;; both names mean the same product. The data layers still label it &ldquo;seafeed&rdquo;.</p>
     <p>Intake is grams of block per head per day over the latest interval between two visits to the same trough or unit. The whole-cohort figure is all block mass placed since the cohort started, per head per day.</p>
     <p>On hand is blocks ordered less blocks used. Days to empty divides on hand by the current use rate. Reorder by allows a 40-day lead time.</p>
     <p>Sources: LEL_Lick_Block_Usage_History (fed daily by 06. Lick_Block_Portal_Feed.py) &middot; LEL_LickBlock_Placements &middot; orders logged directly in ArcGIS Online (LEL_Lick_Block_Orders).</p>
@@ -392,8 +393,8 @@
   // Farm identity colour, added 2026-08-24 (Jono's request — farms were
   // blending together with no visual distinction in the placements list).
   // Deliberately NOT mint/slate/red — those already carry fixed meaning
-  // (SeaFeed/good, Control/neutral, overdue/bad) elsewhere on this page,
-  // so reusing one for farm identity would make a Bowood SeaFeed row and
+  // (KleenGrow/good, Control/neutral, overdue/bad) elsewhere on this page,
+  // so reusing one for farm identity would make a Bowood KleenGrow row and
   // an "overdue" flag look like they mean the same thing. Cycles if a
   // farm count ever exceeds the palette length; ALL_FARMS (set once the
   // data loads) is the shared source of truth so a given farm always gets
@@ -506,7 +507,7 @@
     if (v == null || isNaN(v)) return '–';
     return Number(v).toLocaleString('en-AU', { minimumFractionDigits: decimals || 0, maximumFractionDigits: decimals || 0 });
   }
-  function treatmentLabel(t){ return t === 'seafeed' ? 'SeaFeed' : 'Control'; }
+  function treatmentLabel(t){ return t === 'seafeed' ? 'KleenGrow' : 'Control'; }
   // yyyy-mm-dd for pre-filling <input type=date>, read back out with
   // Date.parse(str + 'T00:00:00Z') — both ends UTC, matching this org's
   // date fields (dateFieldsTimeReference is UTC on every LEL table checked).
@@ -627,7 +628,7 @@
     var sf = latest.seafeed && latest.seafeed.avg_consumption_g_per_hd_day, ct = latest.control && latest.control.avg_consumption_g_per_hd_day;
     var html = '<div class="lbp-kpi-grid">' +
       kpi('Period', fmtDate(first) , 'to ' + fmtDate(last)) +
-      kpi('SeaFeed g/head/day', wsf != null ? fmtNum(wsf, 1) : '–', 'Whole-cohort average' + (sf != null ? '; final interval ' + fmtNum(sf, 1) : '') + '; ' + fmtNum(blocks.seafeed) + ' blocks', 'seafeed') +
+      kpi('KleenGrow g/head/day', wsf != null ? fmtNum(wsf, 1) : '–', 'Whole-cohort average' + (sf != null ? '; final interval ' + fmtNum(sf, 1) : '') + '; ' + fmtNum(blocks.seafeed) + ' blocks', 'seafeed') +
       kpi('Control g/head/day', wct != null ? fmtNum(wct, 1) : '–', 'Whole-cohort average' + (ct != null ? '; final interval ' + fmtNum(ct, 1) : '') + '; ' + fmtNum(blocks.control) + ' blocks') +
       kpi('Cost to farm', '$' + fmtNum(cost, 0), (head ? fmtNum(head) + ' head' : 'Head not recorded')) +
       '</div>' +
@@ -640,7 +641,7 @@
     var cum = buildCumulativeSeries(placements);
     if (cum.days.length) {
       archive.chart = lineChart('lbp-archive-chart', cum.days.map(fmtDate), [
-        { label: 'SeaFeed', data: cum.seafeed, borderColor: MINT, backgroundColor: 'transparent' },
+        { label: 'KleenGrow', data: cum.seafeed, borderColor: MINT, backgroundColor: 'transparent' },
         { label: 'Control', data: cum.control, borderColor: SLATE, backgroundColor: 'transparent' }
       ]);
     }
@@ -699,7 +700,7 @@
       return;
     }
 
-    // Intake bars (2026-11-25): one row per farm, SeaFeed and Control
+    // Intake bars (2026-11-25): one row per farm, KleenGrow and Control
     // side by side on one scale, replacing six separate tiles. The latest
     // interval is the bar; head count, date and the whole-cohort figure
     // sit under it in small text, so nothing the tiles showed is lost.
@@ -736,7 +737,7 @@
     }
     var sfPcts = rows.map(function(o){ return pctDose(o.seafeed.wc); }).filter(function(v){ return v != null; });
     var doseLine = sfPcts.length
-      ? '<p class="lbp-dose-line">SeaFeed mobs are eating <b>' + (Math.min.apply(null, sfPcts) === Math.max.apply(null, sfPcts) ? sfPcts[0] + '%' : Math.min.apply(null, sfPcts) + '% to ' + Math.max.apply(null, sfPcts) + '%') + '</b> of the 90 g per head per day that the methane model and budget assume. Reaching 90 g takes about ' + blocksPer100(BUDGET_DOSE_G) + ' blocks per 100 head per week; 150 g takes about ' + blocksPer100(RECOMMENDED_DOSE_G) + '.</p>'
+      ? '<p class="lbp-dose-line">KleenGrow mobs are eating <b>' + (Math.min.apply(null, sfPcts) === Math.max.apply(null, sfPcts) ? sfPcts[0] + '%' : Math.min.apply(null, sfPcts) + '% to ' + Math.max.apply(null, sfPcts) + '%') + '</b> of the 90 g per head per day that the methane model and budget assume. Reaching 90 g takes about ' + blocksPer100(BUDGET_DOSE_G) + ' blocks per 100 head per week; 150 g takes about ' + blocksPer100(RECOMMENDED_DOSE_G) + '.</p>'
       : '';
     grid.innerHTML = doseLine + rows.map(function(o){
       return '<div class="lbp-intake-farm"><p class="lbp-intake-name">' + LELPortal.nameHtml(o.farm, farms) + '</p>' + bar(o, 'seafeed') + bar(o, 'control') + '</div>';
@@ -790,7 +791,7 @@
     return { days: days, seafeed: series.seafeed, control: series.control };
   }
 
-  // Button + collapsed form markup shared by the SeaFeed and Control
+  // Button + collapsed form markup shared by the KleenGrow and Control
   // halves of each farm's reorder card. `prefix` is e.g. "ro-0-sf" —
   // every element id below is derived from it so wireOrderForm() (pass 2,
   // below) can find them without any other bookkeeping.
@@ -839,7 +840,7 @@
         '    <div class="lbp-panel">' +
         '      <p class="lbp-section-label" style="margin-bottom:14px;">Lick block supply</p>' +
         '      <div class="lbp-reorder-grid">' +
-        '        <div><p class="lbp-reorder-treatment seafeed">SeaFeed</p><div class="lbp-reorder-stats">' +
+        '        <div><p class="lbp-reorder-treatment seafeed">KleenGrow</p><div class="lbp-reorder-stats">' +
         '          <div><span class="lbp-reorder-stat-label">On hand</span><span class="lbp-reorder-stat-value seafeed" id="ro-' + idx + '-sf-onhand">–</span></div>' +
         '          <div><span class="lbp-reorder-stat-label">Days to empty</span><span class="lbp-reorder-stat-value seafeed" id="ro-' + idx + '-sf-days">–</span></div>' +
         '          <div><span class="lbp-reorder-stat-label">Reorder by</span><span class="lbp-reorder-stat-value seafeed" id="ro-' + idx + '-sf-date">–</span></div>' +
@@ -884,7 +885,7 @@
       if (farmPlacementsForChart.length) {
         var cum = buildCumulativeSeries(farmPlacementsForChart);
         chartInstances[chartId] = lineChart(chartId, cum.days.map(fmtDate), [
-          { label: 'SeaFeed', data: cum.seafeed, borderColor: MINT, backgroundColor: 'transparent' },
+          { label: 'KleenGrow', data: cum.seafeed, borderColor: MINT, backgroundColor: 'transparent' },
           { label: 'Control', data: cum.control, borderColor: SLATE, backgroundColor: 'transparent' }
         ]);
       } else if (farmHistory.length) {
@@ -895,7 +896,7 @@
         });
         var dates = Object.keys(byDate).map(Number).sort(function(a, b){ return a - b; });
         chartInstances[chartId] = lineChart(chartId, dates.map(fmtDate), [
-          { label: 'SeaFeed', data: dates.map(function(d){ return byDate[d].seafeed != null ? byDate[d].seafeed : null; }), borderColor: MINT, backgroundColor: 'transparent' },
+          { label: 'KleenGrow', data: dates.map(function(d){ return byDate[d].seafeed != null ? byDate[d].seafeed : null; }), borderColor: MINT, backgroundColor: 'transparent' },
           { label: 'Control', data: dates.map(function(d){ return byDate[d].control != null ? byDate[d].control : null; }), borderColor: SLATE, backgroundColor: 'transparent' }
         ]);
       } else {
