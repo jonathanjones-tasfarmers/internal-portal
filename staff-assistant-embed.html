@@ -26,6 +26,11 @@
   body{margin:0;background:var(--surface-page);color:var(--text-body);font-family:var(--font-body);font-size:14px;line-height:1.55}
   .wrap{max-width:860px;margin:0 auto;padding:16px}
   .head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  /* Inside the Home page's slide-in panel: leave room for its close button, and fit the frame. */
+  .framed .head{padding-right:40px}
+  .framed .log{max-height:none}
+  .framed .card{min-height:0;height:calc(100vh - 215px)}
+  @media (max-width:480px){.framed .card{height:calc(100vh - 250px)}}
   h1{font-family:var(--font-display);font-size:20px;color:var(--text-heading);margin:0}
   .sub{color:var(--text-muted);font-size:12.5px;margin:4px 0 0}
   .card{border:1px solid var(--border-subtle);border-top:3px solid var(--tf-seafeed);border-radius:var(--radius-lg);background:var(--surface-card);margin-top:14px;display:flex;flex-direction:column;min-height:420px}
@@ -75,6 +80,11 @@
 </div>
 <script>
 (function(){
+  try { if (window.self !== window.top) document.documentElement.classList.add("framed"); } catch (e) { document.documentElement.classList.add("framed"); }
+  // In the Home page's panel, Escape asks the parent page to close it.
+  document.addEventListener("keydown", function(e){
+    if (e.key === "Escape" && window.parent !== window) window.parent.postMessage({ type: "lel-assistant-close" }, "https://jonathanjones-tasfarmers.github.io");
+  });
   // The assistant service (see _assistant/README.md).
   var ASSISTANT_URL = "https://lel-staff-assistant.tasfarmers.workers.dev";
   var STARTERS = [

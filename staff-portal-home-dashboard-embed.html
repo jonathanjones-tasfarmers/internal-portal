@@ -216,6 +216,11 @@
   .sp-farms-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
   .sp-ask-btn { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--text-heading); background: var(--surface-card, #fff); border: 1px solid var(--border-default); border-radius: var(--radius-md, 10px); padding: 8px 14px; text-decoration: none; white-space: nowrap; margin-bottom: 12px; }
   .sp-ask-btn:hover { border-color: var(--tf-seafeed); }
+  .sp-ask-panel { position: fixed; top: 0; right: 0; bottom: 0; width: min(460px, 100%); z-index: 100; background: #fff; border-left: 1px solid var(--border-default); box-shadow: -8px 0 24px rgba(4,18,33,0.18); }
+  .sp-ask-panel[hidden] { display: none; }
+  .sp-ask-panel iframe { width: 100%; height: 100%; border: 0; display: block; }
+  .sp-ask-close { position: absolute; top: 10px; right: 12px; z-index: 1; width: 32px; height: 32px; border-radius: 999px; border: 1px solid var(--border-default); background: #fff; color: var(--text-heading); font-size: 20px; line-height: 1; cursor: pointer; }
+  .sp-ask-close:hover { border-color: var(--tf-seafeed); }
   .sp-ask-btn svg { width: 15px; height: 15px; stroke: var(--tf-seafeed); fill: none; stroke-width: 2; flex: none; }
 </style>
 <link rel="stylesheet" href="portal-common.css" />
@@ -230,7 +235,7 @@
     <p class="sp-section-label">Your farms</p>
     <p class="sp-section-sub">Visits, weight gain and lick block supply for each farm's current cohort.</p>
   </div>
-  <a class="sp-ask-btn" href="https://jonathanjones-tasfarmers.github.io/internal-portal/staff-assistant-embed.html" target="_blank" rel="noopener">
+  <a class="sp-ask-btn" id="sp-ask-btn" href="https://jonathanjones-tasfarmers.github.io/internal-portal/staff-assistant-embed.html" target="_blank" rel="noopener" aria-controls="sp-ask-panel" aria-expanded="false">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
     Ask the LEL Assistant
   </a>
@@ -269,6 +274,30 @@
 </div>
 
 <p class="sp-freshness" id="sp-freshness"></p>
+
+<!-- Chat panel: slides in over the dashboard so staff stay on the page. Falls back to the
+     link opening a new tab if scripts don't run. The panel page is loaded on first open only. -->
+<div class="sp-ask-panel" id="sp-ask-panel" role="dialog" aria-label="LEL Assistant" hidden>
+  <button class="sp-ask-close" id="sp-ask-close" type="button" aria-label="Close the assistant">&times;</button>
+  <iframe id="sp-ask-frame" title="LEL Assistant"></iframe>
+</div>
+<script>
+(function(){
+  var btn = document.getElementById("sp-ask-btn"), panel = document.getElementById("sp-ask-panel");
+  var frame = document.getElementById("sp-ask-frame"), close = document.getElementById("sp-ask-close");
+  function set(open){
+    panel.hidden = !open; btn.setAttribute("aria-expanded", open ? "true" : "false");
+    if (open && !frame.src) frame.src = btn.href;
+    (open ? close : btn).focus();
+  }
+  btn.addEventListener("click", function(e){ e.preventDefault(); set(panel.hidden); });
+  close.addEventListener("click", function(){ set(false); });
+  document.addEventListener("keydown", function(e){ if (e.key === "Escape" && !panel.hidden) set(false); });
+  window.addEventListener("message", function(e){
+    if (e.origin === location.origin && e.data && e.data.type === "lel-assistant-close" && !panel.hidden) set(false);
+  });
+})();
+</script>
 
 <div class="sp-roadmap-section">
   <div class="sp-roadmap-head">
