@@ -156,6 +156,11 @@
   .lbp-bar-value { font-family: var(--font-display); font-size: 15px; font-weight: 700; color: var(--text-heading); text-align: right; }
   .lbp-bar-value.seafeed { color: var(--tf-seafeed); }
   .lbp-bar-meta { font-size: 11.5px; color: var(--text-muted); }
+  .lbp-dose-line { font-size: 13px; color: var(--text-body); margin: 0 0 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border-subtle); line-height: 1.5; }
+  .lbp-dose-mark { position: absolute; top: -4px; bottom: -4px; width: 0; border-left: 2px dashed var(--tf-navy-900); }
+  .lbp-dose-mark.rec { border-left-color: var(--tf-slate-600); }
+  .lbp-dose-key { display: inline-block; width: 0; height: 14px; border-left: 2px dashed var(--tf-navy-900); margin-left: 10px; }
+  .lbp-dose-key.rec { border-left-color: var(--tf-slate-600); }
   .lbp-intake-key { font-size: 11.5px; color: var(--text-muted); margin: 6px 0 0; display: flex; align-items: center; gap: 8px; }
   .lbp-bar-mark-key { display: inline-block; width: 2px; height: 14px; background: var(--tf-navy-900); opacity: 0.55; }
   @media (max-width: 720px) {
@@ -393,6 +398,10 @@
   // farm count ever exceeds the palette length; ALL_FARMS (set once the
   // data loads) is the shared source of truth so a given farm always gets
   // the same colour in the section heading AND the placements table.
+  var BUDGET_DOSE_G = 90;        // methane model and Project budget dose, g/head/day (Project Results site, 26 Nov 2026)
+  var RECOMMENDED_DOSE_G = 150;  // Sea Forest lower recommended dose
+  var BLOCK_KG = 17;             // block mass implied by the Results site: 90 g = 3.7 blocks per 100 head per week
+  function blocksPer100(g){ return (g * 100 * 7 / 1000 / BLOCK_KG).toFixed(1); }
   var FARM_COLORS = ['#1f3a52']; // one colour for every farm (2026-11-25): mint/coral/slate carry meaning, farms do not
   var ALL_FARMS = [];
   function farmColor(farm){
@@ -704,25 +713,35 @@
     });
     var max = 0;
     rows.forEach(function(o){ ['seafeed', 'control'].forEach(function(t){ if (o[t].g != null) max = Math.max(max, o[t].g); if (o[t].wc != null) max = Math.max(max, o[t].wc); }); });
-    if (!max) max = 1;
+    // Intake against dose (2026-11-26, from the Project Results site): the
+    // methane model and Project budget assume 90 g per head per day; Sea
+    // Forest's lower recommended dose is 150 g. Both are marked on the scale.
+    max = Math.max(max, RECOMMENDED_DOSE_G * 1.05);
+    function pctDose(g){ return g == null ? null : Math.round(g / BUDGET_DOSE_G * 100); }
     function bar(o, t){
       var x = o[t], r = x.r;
       var w = x.g != null ? Math.max(0.5, x.g / max * 100) : 0;
       var meta = r ? ((r.head_count != null ? r.head_count + ' head, ' : '') + 'as of ' + fmtDate(r.snapshot_date)) : 'No data yet';
       if (x.wc != null) meta += ' &middot; whole cohort ' + fmtNum(x.wc, 0) + ' g';
+      if (t === 'seafeed' && x.wc != null) meta += ' (<b>' + pctDose(x.wc) + '% of the 90 g dose</b>)';
       return '<div class="lbp-bar-row">' +
         '<span class="lbp-bar-label">' + treatmentLabel(t) + '</span>' +
         '<div class="lbp-bar-track"><div class="lbp-bar ' + t + '" style="width:' + w.toFixed(1) + '%;"></div>' +
         (x.wc != null ? '<div class="lbp-bar-mark" style="left:' + Math.min(100, x.wc / max * 100).toFixed(1) + '%;" title="Whole cohort: ' + fmtNum(x.wc, 0) + ' g"></div>' : '') +
+        (t === 'seafeed' ? '<div class="lbp-dose-mark" style="left:' + (BUDGET_DOSE_G / max * 100).toFixed(1) + '%;" title="90 g budget dose"></div><div class="lbp-dose-mark rec" style="left:' + (RECOMMENDED_DOSE_G / max * 100).toFixed(1) + '%;" title="150 g lower recommended dose"></div>' : '') +
         '</div>' +
         '<span class="lbp-bar-value ' + t + '">' + (x.g != null ? fmtNum(x.g, 0) + ' g' : '–') + '</span>' +
         '<span class="lbp-bar-meta">' + meta + '</span>' +
         '</div>';
     }
-    grid.innerHTML = rows.map(function(o){
+    var sfPcts = rows.map(function(o){ return pctDose(o.seafeed.wc); }).filter(function(v){ return v != null; });
+    var doseLine = sfPcts.length
+      ? '<p class="lbp-dose-line">SeaFeed mobs are eating <b>' + (Math.min.apply(null, sfPcts) === Math.max.apply(null, sfPcts) ? sfPcts[0] + '%' : Math.min.apply(null, sfPcts) + '% to ' + Math.max.apply(null, sfPcts) + '%') + '</b> of the 90 g per head per day that the methane model and budget assume. Reaching 90 g takes about ' + blocksPer100(BUDGET_DOSE_G) + ' blocks per 100 head per week; 150 g takes about ' + blocksPer100(RECOMMENDED_DOSE_G) + '.</p>'
+      : '';
+    grid.innerHTML = doseLine + rows.map(function(o){
       return '<div class="lbp-intake-farm"><p class="lbp-intake-name">' + LELPortal.nameHtml(o.farm, farms) + '</p>' + bar(o, 'seafeed') + bar(o, 'control') + '</div>';
     }).join('') +
-    '<p class="lbp-intake-key"><span class="lbp-bar-mark-key"></span> Tick mark: whole-cohort average, for comparison with the latest interval.</p>';
+    '<p class="lbp-intake-key"><span class="lbp-bar-mark-key"></span> Whole-cohort average <span class="lbp-dose-key"></span> 90 g budget dose <span class="lbp-dose-key rec"></span> 150 g lower recommended dose</p>';
   }
 
   // ------------------------------------------------------------

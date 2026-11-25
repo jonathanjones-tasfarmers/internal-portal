@@ -190,6 +190,17 @@
   .wd-weight-value { font-family: var(--font-display); font-size: 21px; font-weight: 700; color: var(--text-heading); }
   .wd-weight-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 
+  /* Is the difference real? (2026-11-26) */
+  .wd-band { margin: 0 0 14px; padding: 12px 14px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); }
+  .wd-band-row { display: grid; grid-template-columns: 64px 96px 1fr; gap: 8px; align-items: baseline; margin: 4px 0; font-size: 12.5px; }
+  .wd-band-label { color: var(--text-muted); font-family: var(--font-display); font-size: 12px; }
+  .wd-band-value { font-family: var(--font-display); font-weight: 700; color: var(--text-heading); }
+  .wd-band-value.mint { color: var(--tf-seafeed); }
+  .wd-band-range { color: var(--text-muted); font-size: 11.5px; }
+  .wd-band-verdict { margin: 8px 0 2px; font-family: var(--font-display); font-size: 12.5px; font-weight: 700; color: var(--text-heading); }
+  .wd-band-verdict.above { color: var(--tf-seafeed); }
+  .wd-band-verdict.below { color: var(--tf-red); }
+  .wd-band-note { margin: 0; font-size: 11.5px; color: var(--text-muted); }
   .wd-gain-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px 14px; margin-bottom: 16px; }
   @media (max-width: 480px) { .wd-gain-grid { grid-template-columns: 1fr 1fr; } }
   .wd-label { display: block; font-family: var(--font-display); font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
@@ -364,6 +375,7 @@
     <p>The percentage is SeaFeed minus Control over Control, from OptiWeigh&rsquo;s own average daily gain for each mob. A figure needs at least 10 animals and 7 days of data per mob. The 90-day figure is the headline on every page. A farm without enough data for 90 days uses its 30-day figure, then its 14-day figure. The program-wide row only uses 30 days or more. The 14, 30, 90 and 180-day windows match OptiWeigh&rsquo;s own interface and start on 2 Oct 2026.</p>
     <p>Gain since start on each card comes from LEL_Economics_Data and covers the days since the farm&rsquo;s comparison start, so it can differ from the OptiWeigh windows.</p>
     <p>Block cost per kg gain divides block cost by OptiWeigh weight gain over the same period.</p>
+    <p>&ldquo;Is the difference real?&rdquo; uses OptiWeigh&rsquo;s 14-day rolling gain for each mob with its 95% range. Where the two ranges overlap, the true averages could be the same, so the mobs can&rsquo;t be told apart on that day. The count covers every day both mobs have a range in this cohort.</p>
     <p>Rainfall and temperature figures are Pearson r between daily weight-gain change and weather: screening-level only, not a controlled result.</p>
     <p>Sources: OptiWeigh_Cattle_Weights (current weight, trend chart) &middot; LEL_ADG_Comparison (OptiWeigh windows) &middot; LEL_Economics_Data (gain since start, cost per kg) &middot; LEL_Weather_Data (Open-Meteo, by region).</p>
   </div></details>
@@ -450,7 +462,7 @@
   function fetchWeightHistory(){
     return q(PRODUCTIVITY_URL, {
       where: "farm_name<>'" + AGGREGATE_LABEL + "' AND treatment_group IN ('seafeed','control')",
-      outFields: "farm_name,treatment_group,snapshot_date,rolling_weight_14d",
+      outFields: "farm_name,treatment_group,snapshot_date,rolling_weight_14d,rolling_adg,rolling_adg_ci_lower,rolling_adg_ci_upper",
       orderByFields: "snapshot_date ASC", resultRecordCount: "2000", f: "json"
     }).then(function(data){
       var byFarm = {}; // { farm: [ {snapshot_date, treatment_group, rolling_weight_14d}, ... ] }
@@ -701,6 +713,7 @@
       var region = FARM_REGION_MAP[LELPortal.parse(farm).farm];
       var weatherRows = region ? (weatherByRegion[region] || []) : [];
       var weatherEffect = region ? computeWeatherEffect(historyByFarm[farm] || [], weatherRows) : null;
+      cur = Object.assign({}, cur, { band: bandSummary(historyByFarm[farm] || []) });
       return cardHtml('wd-' + idx, farm, color, cur, econ, isStale, weatherEffect, comparisonStartMs(historyByFarm[farm] || []), allFarms);
     };
     var parts = LELPortal.split(allFarms);
@@ -803,6 +816,54 @@
   // ------------------------------------------------------------
   // CARD MARKUP
   // ------------------------------------------------------------
+  // ------------------------------------------------------------
+  // IS THE DIFFERENCE REAL? (added 2026-11-26, from the Project Results
+  // site). OptiWeigh's 14-day rolling ADG comes with a 95% range. Where
+  // the SeaFeed and Control ranges overlap, the two mobs cannot be told
+  // apart on that day. Counts every day both mobs have a range.
+  // ------------------------------------------------------------
+  function bandSummary(rows){
+    var byDay = {};
+    rows.forEach(function(r){
+      if (r.rolling_adg_ci_lower == null || r.rolling_adg_ci_upper == null || r.rolling_adg == null) return;
+      var k = new Date(r.snapshot_date).toISOString().slice(0, 10);
+      (byDay[k] = byDay[k] || {})[r.treatment_group] = r;
+    });
+    var days = Object.keys(byDay).sort().filter(function(k){ return byDay[k].seafeed && byDay[k].control; });
+    if (!days.length) return null;
+    var out = { days: days.length, overlap: 0, above: 0, below: 0 };
+    days.forEach(function(k){
+      var s = byDay[k].seafeed, c = byDay[k].control;
+      if (s.rolling_adg_ci_lower > c.rolling_adg_ci_upper) out.above++;
+      else if (s.rolling_adg_ci_upper < c.rolling_adg_ci_lower) out.below++;
+      else out.overlap++;
+    });
+    var last = byDay[days[days.length - 1]];
+    out.sf = last.seafeed; out.ct = last.control;
+    return out;
+  }
+  function bandHtml(b){
+    if (!b) return '';
+    var sf = b.sf, ct = b.ct;
+    var state = sf.rolling_adg_ci_lower > ct.rolling_adg_ci_upper ? 'above'
+      : sf.rolling_adg_ci_upper < ct.rolling_adg_ci_lower ? 'below' : 'overlap';
+    var verdict = state === 'overlap' ? 'Ranges overlap: the mobs can&rsquo;t be told apart yet'
+      : state === 'above' ? 'SeaFeed clearly ahead on the latest day' : 'SeaFeed clearly behind on the latest day';
+    function row(label, r, cls){
+      var lo = r.rolling_adg_ci_lower, hi = r.rolling_adg_ci_upper, v = r.rolling_adg;
+      return '<div class="wd-band-row"><span class="wd-band-label">' + label + '</span>' +
+        '<span class="wd-band-value ' + cls + '">' + fmtNum(v, 0) + ' g/day</span>' +
+        '<span class="wd-band-range">95% range ' + fmtNum(lo, 0) + ' to ' + fmtNum(hi, 0) + '</span></div>';
+    }
+    return '<div class="wd-band">' +
+      '<span class="wd-label">Is the difference real? 14-day gain, ' + fmtDateShort(sf.snapshot_date) + '</span>' +
+      row('SeaFeed', sf, 'mint') + row('Control', ct, '') +
+      '<p class="wd-band-verdict ' + state + '">' + verdict + '</p>' +
+      '<p class="wd-band-note">This cohort: ranges overlapped on ' + b.overlap + ' of ' + b.days + ' days (SeaFeed clearly ahead on ' + b.above + ', behind on ' + b.below + ').</p>' +
+      '</div>';
+  }
+  function fmtNum(v, d){ return Number(v).toLocaleString('en-AU', { minimumFractionDigits: d, maximumFractionDigits: d }); }
+
   function weightStatHtml(label, swatchColor, reading){
     if (!reading) {
       return '<div class="wd-weight-stat"><span class="wd-weight-label"><span class="wd-swatch" style="background:' + swatchColor + ';"></span>' + label + '</span><span class="wd-weight-value">–</span></div>';
@@ -1169,6 +1230,7 @@
       weightStatHtml('SeaFeed', MINT, cur.seafeed) +
       weightStatHtml('Control', SLATE, cur.control) +
       '</div>' +
+      bandHtml(cur.band) +
       '<div class="wd-gain-grid">' +
       gainCellHtml('Gain (SeaFeed)', econ.seafeed, 'mint', startMs) +
       gainCellHtml('Gain (Control)', econ.control, null, startMs) +
