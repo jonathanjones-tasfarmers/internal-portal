@@ -336,11 +336,17 @@ details.fold .b{padding:0 18px 16px;font-size:12.5px;line-height:1.65;color:var(
     var p = new URLSearchParams(location.hash.slice(1));
     return { token: p.get("access_token"), expires: Date.now() + (parseInt(p.get("expires_in"), 10) || 7200) * 1000, user: p.get("username") };
   }
-  function store(t) { try { sessionStorage.setItem(KEY, JSON.stringify(t)); } catch (e) {} }
-  function load() { try { var t = JSON.parse(sessionStorage.getItem(KEY)); return t && t.expires > Date.now() + 60000 ? t : null; } catch (e) { return null; } }
-  function clear() { try { sessionStorage.removeItem(KEY); } catch (e) {} }
+  // Remembered in this browser for 14 days (27 Nov 2026, at Jono's request), so the sign-in is a click a fortnight.
+  function store(t) { try { localStorage.setItem(KEY, JSON.stringify(t)); } catch (e) { try { sessionStorage.setItem(KEY, JSON.stringify(t)); } catch (e2) {} } }
+  function load() {
+    var t = null;
+    try { t = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+    if (!t) { try { t = JSON.parse(sessionStorage.getItem(KEY)); } catch (e) {} }
+    return t && t.expires > Date.now() + 60000 ? t : null;
+  }
+  function clear() { try { localStorage.removeItem(KEY); } catch (e) {} try { sessionStorage.removeItem(KEY); } catch (e) {} }
   function authUrl() {
-    return PORTAL + "/oauth2/authorize?client_id=" + CLIENT_ID + "&response_type=token&expiration=480&redirect_uri=" + encodeURIComponent(PAGE);
+    return PORTAL + "/oauth2/authorize?client_id=" + CLIENT_ID + "&response_type=token&expiration=20160&redirect_uri=" + encodeURIComponent(PAGE);
   }
   var fromHash = readHash();
   if (fromHash) {
