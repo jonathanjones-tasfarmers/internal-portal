@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<meta name="theme-color" content="#041221" />
+<title>LEL Finance | private</title>
+<!--
+  LEL Project finance page (added 2026-11-27).
+  PRIVATE DATA, PUBLIC CODE. This file holds no figures. Every number is read at view time from the
+  private LEL_Fin_* tables in ArcGIS Online, using the viewer's own ArcGIS sign-in (OAuth app
+  "LEL Finance page sign-in", client id below). Only members of the LEL Finance group can read them;
+  anyone else signs in and sees "no access".
+  Data: Xero -> lel-pipelines script 40 (nightly, read only) -> LEL_Fin_Monthly / Snapshot / Bills.
+        Budget, contributions, milestones: LEL_Fin_Budget / Contributions / Milestones (edit in ArcGIS Online).
+-->
+<style>
+:root{
+  --tf-navy-900:#041221; --tf-navy-800:#0c2236; --tf-navy-700:#16324b;
+  --tf-slate-600:#5f6f7c; --tf-slate-400:#a9b8c4; --tf-slate-300:#c3cfd8; --tf-slate-200:#dde4ea; --tf-slate-100:#eef2f5;
+  --tf-seafeed:#3aa989; --tf-mint-300:#8fd6bf; --tf-red:#c0392b; --tf-warning:#c98a2e; --tf-white:#fff;
+  --text-heading:var(--tf-navy-900); --text-body:#1c2a38; --text-muted:var(--tf-slate-600);
+  --border-subtle:var(--tf-slate-200); --radius-lg:12px; --radius-md:10px; --radius-sm:6px;
+  --shadow-sm:0 1px 2px rgba(4,18,33,.08);
+  --font-display:Tahoma,Verdana,sans-serif; --font-body:Verdana,Tahoma,sans-serif;
+  --gap:18px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:#f6f8fa}
+body{font-family:var(--font-body);color:var(--text-body);-webkit-font-smoothing:antialiased;font-size:13px}
+.tab{font-variant-numeric:tabular-nums}
+.wrap{max-width:1320px;margin:0 auto;padding:0 28px 48px}
+
+/* Hero: the one dark structural band */
+.hero{background:var(--tf-navy-900);color:#fff}
+.hero .wrap{padding-top:26px;padding-bottom:28px}
+.hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.hero h1{font-family:var(--font-display);font-size:22px;margin:0 0 4px;font-weight:700}
+.hero .sub{color:var(--tf-slate-400);font-size:12.5px;margin:0}
+.badge{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:.04em;
+  text-transform:uppercase;border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:5px 11px;color:var(--tf-slate-300)}
+.badge i{width:7px;height:7px;border-radius:50%;background:var(--tf-seafeed);display:inline-block}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:var(--gap)}
+.kpi{background:var(--tf-navy-800);border:1px solid var(--tf-navy-700);border-radius:var(--radius-lg);padding:16px 18px}
+.kpi .l{font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--tf-slate-400)}
+.kpi .v{font-family:var(--font-display);font-size:30px;font-weight:700;margin:6px 0 4px;line-height:1.1}
+.kpi .n{font-size:11.5px;color:var(--tf-slate-400);line-height:1.45}
+.kpi .n b{color:#fff;font-weight:700}
+.good{color:var(--tf-seafeed)} .bad{color:var(--tf-red)} .warn{color:var(--tf-warning)}
+.hero .good{color:var(--tf-mint-300)} .hero .bad{color:#ff8a7a} .hero .warn{color:#f0c27a}
+.pace{margin-top:var(--gap);background:var(--tf-navy-800);border:1px solid var(--tf-navy-700);border-radius:var(--radius-lg);padding:16px 18px}
+.pace-row{display:grid;grid-template-columns:150px 1fr 120px;gap:14px;align-items:center;margin:8px 0}
+.pace-row .lab{font-size:12px;color:var(--tf-slate-300)}
+.pace-row .val{font-family:var(--font-display);font-weight:700;text-align:right;font-size:13px}
+.track{height:10px;background:var(--tf-navy-700);border-radius:999px;overflow:hidden;position:relative}
+.track>span{position:absolute;left:0;top:0;bottom:0;border-radius:999px}
+.pace .verdict{font-size:12.5px;color:var(--tf-slate-300);margin:10px 0 0;line-height:1.5}
+
+/* Body cards */
+.grid{display:grid;gap:var(--gap);margin-top:var(--gap)}
+.g2{grid-template-columns:1.6fr 1fr} .g2e{grid-template-columns:1fr 1fr} .g3{grid-template-columns:repeat(3,1fr)}
+.card{background:#fff;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:18px 22px;box-shadow:var(--shadow-sm);min-width:0}
+.card h2{font-family:var(--font-display);font-size:15px;color:var(--text-heading);margin:0 0 3px}
+.card .cs{font-size:12px;color:var(--text-muted);margin:0 0 14px;line-height:1.5}
+.chart{position:relative;height:260px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--text-muted);margin:10px 0 0}
+.legend i{display:inline-block;width:12px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.legend i.dash{background:repeating-linear-gradient(90deg,currentColor 0 4px,transparent 4px 7px)!important;height:2px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;font-family:var(--font-display);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);
+  padding:6px 10px 8px 0;border-bottom:1px solid var(--border-subtle);white-space:nowrap}
+td{padding:9px 10px 9px 0;border-bottom:1px solid var(--border-subtle);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mini{height:8px;background:var(--tf-slate-100);border-radius:999px;position:relative;min-width:90px;overflow:visible}
+.mini>span{position:absolute;left:0;top:0;bottom:0;border-radius:999px;max-width:100%}
+.mini>em{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--tf-navy-900);border-radius:1px}
+.chip{display:inline-block;font-family:var(--font-display);font-size:10.5px;font-weight:700;border-radius:999px;padding:3px 9px;white-space:nowrap}
+.chip.ok{background:#e3f4ee;color:#1f7a5f} .chip.wip{background:#e8eef4;color:var(--tf-navy-700)} .chip.chk{background:#fbefdc;color:#8a5a12}
+.chip.todo{background:var(--tf-slate-100);color:var(--text-muted)} .chip.late{background:#f9e3e0;color:#9b2c20}
+.muted{color:var(--text-muted)} .small{font-size:11.5px}
+.list{margin:0;padding:0;list-style:none}
+.list li{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-subtle)}
+.list li:last-child{border-bottom:none}
+.list .t{font-weight:700;color:var(--text-heading);font-size:12.5px}
+.list .s{font-size:11.5px;color:var(--text-muted);margin-top:2px}
+.note{font-size:11.5px;color:var(--text-muted);margin:12px 0 0;line-height:1.55}
+details.fold{margin-top:var(--gap);background:#fff;border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
+details.fold>summary{cursor:pointer;padding:12px 18px;font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text-heading);list-style:none}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary::before{content:"\25B8  ";color:var(--tf-seafeed)}
+details.fold[open]>summary::before{content:"\25BE  "}
+details.fold .b{padding:0 18px 16px;font-size:12.5px;line-height:1.65;color:var(--text-muted)}
+.skel{display:inline-block;height:1em;width:5ch;border-radius:4px;background:linear-gradient(90deg,rgba(255,255,255,.08),rgba(255,255,255,.18),rgba(255,255,255,.08));background-size:200% 100%;animation:sh 1.2s infinite}
+.card .skel{background:linear-gradient(90deg,#eef2f5,#f7f9fb,#eef2f5);background-size:200% 100%}
+@keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.empty{color:var(--text-muted);font-size:12.5px;padding:18px 0}
+
+/* Sign-in gate */
+.gate{max-width:520px;margin:70px auto;background:#fff;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:30px 32px;box-shadow:var(--shadow-sm);text-align:center}
+.gate h1{font-family:var(--font-display);font-size:20px;color:var(--text-heading);margin:0 0 8px}
+.gate p{color:var(--text-muted);line-height:1.6;margin:0 0 18px}
+.btn{font-family:var(--font-display);font-weight:700;font-size:13px;background:var(--tf-navy-900);color:#fff;border:0;border-radius:var(--radius-md);padding:11px 20px;cursor:pointer}
+.btn:hover{background:var(--tf-navy-700)}
+.link{background:none;border:0;color:var(--tf-slate-400);font-size:11.5px;cursor:pointer;text-decoration:underline;padding:0}
+.foot{font-family:var(--font-display);font-size:11px;color:var(--text-muted);text-align:center;margin-top:26px;line-height:1.6}
+[hidden]{display:none!important}
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}.g2,.g2e,.g3{grid-template-columns:1fr}}
+@media (max-width:720px){.wrap{padding:0 16px 40px}.kpis{grid-template-columns:1fr 1fr}.kpi .v{font-size:24px}.pace-row{grid-template-columns:1fr;gap:6px}.pace-row .val{text-align:left}}
+</style>
+</head>
+<body>
+
+<div id="gate" class="gate" hidden>
+  <h1>LEL Project finance</h1>
+  <p id="gate-msg">This page is private. Sign in with your TasFarmers ArcGIS account to see it. Only members of the LEL Finance group can view the figures.</p>
+  <button class="btn" id="signin">Sign in with ArcGIS</button>
+</div>
+
+<div id="app" hidden>
+  <header class="hero">
+    <div class="wrap">
+      <div class="hero-top">
+        <div>
+          <h1>LEL Project finance</h1>
+          <p class="sub" id="fresh">Loading figures from Xero&hellip;</p>
+        </div>
+        <div style="text-align:right">
+          <span class="badge"><i></i>Private &middot; LEL Finance group</span><br/>
+          <button class="link" id="signout" style="margin-top:8px">Sign out of this page</button>
+        </div>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><div class="l">Cash at bank</div><div class="v tab" id="k-cash"><span class="skel"></span></div><div class="n" id="k-cash-n">&nbsp;</div></div>
+        <div class="kpi"><div class="l">Funds available</div><div class="v tab" id="k-wc"><span class="skel"></span></div><div class="n" id="k-wc-n">&nbsp;</div></div>
+        <div class="kpi"><div class="l">Spent to date</div><div class="v tab" id="k-spent"><span class="skel"></span></div><div class="n" id="k-spent-n">&nbsp;</div></div>
+        <div class="kpi"><div class="l">Average monthly spend</div><div class="v tab" id="k-burn"><span class="skel"></span></div><div class="n" id="k-burn-n">&nbsp;</div></div>
+        <div class="kpi"><div class="l">Funds last until</div><div class="v tab" id="k-run"><span class="skel"></span></div><div class="n" id="k-run-n">&nbsp;</div></div>
+      </div>
+      <div class="pace">
+        <div class="l" style="font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--tf-slate-400)">Pace check: time used vs budget used</div>
+        <div class="pace-row"><div class="lab">Project time elapsed</div><div class="track"><span id="p-time" style="background:var(--tf-slate-400);width:0"></span></div><div class="val tab" id="p-time-v">&ndash;</div></div>
+        <div class="pace-row"><div class="lab">Agreed budget spent</div><div class="track"><span id="p-bud" style="background:var(--tf-seafeed);width:0"></span></div><div class="val tab" id="p-bud-v">&ndash;</div></div>
+        <p class="verdict" id="p-verdict">&nbsp;</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="grid g2">
+      <section class="card">
+        <h2>Will the money last?</h2>
+        <p class="cs">Funds available today, run forward month by month. Each line is a spending pace; where a line crosses zero is when the money runs out.</p>
+        <div class="chart"><canvas id="c-runway"></canvas></div>
+        <div class="legend" id="lg-runway"></div>
+      </section>
+      <section class="card">
+        <h2>What changes the answer</h2>
+        <p class="cs">Months of funding left at each pace, from today.</p>
+        <table><thead><tr><th>Spending pace</th><th class="num">Per month</th><th class="num">Runs out</th></tr></thead><tbody id="t-scen"></tbody></table>
+        <p class="note" id="scen-note"></p>
+      </section>
+    </div>
+
+    <div class="grid g2e">
+      <section class="card">
+        <h2>Monthly spend</h2>
+        <p class="cs">Every expense account in Xero, by month. The line is the 3-month average.</p>
+        <div class="chart"><canvas id="c-month"></canvas></div>
+      </section>
+      <section class="card">
+        <h2>Spend against the agreed budget</h2>
+        <p class="cs">Cumulative spend since June 2024 against the Agreed Budget spread evenly through each year.</p>
+        <div class="chart"><canvas id="c-cum"></canvas></div>
+        <div class="legend"><span><i style="background:var(--tf-navy-900)"></i>Actual spend</span><span style="color:var(--tf-slate-400)"><i class="dash"></i><span style="color:var(--text-muted)">Agreed budget</span></span></div>
+      </section>
+    </div>
+
+    <section class="card" style="margin-top:var(--gap)">
+      <h2>Budget lines</h2>
+      <p class="cs" id="bud-sub">Spent to date against each line's budget to date and its total. The dark tick marks where spending would be if it followed the budget evenly.</p>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Budget line</th><th class="num">Spent to date</th><th class="num">Budget to date</th><th class="num">Difference</th><th style="width:26%">Share of total budget used</th><th class="num">Total budget</th></tr></thead>
+        <tbody id="t-bud"><tr><td colspan="6"><span class="skel"></span></td></tr></tbody>
+      </table></div>
+    </section>
+
+    <div class="grid g3">
+      <section class="card">
+        <h2>Drawdowns and milestones</h2>
+        <p class="cs">From the Grant Deed. Edit status in LEL_Fin_Milestones.</p>
+        <ul class="list" id="l-mile"><li><span class="skel"></span></li></ul>
+      </section>
+      <section class="card">
+        <h2>Partner contributions</h2>
+        <p class="cs">Cash received in Xero against each partner's commitment.</p>
+        <ul class="list" id="l-contrib"><li><span class="skel"></span></li></ul>
+      </section>
+      <section class="card">
+        <h2>Bills to pay</h2>
+        <p class="cs" id="bills-sub">Approved bills in Xero not yet paid.</p>
+        <ul class="list" id="l-bills"><li><span class="skel"></span></li></ul>
+        <h2 style="margin-top:20px">Biggest costs, last 3 months</h2>
+        <ul class="list" id="l-top"><li><span class="skel"></span></li></ul>
+      </section>
+    </div>
+
+    <details class="fold">
+      <summary>How these figures are worked out</summary>
+      <div class="b" id="method">
+        <p><b>Source.</b> Xero is read every morning (read only; nothing is ever written to Xero). Budget, contributions and milestones are kept by hand in ArcGIS Online: open LEL_Fin_Budget, LEL_Fin_Contributions or LEL_Fin_Milestones and edit the cell.</p>
+        <p><b>Funds available</b> is working capital: cash plus other current assets, less bills and other current liabilities. All of the $4M grant has already been received, so this is the money the Project has to finish with, before any partner cash still to come.</p>
+        <p><b>Average monthly spend</b> uses the last 6 complete months. If wages or large invoices have not been posted for some months, it will look low and the money will look like it lasts longer than it will.</p>
+        <p><b>Budget to date</b> spreads each calendar year's Agreed Budget evenly across its 12 months, from January 2025. Spending from June to December 2024 counts against the total but there was no 2024 budget line, so early lines can look ahead of budget.</p>
+        <p><b>Partner cash received</b> sums the income account named for each partner in LEL_Fin_Contributions. Partners with no Xero account named there show "not in Xero".</p>
+      </div>
+    </details>
+    <p class="foot">LEL Project &middot; Private finance view &middot; Not for external distribution</p>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  "use strict";
+  var CLIENT_ID = "58PHUu9Nh1IwHqhb";
+  var PORTAL = "https://indie520d1a051c0.maps.arcgis.com/sharing/rest";
+  var PAGE = location.origin + location.pathname;
+  var ITEMS = {
+    monthly: "bb2dcba9483a499c9d4c67931d36443e", snapshot: "7f4342b8e0a949109eed9193e9e4490d",
+    bills: "72fdc4c8c2c048eaad4aded590542114", budget: "dc9a5bef6c4a426cb28b50edb188e412",
+    contrib: "e1acce3bd4614c01a042def0842ef29f", milestones: "debed9f9fda64513a56aaa9564d4b980"
+  };
+  var KEY = "lelFinToken";
+  var NAVY = "#041221", MINT = "#3aa989", RED = "#c0392b", SLATE = "#a9b8c4", AMBER = "#c98a2e";
+  var GRANT = "State Government Grant";
+
+  /* ---------- sign-in (ArcGIS OAuth, implicit flow) ---------- */
+  function readHash() {
+    if (!/access_token=/.test(location.hash)) return null;
+    var p = new URLSearchParams(location.hash.slice(1));
+    return { token: p.get("access_token"), expires: Date.now() + (parseInt(p.get("expires_in"), 10) || 7200) * 1000, user: p.get("username") };
+  }
+  function store(t) { try { sessionStorage.setItem(KEY, JSON.stringify(t)); } catch (e) {} }
+  function load() { try { var t = JSON.parse(sessionStorage.getItem(KEY)); return t && t.expires > Date.now() + 60000 ? t : null; } catch (e) { return null; } }
+  function clear() { try { sessionStorage.removeItem(KEY); } catch (e) {} }
+  function authUrl() {
+    return PORTAL + "/oauth2/authorize?client_id=" + CLIENT_ID + "&response_type=token&expiration=480&redirect_uri=" + encodeURIComponent(PAGE);
+  }
+
+  var fromHash = readHash();
+  if (fromHash) {
+    if (window.opener && window.opener !== window) {          // popup: hand the token back and close
+      try { window.opener.postMessage({ lelFinToken: fromHash }, location.origin); } catch (e) {}
+      window.close();
+      document.body.innerHTML = "<p style='font-family:Verdana;padding:30px'>Signed in. You can close this window.</p>";
+      return;
+    }
+    store(fromHash);
+    history.replaceState(null, "", PAGE);
+  }
+  window.addEventListener("message", function (ev) {
+    if (ev.origin !== location.origin || !ev.data || !ev.data.lelFinToken) return;
+    store(ev.data.lelFinToken); start();
+  });
+  document.getElementById("signin").onclick = function () {
+    if (window.top !== window) window.open(authUrl(), "lelfin", "width=520,height=680");   // inside the Hub page
+    else location.href = authUrl();
+  };
+  document.getElementById("signout").onclick = function () { clear(); location.reload(); };
+
+  function gate(msg) {
+    document.getElementById("app").hidden = true;
+    document.getElementById("gate").hidden = false;
+    if (msg) document.getElementById("gate-msg").textContent = msg;
+  }
+
+  /* ---------- data ---------- */
+  function getJSON(url, token) {
+    return fetch(url + (url.indexOf("?") < 0 ? "?" : "&") + "f=json&token=" + encodeURIComponent(token)).then(function (r) { return r.json(); })
+      .then(function (j) { if (j && j.error) { var e = new Error(j.error.message || "ArcGIS error"); e.code = j.error.code; throw e; } return j; });
+  }
+  function table(key, token) {
+    return getJSON(PORTAL + "/content/items/" + ITEMS[key], token).then(function (item) {
+      var url = item.url.replace(/\/$/, "") + "/0/query?where=1%3D1&outFields=*&returnGeometry=false&resultRecordCount=4000";
+      return getJSON(url, token);
+    }).then(function (j) { return (j.features || []).map(function (f) { return f.attributes; }); });
+  }
+
+  /* ---------- formatting ---------- */
+  function money(v, dp) {
+    if (v == null || isNaN(v)) return "–";
+    var a = Math.abs(v), s = v < 0 ? "-$" : "$";
+    if (a >= 1e6) return s + (a / 1e6).toFixed(dp == null ? 2 : dp) + "M";
+    if (a >= 1e4) return s + Math.round(a / 1e3) + "k";
+    if (a >= 1e3) return s + (a / 1e3).toFixed(1) + "k";
+    return s + Math.round(a);
+  }
+  function full(v) { return v == null ? "–" : (v < 0 ? "-$" : "$") + Math.round(Math.abs(v)).toLocaleString("en-AU"); }
+  var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function ym(d) { return d.getFullYear() * 12 + d.getMonth(); }
+  function ymLabel(n, long) { var y = Math.floor(n / 12), m = n % 12; return MON[m] + " " + (long ? y : String(y).slice(2)); }
+  function dmy(ms) { if (!ms) return "–"; var d = new Date(ms); return d.getDate() + " " + MON[d.getMonth()] + " " + d.getFullYear(); }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function set(id, html) { document.getElementById(id).innerHTML = html; }
+
+  /* ---------- charts: minimal chrome ---------- */
+  Chart.defaults.font.family = "Verdana, Tahoma, sans-serif";
+  Chart.defaults.font.size = 11;
+  Chart.defaults.animation = false;
+  Chart.defaults.color = "#5f6f7c";
+  function axes(yfmt) {
+    return {
+      x: { grid: { display: false }, border: { display: false }, ticks: { maxRotation: 0, autoSkipPadding: 14 } },
+      y: { grid: { color: "#eef2f5" }, border: { display: false }, ticks: { callback: function (v) { return yfmt ? yfmt(v) : money(v, 1); }, maxTicksLimit: 6 } }
+    };
+  }
+  function tip(fmt) {
+    return { callbacks: { label: function (c) { return " " + c.dataset.label + ": " + (fmt || full)(c.parsed.y); } } };
+  }
+
+  /* ---------- build ---------- */
+  var started = false;
+  function start() {
+    var t = load();
+    if (!t) { gate(); return; }
+    if (started) return; started = true;
+    document.getElementById("gate").hidden = true;
+    document.getElementById("app").hidden = false;
+    Promise.all(Object.keys(ITEMS).map(function (k) { return table(k, t.token); }))
+      .then(function (r) { render({ monthly: r[0], snapshot: r[1], bills: r[2], budget: r[3], contrib: r[4], milestones: r[5] }); })
+      .catch(function (e) {
+        started = false;
+        if (e.code === 498 || e.code === 499) { clear(); gate("Your sign-in has expired. Please sign in again."); return; }
+        if (e.code === 403 || e.code === 400) {
+          gate("You are signed in, but your account is not in the LEL Finance group, so the figures are hidden. Ask Jono to add you."); return;
+        }
+        gate("The figures could not be loaded (" + e.message + "). Try again in a minute.");
+      });
+  }
+
+  function render(d) {
+    var now = new Date(), nowYM = ym(now);
+    var snap = d.snapshot.slice().sort(function (a, b) { return b.snapshot_date - a.snapshot_date; })[0] || {};
+    var rows = d.monthly.map(function (r) { r.ym = ym(new Date(r.month)); return r; });
+    var exp = rows.filter(function (r) { return r.kind === "expense"; });
+    var first = Math.min.apply(null, rows.map(function (r) { return r.ym; }));
+
+    // monthly expense totals
+    var byM = {}; exp.forEach(function (r) { byM[r.ym] = (byM[r.ym] || 0) + r.amount_aud; });
+    var months = []; for (var m = first; m <= nowYM; m++) months.push(m);
+    var spend = months.map(function (m) { return byM[m] || 0; });
+    var spentToDate = spend.reduce(function (a, b) { return a + b; }, 0);
+    var complete = months.filter(function (m) { return m < nowYM; });
+    var last6 = complete.slice(-6).map(function (m) { return byM[m] || 0; });
+    var avg6 = last6.reduce(function (a, b) { return a + b; }, 0) / Math.max(last6.length, 1);
+    var last12 = complete.slice(-12).map(function (m) { return byM[m] || 0; });
+    var avg12 = last12.reduce(function (a, b) { return a + b; }, 0) / Math.max(last12.length, 1);
+
+    // budget by category and year
+    var years = {}, budTotal = 0, cats = {};
+    d.budget.forEach(function (b) {
+      years[b.year] = (years[b.year] || 0) + b.budget_aud; budTotal += b.budget_aud;
+      var c = cats[b.category] = cats[b.category] || { total: 0, byYear: {} };
+      c.total += b.budget_aud; c.byYear[b.year] = (c.byYear[b.year] || 0) + b.budget_aud;
+    });
+    var yKeys = Object.keys(years).map(Number).sort();
+    var budStart = yKeys[0] * 12, budEnd = yKeys[yKeys.length - 1] * 12 + 11;
+    function budgetThrough(byYear, n) {          // cumulative budget up to and including month n
+      var s = 0;
+      Object.keys(byYear).forEach(function (y) {
+        y = Number(y); var m0 = y * 12, done = Math.max(0, Math.min(12, n - m0 + 1));
+        s += byYear[y] * done / 12;
+      });
+      return s;
+    }
+    var budToDate = budgetThrough(years, nowYM);
+    var budRemainingMonthly = (budTotal - budToDate) / Math.max(budEnd - nowYM, 1);
+
+    /* hero */
+    var wc = snap.working_capital_aud, cash = snap.cash_aud;
+    set("fresh", "Figures from Xero as at " + dmy(snap.snapshot_date) + ". Updated every morning.");
+    set("k-cash", money(cash));
+    set("k-cash-n", "in the bank today");
+    set("k-wc", money(wc));
+    set("k-wc-n", cash != null && wc != null ? "cash " + (wc <= cash ? "less <b>" + money(cash - wc) + "</b>" : "plus <b>" + money(wc - cash) + "</b>") + " of bills owed and other current items" : "cash after bills owed");
+    set("k-spent", money(spentToDate));
+    set("k-spent-n", "<b>" + Math.round(spentToDate / budTotal * 100) + "%</b> of the " + money(budTotal, 1) + " Agreed Budget");
+    set("k-burn", money(avg6));
+    var lowMonths = complete.slice(-3).filter(function (m) { return !(rows.some(function (r) { return r.ym === m && /Wages/.test(r.account) && r.amount_aud > 0; })); }).length;
+    set("k-burn-n", "last 6 months" + (lowMonths ? ' &middot; <span class="warn">no wages posted for ' + lowMonths + " of the last 3</span>" : ""));
+
+    function runOut(rate) { if (!(rate > 0) || wc == null) return null; return nowYM + wc / rate; }
+    var budgetEndLabel = ymLabel(budEnd, true);
+    var roBudget = runOut(budRemainingMonthly);
+    var roAct = runOut(avg6);
+    function runTxt(r) { return r == null ? "–" : (r > budEnd ? "Past " + budgetEndLabel : ymLabel(Math.floor(r), true)); }
+    set("k-run", roBudget == null ? "–" : (roBudget >= budEnd ? '<span class="good">' + runTxt(roBudget) + "</span>" : '<span class="bad">' + runTxt(roBudget) + "</span>"));
+    set("k-run-n", "if the rest of the Agreed Budget is spent as planned (" + money(budRemainingMonthly) + "/month). Budget ends " + budgetEndLabel + ".");
+
+    var projStart = Math.min(first, budStart), timePct = (nowYM - projStart + 1) / (budEnd - projStart + 1);
+    var budPct = spentToDate / budTotal;
+    document.getElementById("p-time").style.width = Math.min(100, timePct * 100) + "%";
+    document.getElementById("p-bud").style.width = Math.min(100, budPct * 100) + "%";
+    set("p-time-v", Math.round(timePct * 100) + "%");
+    set("p-bud-v", Math.round(budPct * 100) + "% &middot; " + money(spentToDate));
+    var gap = timePct - budPct;
+    set("p-verdict", gap > 0.05
+      ? "Spending is <b class='warn'>behind</b> the timeline: " + Math.round(timePct * 100) + "% of the Project time has passed but " + Math.round(budPct * 100) +
+        "% of the budget is spent, about <b>" + money(timePct * budTotal - spentToDate) + "</b> less than an even pace. Good for the runway, but check that activities and payroll are not lagging."
+      : gap < -0.05 ? "Spending is <b class='bad'>ahead</b> of the timeline by about " + money(spentToDate - timePct * budTotal) + "."
+      : "Spending is <b class='good'>on pace</b> with the timeline.");
+
+    /* runway chart and scenarios */
+    var horizon = Math.max(budEnd, nowYM + 12);
+    var fm = []; for (var k = nowYM; k <= horizon; k++) fm.push(k);
+    var scen = [
+      { label: "Agreed Budget pace", rate: budRemainingMonthly, color: NAVY, dash: [], note: "the rest of the budget, spread evenly to " + budgetEndLabel },
+      { label: "Last 12 months' pace", rate: avg12, color: SLATE, dash: [5, 4], note: "" },
+      { label: "Last 6 months' pace", rate: avg6, color: MINT, dash: [5, 4], note: "" }
+    ];
+    new Chart(document.getElementById("c-runway"), {
+      type: "line",
+      data: { labels: fm.map(function (m) { return ymLabel(m); }), datasets: scen.map(function (s) {
+        return { label: s.label, data: fm.map(function (m) { var v = wc - s.rate * (m - nowYM); return v; }), borderColor: s.color,
+          borderDash: s.dash, borderWidth: 2, pointRadius: 0, tension: 0, fill: false };
+      }) },
+      options: { maintainAspectRatio: false, interaction: { mode: "index", intersect: false }, plugins: { legend: { display: false }, tooltip: tip() },
+        scales: (function () { var a = axes(); a.y.suggestedMin = 0; return a; })(), elements: { line: { borderCapStyle: "round" } } },
+      plugins: [{ id: "zero", afterDraw: function (c) {
+        var y = c.scales.y.getPixelForValue(0), x = c.chartArea; if (y < x.top || y > x.bottom) return;
+        var g = c.ctx; g.save(); g.strokeStyle = RED; g.lineWidth = 1; g.setLineDash([2, 3]); g.beginPath(); g.moveTo(x.left, y); g.lineTo(x.right, y); g.stroke(); g.restore();
+      } }]
+    });
+    set("lg-runway", scen.map(function (s) { return "<span><i style='background:" + s.color + "'></i>" + s.label + "</span>"; }).join("") +
+      "<span><i style='background:" + RED + "'></i>Money runs out</span>");
+    set("t-scen", scen.map(function (s) {
+      var r = runOut(s.rate), left = r == null ? null : r - nowYM;
+      var cls = r == null ? "" : r >= budEnd ? "good" : "bad";
+      return "<tr><td>" + s.label + (s.note ? "<div class='small muted'>" + s.note + "</div>" : "") + "</td><td class='num'>" + money(s.rate) +
+        "</td><td class='num " + cls + "'><b>" + runTxt(r) + "</b>" + (left != null ? "<div class='small muted'>" + Math.round(left) + " months</div>" : "") + "</td></tr>";
+    }).join(""));
+    var budPaceNeeded = wc / Math.max(budEnd - nowYM, 1);
+    set("scen-note", "To land exactly on zero at " + budgetEndLabel + ", the Project can spend about <b>" + money(budPaceNeeded) +
+      "</b> a month from now. Partner cash still to come (for example producer feed contributions) would add to this.");
+
+    /* monthly spend */
+    var roll = spend.map(function (v, i) { var a = spend.slice(Math.max(0, i - 2), i + 1); return a.reduce(function (x, y) { return x + y; }, 0) / a.length; });
+    new Chart(document.getElementById("c-month"), {
+      data: { labels: months.map(function (m) { return ymLabel(m); }), datasets: [
+        { type: "bar", label: "Spend", data: spend, backgroundColor: months.map(function (m) { return m === nowYM ? "#c3cfd8" : NAVY; }), borderRadius: 3, maxBarThickness: 18 },
+        { type: "line", label: "3-month average", data: roll, borderColor: MINT, borderWidth: 2, pointRadius: 0, tension: 0.3 }
+      ] },
+      options: { maintainAspectRatio: false, interaction: { mode: "index", intersect: false }, plugins: { legend: { display: false }, tooltip: tip() }, scales: axes() }
+    });
+
+    /* cumulative vs budget */
+    var cumM = []; for (var c = Math.min(first, budStart); c <= budEnd; c++) cumM.push(c);
+    var run = 0, cumAct = cumM.map(function (m) { if (m > nowYM) return null; run += byM[m] || 0; return run; });
+    new Chart(document.getElementById("c-cum"), {
+      type: "line",
+      data: { labels: cumM.map(function (m) { return ymLabel(m); }), datasets: [
+        { label: "Actual spend", data: cumAct, borderColor: NAVY, backgroundColor: "rgba(4,18,33,.06)", fill: true, borderWidth: 2, pointRadius: 0, tension: 0 },
+        { label: "Agreed budget", data: cumM.map(function (m) { return budgetThrough(years, m); }), borderColor: SLATE, borderDash: [5, 4], borderWidth: 2, pointRadius: 0, tension: 0 }
+      ] },
+      options: { maintainAspectRatio: false, interaction: { mode: "index", intersect: false }, plugins: { legend: { display: false }, tooltip: tip() }, scales: axes() }
+    });
+
+    /* budget lines */
+    var actCat = {}; exp.forEach(function (r) { actCat[r.category] = (actCat[r.category] || 0) + r.amount_aud; });
+    var names = Object.keys(cats).concat(Object.keys(actCat).filter(function (k) { return !cats[k]; }));
+    var lines = names.map(function (n) {
+      var c = cats[n] || { total: 0, byYear: {} };
+      return { name: n, total: c.total, toDate: budgetThrough(c.byYear, nowYM), spent: actCat[n] || 0 };
+    }).sort(function (a, b) { return b.total - a.total; });
+    set("t-bud", lines.map(function (l) {
+      var diff = l.toDate - l.spent, used = l.total ? l.spent / l.total : null, tick = l.total ? l.toDate / l.total : null;
+      var over = l.spent > l.toDate * 1.05 && l.spent > 1000;
+      var bar = l.total ? "<div class='mini'><span style='width:" + Math.min(100, used * 100) + "%;background:" + (l.spent > l.total ? RED : over ? AMBER : MINT) +
+        "'></span><em style='left:calc(" + Math.min(100, tick * 100) + "% - 1px)'></em></div><div class='small muted' style='margin-top:4px'>" + Math.round(used * 100) + "% used</div>"
+        : "<span class='small warn'>No budget line</span>";
+      return "<tr><td><b>" + esc(l.name) + "</b></td><td class='num'>" + full(l.spent) + "</td><td class='num muted'>" + full(l.toDate) +
+        "</td><td class='num " + (over ? "bad" : "good") + "'>" + (diff >= 0 ? full(diff) + " under" : full(-diff) + " over") + "</td><td>" + bar + "</td><td class='num'>" + full(l.total) + "</td></tr>";
+    }).join("") + "<tr><td><b>Total</b></td><td class='num'><b>" + full(spentToDate) + "</b></td><td class='num muted'><b>" + full(budToDate) + "</b></td><td class='num " +
+      (spentToDate > budToDate ? "bad" : "good") + "'><b>" + (budToDate >= spentToDate ? full(budToDate - spentToDate) + " under" : full(spentToDate - budToDate) + " over") +
+      "</b></td><td></td><td class='num'><b>" + full(budTotal) + "</b></td></tr>");
+
+    /* milestones */
+    var ms = d.milestones.slice().sort(function (a, b) { return (a.due_date || 4e12) - (b.due_date || 4e12); });
+    set("l-mile", ms.map(function (m) {
+      var st = (m.status || "").toLowerCase(), late = m.due_date && m.due_date < Date.now() && !/accepted|done|complete/.test(st);
+      var cls = late ? "late" : /accepted|done|complete/.test(st) ? "ok" : /progress/.test(st) ? "wip" : /check/.test(st) ? "chk" : "todo";
+      var days = m.due_date ? Math.round((m.due_date - Date.now()) / 864e5) : null;
+      var when = m.accepted_date ? "Accepted " + dmy(m.accepted_date) : m.due_date ? "Due " + dmy(m.due_date) + (days != null && days >= 0 && days < 120 ? " &middot; <b>" + days + " days</b>" : "") : "No date set";
+      return "<li><div><div class='t'>" + esc(m.name) + "</div><div class='s'>" + (m.amount_aud ? money(m.amount_aud) + " &middot; " : "") + when +
+        "</div></div><div><span class='chip " + cls + "'>" + esc(late ? "Overdue" : m.status || "–") + "</span></div></li>";
+    }).join("") || "<li class='empty'>No milestones recorded yet.</li>");
+
+    /* contributions */
+    var inc = rows.filter(function (r) { return r.kind === "income"; });
+    var cashC = d.contrib.filter(function (c) { return c.kind === "cash"; }).sort(function (a, b) { return b.target_aud - a.target_aud; });
+    set("l-contrib", cashC.map(function (c) {
+      var got = c.xero_account ? inc.filter(function (r) { return r.account === c.xero_account; }).reduce(function (a, r) { return a + r.amount_aud; }, 0) : null;
+      var pct = got == null ? null : got / c.target_aud;
+      return "<li style='display:block'><div style='display:flex;justify-content:space-between;gap:10px'><div class='t'>" + esc(c.partner) + "</div><div class='small tab'>" +
+        (got == null ? "<span class='muted'>not in Xero</span>" : "<b>" + money(got) + "</b> <span class='muted'>of " + money(c.target_aud) + "</span>") + "</div></div>" +
+        (got == null ? "<div class='s'>Commitment " + money(c.target_aud) + ". Add its Xero account in LEL_Fin_Contributions to track it.</div>"
+          : "<div class='mini' style='margin-top:7px'><span style='width:" + Math.min(100, pct * 100) + "%;background:" + (pct >= 0.999 ? MINT : NAVY) + "'></span></div>") + "</li>";
+    }).join("") || "<li class='empty'>No contribution targets recorded yet.</li>");
+
+    /* bills */
+    var bills = d.bills.slice().sort(function (a, b) { return (a.due_date || 0) - (b.due_date || 0); });
+    var billSum = bills.reduce(function (a, b) { return a + (b.amount_due_aud || 0); }, 0);
+    set("bills-sub", bills.length + " approved bill" + (bills.length === 1 ? "" : "s") + " in Xero not yet paid, " + full(billSum) + " in total.");
+    set("l-bills", bills.map(function (b) {
+      var od = b.days_overdue > 0;
+      return "<li><div><div class='t'>" + esc(b.supplier) + "</div><div class='s'>" + esc(b.reference || "") + " &middot; due " + dmy(b.due_date) + "</div></div><div class='tab' style='text-align:right'><b>" +
+        full(b.amount_due_aud) + "</b>" + (od ? "<div class='small bad'>" + b.days_overdue + " days overdue</div>" : "") + "</div></li>";
+    }).join("") || "<li class='empty'>Nothing waiting to be paid.</li>");
+
+    /* top accounts, last 3 complete months */
+    var win = complete.slice(-3), acc = {};
+    exp.filter(function (r) { return win.indexOf(r.ym) >= 0; }).forEach(function (r) { acc[r.account] = (acc[r.account] || 0) + r.amount_aud; });
+    var top = Object.keys(acc).map(function (k) { return [k, acc[k]]; }).sort(function (a, b) { return b[1] - a[1]; }).slice(0, 5);
+    set("l-top", top.map(function (t) { return "<li><div class='t' style='font-weight:400'>" + esc(t[0]) + "</div><div class='tab'><b>" + full(t[1]) + "</b></div></li>"; }).join("") ||
+      "<li class='empty'>No spending in the last 3 months.</li>");
+  }
+
+  start();
+})();
+</script>
+</body>
+</html>
