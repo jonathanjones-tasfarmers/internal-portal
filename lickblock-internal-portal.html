@@ -687,6 +687,15 @@
     return kg ? kg * 1000 / head / days : null;
   }
 
+  // Latest logged visit (any unit) for one farm + treatment, or null.
+  function lastVisit(placements, site, treatment){
+    var last = null;
+    (placements || []).forEach(function(p){
+      if (p.trial_site === site && p.treatment === treatment && p.placement_time != null && (last == null || p.placement_time > last)) last = p.placement_time;
+    });
+    return last;
+  }
+
   function renderKpiGrid(usageHistory, farms, placements){
     var latestByKey = {};
     usageHistory.forEach(function(r){
@@ -708,7 +717,12 @@
       var out = { farm: farm };
       ['seafeed', 'control'].forEach(function(t){
         var r = latestByKey[farm + '|' + t];
-        out[t] = { r: r, g: r && r.avg_consumption_g_per_hd_day != null ? Number(r.avg_consumption_g_per_hd_day) : null, wc: wholeCohortRate(placements, farm, t) };
+        out[t] = { r: r, g: r && r.avg_consumption_g_per_hd_day != null ? Number(r.avg_consumption_g_per_hd_day) : null, wc: wholeCohortRate(placements, farm, t), last: lastVisit(placements, farm, t) };
+        // 2026-11-26: the pipeline writes 0 (not "no data") when every unit for
+        // this mob has gone more than 14 days without a logged visit, so a mob
+        // still eating blocks showed "0 g". Show "No recent visit" instead.
+        out[t].noVisit = out[t].g === 0 && r && !(r.blocks_per_day_current > 0);
+        if (out[t].noVisit) out[t].g = null;
       });
       return out;
     });
@@ -723,6 +737,7 @@
       var x = o[t], r = x.r;
       var w = x.g != null ? Math.max(0.5, x.g / max * 100) : 0;
       var meta = r ? ((r.head_count != null ? r.head_count + ' head, ' : '') + 'as of ' + fmtDate(r.snapshot_date)) : 'No data yet';
+      if (x.noVisit) meta = '<b>No block visit logged since ' + fmtDate(x.last) + '</b>' + (r.head_count != null ? ' &middot; ' + r.head_count + ' head' : '');
       if (x.wc != null) meta += ' &middot; whole cohort ' + fmtNum(x.wc, 0) + ' g';
       if (t === 'seafeed' && x.wc != null) meta += ' (<b>' + pctDose(x.wc) + '% of the 90 g dose</b>)';
       return '<div class="lbp-bar-row">' +
