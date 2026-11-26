@@ -1,0 +1,872 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<meta name="theme-color" content="#041221" />
+<title>LEL Spend Model | private</title>
+<!--
+  LEL Project spend model (added 2026-11-27): projected spend from head on feed.
+  PRIVATE DATA, PUBLIC CODE. This file holds no figures from Xero. Funds, wages history, budget and partner
+  commitments are read at view time from the private LEL_Fin_* tables with the viewer's ArcGIS sign-in
+  (same OAuth app as lel-finance.html). Head on feed comes from the public onboarding roadmap layer.
+  Unit costings (block prices, freight, OptiWeigh) are from 01. TLEL Project Budget.xlsx and are not sensitive.
+  Saved scenarios go to the private LEL_Fin_Scenarios table (lel-pipelines script 43).
+-->
+<style>
+:root{
+  --tf-navy-900:#041221; --tf-navy-800:#0c2236; --tf-navy-700:#16324b;
+  --tf-slate-600:#5f6f7c; --tf-slate-400:#a9b8c4; --tf-slate-300:#c3cfd8; --tf-slate-200:#dde4ea; --tf-slate-100:#eef2f5;
+  --tf-seafeed:#3aa989; --tf-mint-300:#8fd6bf; --tf-red:#c0392b; --tf-warning:#c98a2e; --tf-white:#fff;
+  --text-heading:var(--tf-navy-900); --text-body:#1c2a38; --text-muted:var(--tf-slate-600);
+  --border-subtle:var(--tf-slate-200); --radius-lg:12px; --radius-md:10px; --radius-sm:6px;
+  --shadow-sm:0 1px 2px rgba(4,18,33,.08);
+  --font-display:Tahoma,Verdana,sans-serif; --font-body:Verdana,Tahoma,sans-serif;
+  --gap:18px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:#f6f8fa}
+body{font-family:var(--font-body);color:var(--text-body);-webkit-font-smoothing:antialiased;font-size:13px}
+.tab{font-variant-numeric:tabular-nums}
+.wrap{max-width:1320px;margin:0 auto;padding:0 28px 48px}
+
+/* Hero: the one dark structural band */
+.hero{background:var(--tf-navy-900);color:#fff}
+.hero .wrap{padding-top:26px;padding-bottom:28px}
+.hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.hero h1{font-family:var(--font-display);font-size:22px;margin:0 0 4px;font-weight:700}
+.hero .sub{color:var(--tf-slate-400);font-size:12.5px;margin:0}
+.badge{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:.04em;
+  text-transform:uppercase;border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:5px 11px;color:var(--tf-slate-300)}
+.badge i{width:7px;height:7px;border-radius:50%;background:var(--tf-seafeed);display:inline-block}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:var(--gap)}
+.kpi{background:var(--tf-navy-800);border:1px solid var(--tf-navy-700);border-radius:var(--radius-lg);padding:16px 18px}
+.kpi .l{font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--tf-slate-400)}
+.kpi .v{font-family:var(--font-display);font-size:30px;font-weight:700;margin:6px 0 4px;line-height:1.1}
+.kpi .n{font-size:11.5px;color:var(--tf-slate-400);line-height:1.45}
+.kpi .n b{color:#fff;font-weight:700}
+.good{color:var(--tf-seafeed)} .bad{color:var(--tf-red)} .warn{color:var(--tf-warning)}
+.hero .good{color:var(--tf-mint-300)} .hero .bad{color:#ff8a7a} .hero .warn{color:#f0c27a}
+.pace{margin-top:var(--gap);background:var(--tf-navy-800);border:1px solid var(--tf-navy-700);border-radius:var(--radius-lg);padding:16px 18px}
+.pace-row{display:grid;grid-template-columns:150px 1fr 120px;gap:14px;align-items:center;margin:8px 0}
+.pace-row .lab{font-size:12px;color:var(--tf-slate-300)}
+.pace-row .val{font-family:var(--font-display);font-weight:700;text-align:right;font-size:13px}
+.track{height:10px;background:var(--tf-navy-700);border-radius:999px;overflow:hidden;position:relative}
+.track>span{position:absolute;left:0;top:0;bottom:0;border-radius:999px}
+.pace .verdict{font-size:12.5px;color:var(--tf-slate-300);margin:10px 0 0;line-height:1.5}
+
+/* Body cards */
+.grid{display:grid;gap:var(--gap);margin-top:var(--gap)}
+.g2{grid-template-columns:1.6fr 1fr} .g2e{grid-template-columns:1fr 1fr} .g3{grid-template-columns:repeat(3,1fr)}
+.card{background:#fff;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:18px 22px;box-shadow:var(--shadow-sm);min-width:0}
+.card h2{font-family:var(--font-display);font-size:15px;color:var(--text-heading);margin:0 0 3px}
+.card .cs{font-size:12px;color:var(--text-muted);margin:0 0 14px;line-height:1.5}
+.chart{position:relative;height:260px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--text-muted);margin:10px 0 0}
+.legend i{display:inline-block;width:12px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.legend i.dash{background:repeating-linear-gradient(90deg,currentColor 0 4px,transparent 4px 7px)!important;height:2px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;font-family:var(--font-display);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);
+  padding:6px 10px 8px 0;border-bottom:1px solid var(--border-subtle);white-space:nowrap}
+td{padding:9px 10px 9px 0;border-bottom:1px solid var(--border-subtle);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mini{height:8px;background:var(--tf-slate-100);border-radius:999px;position:relative;min-width:90px;overflow:visible}
+.mini>span{position:absolute;left:0;top:0;bottom:0;border-radius:999px;max-width:100%}
+.mini>em{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--tf-navy-900);border-radius:1px}
+.chip{display:inline-block;font-family:var(--font-display);font-size:10.5px;font-weight:700;border-radius:999px;padding:3px 9px;white-space:nowrap}
+.chip.ok{background:#e3f4ee;color:#1f7a5f} .chip.wip{background:#e8eef4;color:var(--tf-navy-700)} .chip.chk{background:#fbefdc;color:#8a5a12}
+.chip.todo{background:var(--tf-slate-100);color:var(--text-muted)} .chip.late{background:#f9e3e0;color:#9b2c20}
+.muted{color:var(--text-muted)} .small{font-size:11.5px}
+.list{margin:0;padding:0;list-style:none}
+.list li{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-subtle)}
+.list li:last-child{border-bottom:none}
+.list .t{font-weight:700;color:var(--text-heading);font-size:12.5px}
+.list .s{font-size:11.5px;color:var(--text-muted);margin-top:2px}
+.note{font-size:11.5px;color:var(--text-muted);margin:12px 0 0;line-height:1.55}
+details.fold{margin-top:var(--gap);background:#fff;border:1px solid var(--border-subtle);border-radius:var(--radius-lg)}
+details.fold>summary{cursor:pointer;padding:12px 18px;font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text-heading);list-style:none}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary::before{content:"\25B8  ";color:var(--tf-seafeed)}
+details.fold[open]>summary::before{content:"\25BE  "}
+details.fold .b{padding:0 18px 16px;font-size:12.5px;line-height:1.65;color:var(--text-muted)}
+.skel{display:inline-block;height:1em;width:5ch;border-radius:4px;background:linear-gradient(90deg,rgba(255,255,255,.08),rgba(255,255,255,.18),rgba(255,255,255,.08));background-size:200% 100%;animation:sh 1.2s infinite}
+.card .skel{background:linear-gradient(90deg,#eef2f5,#f7f9fb,#eef2f5);background-size:200% 100%}
+@keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.empty{color:var(--text-muted);font-size:12.5px;padding:18px 0}
+
+/* Sign-in gate */
+.gate{max-width:520px;margin:70px auto;background:#fff;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:30px 32px;box-shadow:var(--shadow-sm);text-align:center}
+.gate h1{font-family:var(--font-display);font-size:20px;color:var(--text-heading);margin:0 0 8px}
+.gate p{color:var(--text-muted);line-height:1.6;margin:0 0 18px}
+.btn{font-family:var(--font-display);font-weight:700;font-size:13px;background:var(--tf-navy-900);color:#fff;border:0;border-radius:var(--radius-md);padding:11px 20px;cursor:pointer}
+.btn:hover{background:var(--tf-navy-700)}
+.link{background:none;border:0;color:var(--tf-slate-400);font-size:11.5px;cursor:pointer;text-decoration:underline;padding:0}
+.foot{font-family:var(--font-display);font-size:11px;color:var(--text-muted);text-align:center;margin-top:26px;line-height:1.6}
+[hidden]{display:none!important}
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}.g2,.g2e,.g3{grid-template-columns:1fr}}
+@media (max-width:720px){.wrap{padding:0 16px 40px}.kpis{grid-template-columns:1fr 1fr}.kpi .v{font-size:24px}.pace-row{grid-template-columns:1fr;gap:6px}.pace-row .val{text-align:left}}
+
+/* Spend model: drivers panel + results */
+.nav{display:flex;gap:6px;margin:0 0 14px}
+.nav a{font-family:var(--font-display);font-size:11.5px;font-weight:700;color:var(--tf-slate-300);text-decoration:none;padding:5px 11px;border-radius:999px;border:1px solid transparent}
+.nav a.on{color:#fff;border-color:rgba(255,255,255,.25)}
+.nav a:hover{color:#fff}
+.layout{display:grid;grid-template-columns:360px 1fr;gap:var(--gap);margin-top:var(--gap);align-items:start}
+.drivers{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto;padding:0}
+.drivers .hd{padding:16px 18px 6px}
+.dg{border-top:1px solid var(--border-subtle);padding:12px 18px 14px}
+.dg h3{font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);margin:0 0 10px}
+.f{display:grid;grid-template-columns:1fr 118px;gap:8px;align-items:center;margin:7px 0}
+.f label{font-size:12px;color:var(--text-body);line-height:1.35}
+.f label small{display:block;color:var(--text-muted);font-size:10.5px}
+.f input[type=number],.f select,.f input[type=text]{width:100%;font:inherit;font-size:12.5px;padding:6px 8px;border:1px solid var(--tf-slate-300);border-radius:var(--radius-sm);background:#fff;color:var(--text-body);text-align:right;font-variant-numeric:tabular-nums}
+.f select{text-align:left}
+.f input:focus,.f select:focus{outline:2px solid var(--tf-mint-300);border-color:var(--tf-seafeed)}
+.slider{margin:6px 0 10px}
+.slider .top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px}
+.slider .top b{font-family:var(--font-display);color:var(--text-heading)}
+.slider input{width:100%;accent-color:var(--tf-seafeed)}
+.slider .ticks{display:flex;justify-content:space-between;font-size:10.5px;color:var(--text-muted)}
+.qt{width:100%;font-size:11.5px}
+.qt th{font-size:9.5px;padding:4px 4px 6px 0}
+.qt td{padding:3px 4px 3px 0;border-bottom:none}
+.qt input{width:100%;font:inherit;font-size:11.5px;padding:4px 5px;border:1px solid var(--tf-slate-300);border-radius:5px;text-align:right;font-variant-numeric:tabular-nums}
+.qt input.chg{background:#fbefdc;border-color:#e3c48f}
+.chk{display:flex;gap:8px;align-items:flex-start;font-size:12px;margin:7px 0;line-height:1.35}
+.chk input{margin-top:2px;accent-color:var(--tf-seafeed)}
+.pr{display:grid;grid-template-columns:18px 1fr 96px;gap:6px;align-items:center;margin:5px 0;font-size:12px}
+.pr input[type=number]{width:100%;font:inherit;font-size:12px;padding:4px 6px;border:1px solid var(--tf-slate-300);border-radius:5px;text-align:right}
+.pr .s{grid-column:2/4;font-size:10.5px;color:var(--text-muted);margin-top:-3px}
+.btn2{font-family:var(--font-display);font-weight:700;font-size:11.5px;background:#fff;color:var(--tf-navy-900);border:1px solid var(--tf-slate-300);border-radius:var(--radius-sm);padding:6px 10px;cursor:pointer}
+.btn2:hover{border-color:var(--tf-navy-700)}
+.btn.sm{padding:7px 12px;font-size:12px}
+.solve{background:#e3f4ee;border:1px solid #bfe5d7;border-radius:var(--radius-md);padding:12px 14px;margin-top:10px;font-size:12px;line-height:1.5}
+.solve b{font-family:var(--font-display)}
+.chart.tall{height:300px}
+.scen-row{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.scen-row input{flex:1;font:inherit;font-size:12.5px;padding:7px 9px;border:1px solid var(--tf-slate-300);border-radius:var(--radius-sm)}
+.yt td.num{min-width:78px}
+.yt tr.tot td{font-weight:700;border-top:2px solid var(--tf-slate-300)}
+.yt tr.sub td{color:var(--text-muted);font-size:11.5px}
+.yt td.lab{white-space:nowrap}
+.sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:7px;vertical-align:middle}
+@media (max-width:1100px){.layout{grid-template-columns:1fr}.drivers{position:static;max-height:none}}
+</style>
+</head>
+<body>
+
+<div id="gate" class="gate" hidden>
+  <h1>LEL Project spend model</h1>
+  <p id="gate-msg">This page is private. Sign in with your TasFarmers ArcGIS account to see it. Only members of the LEL Finance group can view the figures.</p>
+  <button class="btn" id="signin">Sign in with ArcGIS</button>
+</div>
+
+<div id="app" hidden>
+  <header class="hero">
+    <div class="wrap">
+      <nav class="nav" id="nav">
+        <a href="lel-finance.html">Overview</a>
+        <a href="lel-spend-model.html" class="on">Spend model</a>
+      </nav>
+      <div class="hero-top">
+        <div>
+          <h1>Spend model: head on feed</h1>
+          <p class="sub" id="fresh">Loading figures&hellip;</p>
+        </div>
+        <div style="text-align:right">
+          <span class="badge"><i></i>Private &middot; LEL Finance group</span><br/>
+          <button class="link" id="signout" style="margin-top:8px">Sign out of this page</button>
+        </div>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><div class="l">Funds at Project end</div><div class="v tab" id="k-end"><span class="skel"></span></div><div class="n" id="k-end-n">&nbsp;</div></div>
+        <div class="kpi"><div class="l">Funds last until</div><div class="v tab" id="k-run"><span class="skel"></span></div><div class="n" id="k-run-n">&nbsp;</div></div>
+        <div class="kpi"><div class="l">Spend from here</div><div class="v tab" id="k-spend"><span class="skel"></span></div><div class="n" id="k-spend-n">&nbsp;</div></div>
+        <div class="kpi"><div class="l">Feed cost per head-day</div><div class="v tab" id="k-hd"><span class="skel"></span></div><div class="n" id="k-hd-n">&nbsp;</div></div>
+        <div class="kpi"><div class="l">Extra cattle the funds cover</div><div class="v tab" id="k-extra"><span class="skel"></span></div><div class="n" id="k-extra-n">&nbsp;</div></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="layout">
+      <aside class="card drivers" id="drivers">
+        <div class="hd">
+          <h2>Drivers</h2>
+          <p class="cs" style="margin-bottom:6px">Change any number and the model reruns. Amber cells differ from the onboarding roadmap.</p>
+          <button class="btn2" id="reset">Reset to defaults</button>
+        </div>
+
+        <div class="dg">
+          <h3>Head on SeaFeed (quarter end)</h3>
+          <table class="qt"><thead><tr><th>Quarter</th><th class="num">Cattle</th><th class="num">Sheep</th><th class="num">Cattle farms</th></tr></thead><tbody id="q-body"></tbody></table>
+          <p class="note" id="q-note" style="margin-top:6px"></p>
+          <div class="f"><label>Feeding stops after<small>no feed is bought after this month</small></label><select id="feedEnd"></select></div>
+          <div class="f"><label>Control mob size<small>% of SeaFeed head, fed the standard block</small></label><input type="number" id="ctrlPct" step="5" min="0" max="200"/></div>
+        </div>
+
+        <div class="dg">
+          <h3>Feed and freight</h3>
+          <div class="slider">
+            <div class="top"><span>Intake, share of full dose</span><b id="intakeLab"></b></div>
+            <input type="range" id="intakePct" min="10" max="100" step="1"/>
+            <div class="ticks"><span>10%</span><span id="intakeNow"></span><span>100% (150 g cattle, 15 g sheep)</span></div>
+          </div>
+          <div class="f"><label>SeaFeed block<small>$ per kg</small></label><input type="number" id="sfPrice" step="0.01"/></div>
+          <div class="f"><label>Standard (control) block<small>$ per kg</small></label><input type="number" id="ctrlPrice" step="0.01"/></div>
+          <div class="f"><label>Freight to Tasmania, cattle<small>$ per tonne</small></label><input type="number" id="frCattle" step="10"/></div>
+          <div class="f"><label>Freight to Tasmania, sheep<small>$ per tonne</small></label><input type="number" id="frSheep" step="10"/></div>
+        </div>
+
+        <div class="dg">
+          <h3>Farms and monitoring</h3>
+          <div class="f"><label>New cattle farm setup<small>OptiWeigh unit $19,000 + setup freight</small></label><input type="number" id="farmSetup" step="100"/></div>
+          <div class="f"><label>Running cost per cattle farm<small>$ per year: data, O&amp;M, pasture tests</small></label><input type="number" id="farmRun" step="100"/></div>
+          <div class="f"><label>New sheep farm setup<small>$ per farm</small></label><input type="number" id="sheepSetup" step="100"/></div>
+          <div class="f"><label>Tissue sampling<small>$ per SeaFeed cattle head per year</small></label><input type="number" id="tissue" step="0.1"/></div>
+          <div class="f"><label>Contingency<small>% on feed, freight and farms</small></label><input type="number" id="contPct" step="1" min="0" max="30"/></div>
+        </div>
+
+        <div class="dg">
+          <h3>People and running costs</h3>
+          <div class="f"><label>Wages and super<small id="wageSrc">$ per month</small></label><input type="number" id="wage" step="100"/></div>
+          <div class="f"><label>Wage growth<small>% per year</small></label><input type="number" id="wageGrowth" step="0.5"/></div>
+          <label class="chk"><input type="checkbox" id="catchup"/><span id="catchupLab">Wages not yet posted in Xero are paid in the first month</span></label>
+          <div class="f"><label>Governance, comms and travel<small id="ovSrc">$ per month</small></label><input type="number" id="overheads" step="100"/></div>
+          <div class="f"><label>Project ends<small>wages and running costs stop</small></label><select id="projEnd"></select></div>
+        </div>
+
+        <div class="dg">
+          <h3>Partner cash still to come</h3>
+          <div id="partners"></div>
+          <div class="f"><label>First payment</label><select id="cStart"></select></div>
+          <div class="f"><label>Last payment</label><select id="cEnd"></select></div>
+          <label class="chk"><input type="checkbox" id="scaleProd"/><span>Producer feed share rises and falls with the feed bill</span></label>
+          <div class="f"><label>Interest earned<small id="intSrc">% per year on the balance</small></label><input type="number" id="interest" step="0.1"/></div>
+        </div>
+
+        <div class="dg">
+          <h3>Extra cattle</h3>
+          <div class="f"><label>Extra SeaFeed cattle<small>on top of the plan above</small></label><input type="number" id="extraHead" step="50" min="0"/></div>
+          <div class="f"><label>From</label><select id="extraFrom"></select></div>
+          <div class="f"><label>Keep in reserve<small>at every month to Project end</small></label><input type="number" id="reserve" step="10000"/></div>
+          <div class="solve" id="solve">&nbsp;</div>
+        </div>
+      </aside>
+
+      <div>
+        <section class="card">
+          <h2>Funds available, month by month</h2>
+          <p class="cs" id="cash-cs">Today's funds available, run forward with this scenario's spending and partner cash.</p>
+          <div class="chart tall"><canvas id="c-cash"></canvas></div>
+          <div class="legend" id="lg-cash"></div>
+        </section>
+
+        <div class="grid g2e">
+          <section class="card">
+            <h2>Where the money goes</h2>
+            <p class="cs">Modelled spend each month, by type.</p>
+            <div class="chart"><canvas id="c-spend"></canvas></div>
+            <div class="legend" id="lg-spend"></div>
+          </section>
+          <section class="card">
+            <h2>Head on SeaFeed</h2>
+            <p class="cs">Cattle and sheep on the SeaFeed block each month. Dots are the quarter-end targets.</p>
+            <div class="chart"><canvas id="c-head"></canvas></div>
+            <div class="legend" id="lg-head"></div>
+          </section>
+        </div>
+
+        <section class="card" style="margin-top:var(--gap)">
+          <h2>Year by year</h2>
+          <p class="cs">Modelled spend and income by calendar year, against the Agreed Budget. Year one starts next month.</p>
+          <div style="overflow-x:auto"><table class="yt"><thead id="y-head"></thead><tbody id="y-body"></tbody></table></div>
+        </section>
+
+        <section class="card" style="margin-top:var(--gap)">
+          <h2>Saved scenarios</h2>
+          <p class="cs">Save this set of drivers to the private LEL_Fin_Scenarios table so others in the LEL Finance group can open it. Pick one to compare on the chart above.</p>
+          <div class="scen-row"><input id="scenName" placeholder="Name, for example 'Full dose from July 2027'" maxlength="120"/><button class="btn sm" id="saveScen">Save</button></div>
+          <div class="f" style="grid-template-columns:1fr 220px"><label>Compare with</label><select id="compare"><option value="">Nothing</option></select></div>
+          <ul class="list" id="scenList"><li class="muted small">Loading&hellip;</li></ul>
+          <p class="note" id="scenMsg"></p>
+        </section>
+
+        <details class="fold">
+          <summary>How the model works and where the numbers come from</summary>
+          <div class="b" id="method"></div>
+        </details>
+        <p class="foot">LEL Project &middot; Private finance view &middot; Modelled figures, not a forecast commitment &middot; Not for external distribution</p>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  "use strict";
+  var CLIENT_ID = "58PHUu9Nh1IwHqhb";
+  var PORTAL = "https://indie520d1a051c0.maps.arcgis.com/sharing/rest";
+  var PAGE = location.origin + location.pathname;
+  var ITEMS = {
+    monthly: "bb2dcba9483a499c9d4c67931d36443e", snapshot: "7f4342b8e0a949109eed9193e9e4490d",
+    budget: "dc9a5bef6c4a426cb28b50edb188e412", contrib: "e1acce3bd4614c01a042def0842ef29f"
+  };
+  // Public layers (no figures): the onboarding roadmap and the farm directory, as on the Staff Portal.
+  var PUB = "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/";
+  var TARGETS_URL = PUB + "LEL_Onboarding_Targets/FeatureServer/0/query?where=1%3D1&outFields=species,year_,quarter,target_farms_cumulative,target_head_cumulative&f=json";
+  var DIRECTORY_URL = PUB + "LEL_Farm_Directory_view/FeatureServer/0/query?where=1%3D1&outFields=trial_site,species,committed_head_count,pipeline_stage&f=json";
+  var SCEN_TITLE = "LEL_Fin_Scenarios";
+  var KEY = "lelFinToken", DRAFT = "lelSpendDraft";
+  var NAVY = "#041221", MINT = "#3aa989", RED = "#c0392b", SLATE = "#a9b8c4", AMBER = "#c98a2e", N7 = "#16324b", S6 = "#5f6f7c", S3 = "#c3cfd8";
+
+  // Costings from 01. TLEL Project Budget.xlsx (Supplement Costs, Beef Farm Costs, Project Budget sheets), read 27 Nov 2026.
+  var BUDGET_COSTS = {
+    sfPrice: 3.66, ctrlPrice: 2.35, frCattle: 500, frSheep: 600, doseCattleKg: 0.150, doseSheepKg: 0.015,
+    farmSetup: 20170, farmRun: 3180, sheepSetup: 2500, tissue: 2.06, contPct: 10, headPerFarm: 250
+  };
+  var ACTUAL_INTAKE_PCT = 32;   // ~48 g/head/day measured to 30 Oct 2026 (10 Nov intake workbook) = 32% of the 150 g dose
+  var DAYS = 30.42;
+
+  /* ---------- sign-in (ArcGIS OAuth, implicit flow; same app and token as the Overview page) ---------- */
+  function readHash() {
+    if (!/access_token=/.test(location.hash)) return null;
+    var p = new URLSearchParams(location.hash.slice(1));
+    return { token: p.get("access_token"), expires: Date.now() + (parseInt(p.get("expires_in"), 10) || 7200) * 1000, user: p.get("username") };
+  }
+  function store(t) { try { sessionStorage.setItem(KEY, JSON.stringify(t)); } catch (e) {} }
+  function load() { try { var t = JSON.parse(sessionStorage.getItem(KEY)); return t && t.expires > Date.now() + 60000 ? t : null; } catch (e) { return null; } }
+  function clear() { try { sessionStorage.removeItem(KEY); } catch (e) {} }
+  function authUrl() {
+    return PORTAL + "/oauth2/authorize?client_id=" + CLIENT_ID + "&response_type=token&expiration=480&redirect_uri=" + encodeURIComponent(PAGE);
+  }
+  var fromHash = readHash();
+  if (fromHash) {
+    if (window.opener && window.opener !== window) {
+      try { window.opener.postMessage({ lelFinToken: fromHash }, location.origin); } catch (e) {}
+      window.close();
+      document.body.innerHTML = "<p style='font-family:Verdana;padding:30px'>Signed in. You can close this window.</p>";
+      return;
+    }
+    store(fromHash);
+    history.replaceState(null, "", PAGE);
+  }
+  window.addEventListener("message", function (ev) {
+    if (ev.origin !== location.origin || !ev.data || !ev.data.lelFinToken) return;
+    store(ev.data.lelFinToken); start();
+  });
+  document.getElementById("signin").onclick = function () {
+    if (window.top !== window) window.open(authUrl(), "lelfin", "width=520,height=680");
+    else location.href = authUrl();
+  };
+  document.getElementById("signout").onclick = function () { clear(); location.reload(); };
+  if (window.top !== window) document.getElementById("nav").hidden = true;   // inside the Hub site its own menu does this
+
+  function gate(msg) {
+    document.getElementById("app").hidden = true;
+    document.getElementById("gate").hidden = false;
+    if (msg) document.getElementById("gate-msg").textContent = msg;
+  }
+
+  /* ---------- data ---------- */
+  function getJSON(url, token) {
+    return fetch(url + (url.indexOf("?") < 0 ? "?" : "&") + "f=json" + (token ? "&token=" + encodeURIComponent(token) : "")).then(function (r) { return r.json(); })
+      .then(function (j) { if (j && j.error) { var e = new Error(j.error.message || "ArcGIS error"); e.code = j.error.code; throw e; } return j; });
+  }
+  function postJSON(url, params, token) {
+    var body = new URLSearchParams(params); body.set("f", "json"); body.set("token", token);
+    return fetch(url, { method: "POST", body: body }).then(function (r) { return r.json(); })
+      .then(function (j) { if (j && j.error) throw new Error(j.error.message || "ArcGIS error"); return j; });
+  }
+  function rows(j) { return (j.features || []).map(function (f) { return f.attributes; }); }
+  function table(key, token) {
+    return getJSON(PORTAL + "/content/items/" + ITEMS[key], token).then(function (item) {
+      return getJSON(item.url.replace(/\/$/, "") + "/0/query?where=1%3D1&outFields=*&returnGeometry=false&resultRecordCount=4000", token);
+    }).then(rows);
+  }
+  function pub(url) { return fetch(url).then(function (r) { return r.json(); }).then(rows).catch(function () { return []; }); }
+
+  /* ---------- formatting ---------- */
+  function money(v, dp) {
+    if (v == null || isNaN(v)) return "–";
+    var a = Math.abs(v), s = v < 0 ? "-$" : "$";
+    if (a >= 1e6) return s + (a / 1e6).toFixed(dp == null ? 2 : dp) + "M";
+    if (a >= 1e4) return s + Math.round(a / 1e3) + "k";
+    if (a >= 1e3) return s + (a / 1e3).toFixed(1) + "k";
+    return s + Math.round(a);
+  }
+  function full(v) { return v == null ? "–" : (v < 0 ? "-$" : "$") + Math.round(Math.abs(v)).toLocaleString("en-AU"); }
+  function int(v) { return Math.round(v).toLocaleString("en-AU"); }
+  var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function ym(d) { return d.getFullYear() * 12 + d.getMonth(); }
+  function ymLabel(n, long) { var y = Math.floor(n / 12), m = n % 12; return MON[m] + " " + (long ? y : String(y).slice(2)); }
+  function dmy(ms) { if (!ms) return "–"; var d = new Date(ms); return d.getDate() + " " + MON[d.getMonth()] + " " + d.getFullYear(); }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function set(id, html) { document.getElementById(id).innerHTML = html; }
+  function $(id) { return document.getElementById(id); }
+  function sum(a) { return a.reduce(function (x, y) { return x + y; }, 0); }
+
+  Chart.defaults.font.family = "Verdana, Tahoma, sans-serif";
+  Chart.defaults.font.size = 11;
+  Chart.defaults.animation = false;
+  Chart.defaults.color = "#5f6f7c";
+  function axes(stacked) {
+    return {
+      x: { stacked: !!stacked, grid: { display: false }, border: { display: false }, ticks: { maxRotation: 0, autoSkipPadding: 14 } },
+      y: { stacked: !!stacked, grid: { color: "#eef2f5" }, border: { display: false }, ticks: { callback: function (v) { return money(v, 1); }, maxTicksLimit: 6 } }
+    };
+  }
+  function tip(fmt) { return { callbacks: { label: function (c) { return " " + c.dataset.label + ": " + (fmt || full)(c.parsed.y); } } }; }
+
+  /* ---------- start ---------- */
+  var started = false, TOKEN = null;
+  function start() {
+    var t = load();
+    if (!t) { gate(); return; }
+    if (started) return; started = true; TOKEN = t;
+    $("gate").hidden = true; $("app").hidden = false;
+    Promise.all([table("monthly", t.token), table("snapshot", t.token), table("budget", t.token), table("contrib", t.token), pub(TARGETS_URL), pub(DIRECTORY_URL)])
+      .then(function (r) { init({ monthly: r[0], snapshot: r[1], budget: r[2], contrib: r[3], targets: r[4], directory: r[5] }); })
+      .catch(function (e) {
+        started = false;
+        if (e.code === 498 || e.code === 499) { clear(); gate("Your sign-in has expired. Please sign in again."); return; }
+        if (e.code === 403 || e.code === 400) { gate("You are signed in, but your account is not in the LEL Finance group, so the figures are hidden. Ask Jono to add you."); return; }
+        gate("The figures could not be loaded (" + e.message + "). Try again in a minute.");
+        console.error(e);
+      });
+  }
+
+  /* ---------- defaults from the data ---------- */
+  var D = null;      // derived facts (not editable)
+  var DEF = null;    // default drivers
+  var P = null;      // current drivers
+  function derive(d) {
+    var snap = d.snapshot.slice().sort(function (a, b) { return b.snapshot_date - a.snapshot_date; })[0] || {};
+    var S = ym(new Date(snap.snapshot_date || Date.now()));
+    var mrows = d.monthly.map(function (r) { r.ym = ym(new Date(r.month)); return r; });
+    var exp = mrows.filter(function (r) { return r.kind === "expense"; });
+    var inc = mrows.filter(function (r) { return r.kind === "income"; });
+
+    // wages: average of the last 6 months that have wages posted; months since then are "not yet posted"
+    var wageBy = {}; exp.filter(function (r) { return /wages/i.test(r.account); }).forEach(function (r) { wageBy[r.ym] = (wageBy[r.ym] || 0) + r.amount_aud; });
+    var posted = Object.keys(wageBy).map(Number).filter(function (m) { return wageBy[m] > 0 && m <= S; }).sort(function (a, b) { return a - b; });
+    var lastPosted = posted.length ? posted[posted.length - 1] : S;
+    var w6 = []; for (var m = lastPosted - 5; m <= lastPosted; m++) w6.push(wageBy[m] || 0);
+    var wage = sum(w6) / 6;
+    var unposted = Math.max(0, S - lastPosted);
+
+    // running costs: governance, communications, travel and bank fees, last 12 complete months
+    var OV = /Project Governance|Communications|Bank Fees/;
+    var ovBy = {}; exp.filter(function (r) { return OV.test(r.category) || /travel/i.test(r.account); })
+      .forEach(function (r) { ovBy[r.ym] = (ovBy[r.ym] || 0) + r.amount_aud; });
+    var ov12 = []; for (m = S - 12; m < S; m++) ov12.push(ovBy[m] || 0);
+    var overheads = sum(ov12) / 12;
+
+    // interest: last 6 complete months as a rate on today's funds
+    var wc = snap.working_capital_aud;
+    var intBy = {}; inc.filter(function (r) { return /interest/i.test(r.account); }).forEach(function (r) { intBy[r.ym] = (intBy[r.ym] || 0) + r.amount_aud; });
+    var i6 = []; for (m = S - 6; m < S; m++) i6.push(intBy[m] || 0);
+    var interest = wc > 0 && sum(i6) > 0 ? Math.round(sum(i6) / 6 * 12 / wc * 1000) / 10 : 4.0;
+
+    // partner cash still to come: target less what Xero shows received
+    var partners = d.contrib.filter(function (c) { return c.kind === "cash" && !/grant/i.test(c.partner); }).map(function (c) {
+      var got = c.xero_account ? inc.filter(function (r) { return r.account === c.xero_account; }).reduce(function (a, r) { return a + r.amount_aud; }, 0) : 0;
+      return { name: c.partner, target: c.target_aud || 0, received: got, inXero: !!c.xero_account, left: Math.max(0, (c.target_aud || 0) - got) };
+    }).filter(function (p) { return p.left > 0; });
+
+    // today's head and farms (farm directory) and the roadmap (quarter-end targets)
+    var live = d.directory.filter(function (f) { return !f.pipeline_stage || /active|live|onboard/i.test(f.pipeline_stage); });
+    var beefNow = sum(live.filter(function (f) { return f.species === "Beef"; }).map(function (f) { return f.committed_head_count || 0; }));
+    var sheepNow = sum(live.filter(function (f) { return f.species === "Sheep"; }).map(function (f) { return f.committed_head_count || 0; }));
+    var beefFarmsNow = live.filter(function (f) { return f.species === "Beef"; }).length;
+    var sheepFarmsNow = live.filter(function (f) { return f.species === "Sheep"; }).length;
+    var tq = {};
+    d.targets.forEach(function (t) {
+      var k = t.year_ + "-" + t.quarter; tq[k] = tq[k] || { y: t.year_, q: t.quarter };
+      if (t.species === "Beef") { tq[k].cattle = t.target_head_cumulative; tq[k].farms = t.target_farms_cumulative; }
+      if (t.species === "Sheep") { tq[k].sheep = t.target_head_cumulative; tq[k].sheepFarms = t.target_farms_cumulative; }
+    });
+    var quarters = Object.keys(tq).map(function (k) { return tq[k]; })
+      .filter(function (q) { return qEnd(q) >= S; })
+      .sort(function (a, b) { return qEnd(a) - qEnd(b); })
+      .map(function (q) { return { y: q.y, q: q.q, cattle: q.cattle || 0, sheep: q.sheep || 0, farms: q.farms || 0, sheepFarms: q.sheepFarms || 0 }; });
+
+    var budget = {}; d.budget.forEach(function (b) { budget[b.year] = (budget[b.year] || 0) + b.budget_aud; });
+    D = { snap: snap, S: S, start: S + 1, horizon: 2029 * 12 + 11, wc: wc, lastPosted: lastPosted, unposted: unposted, w6from: lastPosted - 5,
+          beefNow: beefNow, sheepNow: sheepNow, beefFarmsNow: beefFarmsNow, sheepFarmsNow: sheepFarmsNow, budget: budget, partners: partners,
+          roadmapOK: d.targets.length > 0 };
+    var pp = {}; partners.forEach(function (p) { pp[p.name] = { on: true, amt: Math.round(p.left) }; });
+    DEF = {
+      q: quarters, feedEnd: 2028 * 12 + 11, ctrlPct: 100, intakePct: ACTUAL_INTAKE_PCT,
+      sfPrice: BUDGET_COSTS.sfPrice, ctrlPrice: BUDGET_COSTS.ctrlPrice, frCattle: BUDGET_COSTS.frCattle, frSheep: BUDGET_COSTS.frSheep,
+      farmSetup: BUDGET_COSTS.farmSetup, farmRun: BUDGET_COSTS.farmRun, sheepSetup: BUDGET_COSTS.sheepSetup, tissue: BUDGET_COSTS.tissue,
+      contPct: BUDGET_COSTS.contPct, wage: Math.round(wage / 100) * 100, wageGrowth: 3, catchup: true,
+      overheads: Math.round(overheads / 100) * 100, projEnd: 2029 * 12 + 1, partners: pp,
+      cStart: 2027 * 12 + 2, cEnd: 2028 * 12 + 11, scaleProd: false, interest: interest,
+      extraHead: 0, extraFrom: Math.max(S + 1, 2027 * 12 + 6), reserve: 400000
+    };
+  }
+  function qEnd(q) { return q.y * 12 + q.q * 3 - 1; }
+
+  /* ---------- the model ---------- */
+  function interp(pts, m) {
+    if (!pts.length) return 0;
+    if (m <= pts[0][0]) return pts[0][1];
+    for (var i = 1; i < pts.length; i++) {
+      if (m <= pts[i][0]) { var a = pts[i - 1], b = pts[i]; return a[1] + (b[1] - a[1]) * (m - a[0]) / (b[0] - a[0]); }
+    }
+    return pts[pts.length - 1][1];
+  }
+  function run(p, opt) {
+    opt = opt || {};
+    var extra = opt.extra != null ? opt.extra : p.extraHead || 0;
+    var S = D.S, st = D.start, H = D.horizon;
+    function pts(field, now) { return [[S, now]].concat(p.q.filter(function (q) { return qEnd(q) > S; }).map(function (q) { return [qEnd(q), Number(q[field]) || 0]; })); }
+    var pC = pts("cattle", D.beefNow), pS = pts("sheep", D.sheepNow), pF = pts("farms", D.beefFarmsNow), pSF = pts("sheepFarms", D.sheepFarmsNow);
+    var share = p.intakePct / 100, extraFarms = extra > 0 ? Math.ceil(extra / BUDGET_COSTS.headPerFarm) : 0;
+    function farmsC(m) { return m > p.feedEnd ? 0 : Math.round(interp(pF, m)) + (m >= p.extraFrom ? extraFarms : 0); }
+    function farmsS(m) { return m > p.feedEnd ? 0 : Math.round(interp(pSF, m)); }
+    var out = { months: [], bal: [], sf: [], ctrl: [], fr: [], farms: [], wages: [], over: [], cont: [], partner: [], interest: [], hc: [], hs: [],
+                hdC: 0, feedC: 0, runout: null, minBal: Infinity, endBal: null };
+    // partner cash: spread evenly over the payment months
+    var nPay = Math.max(1, p.cEnd - p.cStart + 1), payMonthly = 0;
+    Object.keys(p.partners).forEach(function (k) {
+      var pp = p.partners[k]; if (!pp.on) return;
+      var amt = pp.amt || 0;
+      if (p.scaleProd && /producers? feed/i.test(k) && opt.feedRatio != null) amt *= opt.feedRatio;
+      payMonthly += amt / nPay;
+    });
+    var bal = D.wc, prevFC = Math.round(interp(pF, S)), prevFS = Math.round(interp(pSF, S));
+    for (var m = st; m <= H; m++) {
+      var feeding = m <= p.feedEnd;
+      var hc = feeding ? Math.max(0, interp(pC, m)) + (m >= p.extraFrom ? extra : 0) : 0;
+      var hs = feeding ? Math.max(0, interp(pS, m)) : 0;
+      var kgC = hc * DAYS * BUDGET_COSTS.doseCattleKg * share, kgS = hs * DAYS * BUDGET_COSTS.doseSheepKg * share;
+      var cPct = p.ctrlPct / 100;
+      var sf = (kgC + kgS) * p.sfPrice;
+      var ctrl = (kgC + kgS) * cPct * p.ctrlPrice;
+      var fr = kgC * (1 + cPct) / 1000 * p.frCattle + kgS * (1 + cPct) / 1000 * p.frSheep;
+      var fc = farmsC(m), fs = farmsS(m);
+      var farms = Math.max(0, fc - prevFC) * p.farmSetup + Math.max(0, fs - prevFS) * p.sheepSetup + fc * p.farmRun / 12 + hc * p.tissue / 12;
+      if (feeding) { prevFC = fc; prevFS = fs; }
+      var live = m <= p.projEnd;
+      var wages = live ? p.wage * Math.pow(1 + p.wageGrowth / 100, (m - st) / 12) : 0;
+      if (m === st && p.catchup) wages += p.wage * D.unposted;
+      var over = live ? p.overheads : 0;
+      var cont = p.contPct / 100 * (sf + ctrl + fr + farms);
+      var partner = m >= p.cStart && m <= p.cEnd ? payMonthly : 0;
+      var interest = live ? Math.max(bal, 0) * p.interest / 100 / 12 : 0;   // the account is closed out at Project end
+      bal = bal - (sf + ctrl + fr + farms + wages + over + cont) + partner + interest;
+      out.months.push(m); out.bal.push(bal); out.sf.push(sf); out.ctrl.push(ctrl); out.fr.push(fr); out.farms.push(farms);
+      out.wages.push(wages); out.over.push(over); out.cont.push(cont); out.partner.push(partner); out.interest.push(interest);
+      out.hc.push(hc); out.hs.push(hs);
+      if (hc > 0) {
+        var kgCtrlC = kgC * cPct;
+        out.feedC += kgC * p.sfPrice + kgCtrlC * p.ctrlPrice + (kgC + kgCtrlC) / 1000 * p.frCattle;
+        out.hdC += hc * DAYS;
+      }
+      if (m <= p.projEnd) {
+        out.minBal = Math.min(out.minBal, bal);
+        if (out.runout == null && bal < 0) out.runout = m;
+        if (m === p.projEnd) out.endBal = bal;
+      }
+    }
+    var toEnd = out.months.filter(function (m) { return m <= p.projEnd; }).length;
+    out.spendToEnd = 0; out.feedTotal = 0;
+    for (var i = 0; i < toEnd; i++) {
+      out.spendToEnd += out.sf[i] + out.ctrl[i] + out.fr[i] + out.farms[i] + out.wages[i] + out.over[i] + out.cont[i];
+      out.feedTotal += out.sf[i] + out.ctrl[i] + out.fr[i];
+    }
+    return out;
+  }
+  var BASE_FEED = null;   // feed bill of the default plan, so the producer feed share can scale with it
+  function model(p, extra) {
+    var r0 = p.scaleProd ? run(p, { extra: extra, feedRatio: 1 }) : null;
+    return run(p, { extra: extra, feedRatio: r0 ? r0.feedTotal / BASE_FEED : null });
+  }
+  function maxExtra(p) {
+    function ok(n) { return model(p, n).minBal >= p.reserve; }
+    if (!ok(0)) return -1;
+    var lo = 0, hi = 500;
+    while (ok(hi) && hi < 64000) { lo = hi; hi *= 2; }
+    while (hi - lo > 10) { var mid = Math.floor((lo + hi) / 2); if (ok(mid)) lo = mid; else hi = mid; }
+    return Math.floor(lo / 10) * 10;
+  }
+
+  /* ---------- drivers panel ---------- */
+  var NUM = ["ctrlPct", "intakePct", "sfPrice", "ctrlPrice", "frCattle", "frSheep", "farmSetup", "farmRun", "sheepSetup", "tissue", "contPct",
+             "wage", "wageGrowth", "overheads", "interest", "extraHead", "reserve"];
+  var SEL = ["feedEnd", "projEnd", "cStart", "cEnd", "extraFrom"];
+  var CHK = ["catchup", "scaleProd"];
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function monthOptions(id, from, to) {
+    var h = ""; for (var m = from; m <= to; m++) h += "<option value='" + m + "'>" + ymLabel(m, true) + "</option>";
+    $(id).innerHTML = h;
+  }
+  function buildPanel() {
+    monthOptions("feedEnd", D.start, D.horizon); monthOptions("projEnd", D.start, D.horizon);
+    monthOptions("cStart", D.start, D.horizon); monthOptions("cEnd", D.start, D.horizon); monthOptions("extraFrom", D.start, D.horizon);
+    NUM.concat(SEL).forEach(function (id) { $(id).addEventListener("input", function () { P[id] = Number($(id).value); changed(); }); });
+    CHK.forEach(function (id) { $(id).addEventListener("change", function () { P[id] = $(id).checked; changed(); }); });
+    $("reset").onclick = function () { P = clone(DEF); fill(); changed(); };
+    $("q-body").addEventListener("input", function (e) {
+      var i = e.target.getAttribute("data-i"), f = e.target.getAttribute("data-f"); if (i == null) return;
+      P.q[i][f] = Number(e.target.value) || 0; markQ(); changed();
+    });
+    $("partners").addEventListener("input", function (e) {
+      var k = e.target.getAttribute("data-p"); if (k == null) return;
+      if (e.target.type === "checkbox") P.partners[k].on = e.target.checked; else P.partners[k].amt = Number(e.target.value) || 0;
+      changed();
+    });
+  }
+  function fill() {
+    NUM.concat(SEL).forEach(function (id) { $(id).value = P[id]; });
+    CHK.forEach(function (id) { $(id).checked = !!P[id]; });
+    set("q-body", P.q.map(function (q, i) {
+      return "<tr><td>" + q.y + " Q" + q.q + "</td>" + ["cattle", "sheep", "farms"].map(function (f) {
+        return "<td><input type='number' min='0' step='" + (f === "farms" ? 1 : 50) + "' data-i='" + i + "' data-f='" + f + "' value='" + q[f] + "'/></td>";
+      }).join("") + "</tr>";
+    }).join(""));
+    markQ();
+    set("partners", D.partners.length ? D.partners.map(function (p) {
+      var v = P.partners[p.name] || { on: false, amt: 0 };
+      return "<div class='pr'><input type='checkbox' data-p='" + esc(p.name) + "'" + (v.on ? " checked" : "") + "/><span>" + esc(p.name) + "</span>" +
+        "<input type='number' step='1000' data-p='" + esc(p.name) + "' value='" + v.amt + "'/>" +
+        "<span class='s'>" + (p.inXero ? money(p.received) + " of " + money(p.target) + " received in Xero" : "Commitment " + money(p.target) + " (not tracked in Xero)") + "</span></div>";
+    }).join("") : "<p class='muted small'>No partner cash outstanding in LEL_Fin_Contributions.</p>");
+  }
+  function markQ() {
+    var inputs = $("q-body").querySelectorAll("input");
+    Array.prototype.forEach.call(inputs, function (el) {
+      var i = el.getAttribute("data-i"), f = el.getAttribute("data-f"), d = DEF.q[i];
+      el.classList.toggle("chg", !d || Number(d[f]) !== Number(P.q[i][f]));
+    });
+  }
+
+  /* ---------- charts ---------- */
+  var CH = {};
+  var GROUPS = [
+    { k: "sf", label: "SeaFeed block", color: MINT }, { k: "ctrl", label: "Control block", color: "#8fd6bf" },
+    { k: "fr", label: "Freight", color: N7 }, { k: "farms", label: "Farms and monitoring", color: AMBER },
+    { k: "wages", label: "Wages and super", color: NAVY }, { k: "over", label: "Governance, comms, travel", color: S6 },
+    { k: "cont", label: "Contingency", color: S3 }
+  ];
+  function lineAt(value, color, dash) {
+    return { id: "h" + Math.random(), afterDraw: function (c) {
+      var v = typeof value === "function" ? value() : value;
+      var y = c.scales.y.getPixelForValue(v), a = c.chartArea; if (y < a.top || y > a.bottom) return;
+      var g = c.ctx; g.save(); g.strokeStyle = color; g.lineWidth = 1; g.setLineDash(dash); g.beginPath(); g.moveTo(a.left, y); g.lineTo(a.right, y); g.stroke(); g.restore();
+    } };
+  }
+  function makeCharts(r) {
+    var labels = r.months.map(function (m) { return ymLabel(m); });
+    CH.cash = new Chart($("c-cash"), {
+      type: "line",
+      data: { labels: labels, datasets: [
+        { label: "This scenario", data: r.bal, borderColor: NAVY, backgroundColor: "rgba(4,18,33,.05)", fill: true, borderWidth: 2.2, pointRadius: 0, tension: 0 },
+        { label: "Compared scenario", data: [], borderColor: SLATE, borderDash: [5, 4], borderWidth: 2, pointRadius: 0, tension: 0, hidden: true }
+      ] },
+      options: { maintainAspectRatio: false, interaction: { mode: "index", intersect: false }, plugins: { legend: { display: false }, tooltip: tip() },
+        scales: (function () { var a = axes(); a.y.suggestedMin = 0; return a; })() },
+      plugins: [lineAt(0, RED, [2, 3]), lineAt(function () { return P.reserve; }, AMBER, [6, 4]), { id: "end", afterDraw: function (c) {
+        var i = r.months.indexOf(P.projEnd); if (i < 0) return;
+        var x = c.scales.x.getPixelForValue(i), a = c.chartArea, g = c.ctx;
+        g.save(); g.strokeStyle = S3; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(x, a.top); g.lineTo(x, a.bottom); g.stroke();
+        g.fillStyle = S6; g.font = "10.5px Verdana"; g.textAlign = "right"; g.fillText("Project ends", x - 4, a.top + 10); g.restore();
+      } }]
+    });
+    CH.spend = new Chart($("c-spend"), {
+      type: "bar",
+      data: { labels: labels, datasets: GROUPS.map(function (g) { return { label: g.label, data: r[g.k], backgroundColor: g.color, borderRadius: 0, maxBarThickness: 16, stack: "s" }; }) },
+      options: { maintainAspectRatio: false, interaction: { mode: "index", intersect: false }, plugins: { legend: { display: false }, tooltip: tip() }, scales: axes(true) }
+    });
+    CH.head = new Chart($("c-head"), {
+      type: "line",
+      data: { labels: labels, datasets: [
+        { label: "Cattle", data: r.hc, borderColor: NAVY, borderWidth: 2, pointRadius: 0, tension: 0 },
+        { label: "Sheep", data: r.hs, borderColor: MINT, borderWidth: 2, pointRadius: 0, tension: 0 },
+        { label: "Cattle target", data: [], borderColor: NAVY, backgroundColor: "#fff", showLine: false, pointRadius: 3.5, pointBorderWidth: 1.5 },
+        { label: "Sheep target", data: [], borderColor: MINT, backgroundColor: "#fff", showLine: false, pointRadius: 3.5, pointBorderWidth: 1.5 }
+      ] },
+      options: { maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+        plugins: { legend: { display: false }, tooltip: tip(function (v) { return v == null ? "–" : int(v) + " head"; }) },
+        scales: (function () { var a = axes(); a.y.ticks.callback = function (v) { return int(v); }; a.y.beginAtZero = true; return a; })() }
+    });
+    set("lg-cash", "<span><i style='background:" + NAVY + "'></i>This scenario</span><span id='lg-cmp' hidden><i class='dash' style='color:" + SLATE + "'></i><b id='lg-cmp-n'></b></span>" +
+      "<span><i class='dash' style='color:" + AMBER + "'></i>Reserve</span><span><i style='background:" + RED + "'></i>Money runs out</span>");
+    set("lg-spend", GROUPS.map(function (g) { return "<span><i class='sw' style='background:" + g.color + ";width:9px;height:9px'></i>" + g.label + "</span>"; }).join(""));
+    set("lg-head", "<span><i style='background:" + NAVY + "'></i>Cattle</span><span><i style='background:" + MINT + "'></i>Sheep</span><span class='muted'>Dots: roadmap or your quarter-end figures</span>");
+  }
+  var COMPARE = null;
+  function updateCharts(r) {
+    CH.cash.data.datasets[0].data = r.bal;
+    var cmp = CH.cash.data.datasets[1];
+    if (COMPARE) { cmp.data = model(COMPARE.p).bal; cmp.hidden = false; cmp.label = COMPARE.name; }
+    else { cmp.data = []; cmp.hidden = true; }
+    $("lg-cmp").hidden = !COMPARE; if (COMPARE) $("lg-cmp-n").textContent = COMPARE.name;
+    CH.cash.update("none");
+    GROUPS.forEach(function (g, i) { CH.spend.data.datasets[i].data = r[g.k]; }); CH.spend.update("none");
+    CH.head.data.datasets[0].data = r.hc; CH.head.data.datasets[1].data = r.hs;
+    var tc = r.months.map(function () { return null; }), ts = tc.slice();
+    P.q.forEach(function (q) { var i = r.months.indexOf(qEnd(q)); if (i >= 0 && qEnd(q) <= P.feedEnd) { tc[i] = Number(q.cattle) + (qEnd(q) >= P.extraFrom ? P.extraHead : 0); ts[i] = Number(q.sheep); } });
+    CH.head.data.datasets[2].data = tc; CH.head.data.datasets[3].data = ts; CH.head.update("none");
+  }
+
+  /* ---------- outputs ---------- */
+  function budgetLeft(from, to) {   // Agreed Budget spread evenly within each calendar year, months from..to inclusive
+    var s = 0; for (var m = from; m <= to; m++) s += (D.budget[Math.floor(m / 12)] || 0) / 12; return s;
+  }
+  function render() {
+    var r = model(P);
+    var endL = ymLabel(P.projEnd, true);
+    set("k-end", "<span class='" + (r.endBal < 0 ? "bad" : r.endBal < P.reserve ? "warn" : "good") + "'>" + money(r.endBal) + "</span>");
+    set("k-end-n", "left at " + endL + (r.endBal < P.reserve ? " &middot; below the " + money(P.reserve) + " reserve" : ""));
+    set("k-run", r.runout == null ? "<span class='good'>Past " + endL + "</span>" : "<span class='bad'>" + ymLabel(r.runout, true) + "</span>");
+    set("k-run-n", r.runout == null ? "lowest point " + money(r.minBal) + " before the Project ends" : "money runs out " + (P.projEnd - r.runout) + " months before the Project ends");
+    var bl = budgetLeft(D.start, P.projEnd);
+    set("k-spend", money(r.spendToEnd));
+    set("k-spend-n", ymLabel(D.start) + " to " + ymLabel(P.projEnd) + " &middot; Agreed Budget for the same months <b>" + money(bl) + "</b>");
+    var hd = r.hdC > 0 ? r.feedC / r.hdC : null;
+    set("k-hd", hd == null ? "–" : "$" + hd.toFixed(2));
+    set("k-hd-n", "per SeaFeed cattle head per day, with its control mob and freight. Budget at full dose: <b>$1.05</b>");
+    var mx = maxExtra(P);
+    set("k-extra", mx < 0 ? "<span class='bad'>None</span>" : "<span class='good'>" + int(mx) + "</span>");
+    set("k-extra-n", mx < 0 ? "the plan already goes below the reserve" : "more SeaFeed cattle from " + ymLabel(P.extraFrom) + " to " + ymLabel(P.feedEnd) + ", keeping " + money(P.reserve));
+    var base = model(P, 0);
+    var shortBy = P.reserve - base.minBal;
+    set("solve", mx < 0
+      ? "Without extra cattle the lowest balance is <b>" + money(base.minBal) + "</b>, so the plan is <b class='bad'>" + money(shortBy) + "</b> short of the reserve. Lower the head plan, the intake or the reserve, or move costs later."
+      : "The funds cover about <b>" + int(mx) + " more SeaFeed cattle</b> (" + Math.ceil(mx / BUDGET_COSTS.headPerFarm) + " more farms at " + BUDGET_COSTS.headPerFarm +
+        " head) from " + ymLabel(P.extraFrom, true) + " to " + ymLabel(P.feedEnd, true) + ", with their control mob, and still keep " + money(P.reserve) + " in hand." +
+        (P.extraHead > 0 ? " You have added <b>" + int(P.extraHead) + "</b>" + (P.extraHead > mx ? ", which is <b class='bad'>more than the funds cover</b>." : ".") : "") +
+        " <button class='btn2' id='useMax' style='margin-top:6px'>Add " + int(mx) + " to the plan</button>");
+    if ($("useMax")) $("useMax").onclick = function () { P.extraHead = mx; $("extraHead").value = mx; changed(); };
+    set("intakeLab", P.intakePct + "% &middot; " + Math.round(150 * P.intakePct / 100) + " g cattle, " + (15 * P.intakePct / 100).toFixed(1) + " g sheep");
+    set("intakeNow", "today &asymp; " + ACTUAL_INTAKE_PCT + "%");
+    set("cash-cs", "Starts from today's funds available (" + money(D.wc) + ", working capital in Xero at " + dmy(D.snap.snapshot_date) +
+      "), then takes off each month's modelled spend and adds partner cash and interest. Dashed amber is the reserve; the red line is zero.");
+    yearTable(r);
+    if (!CH.cash) makeCharts(r);
+    updateCharts(r);
+    LAST = r;
+  }
+  var LAST = null;
+  function yearTable(r) {
+    var years = []; r.months.forEach(function (m) { var y = Math.floor(m / 12); if (years.indexOf(y) < 0) years.push(y); });
+    function by(key) { return years.map(function (y) { var s = 0; r.months.forEach(function (m, i) { if (Math.floor(m / 12) === y) s += r[key][i]; }); return s; }); }
+    var g = {}; GROUPS.forEach(function (x) { g[x.k] = by(x.k); });
+    var tot = years.map(function (y, i) { return GROUPS.reduce(function (a, x) { return a + g[x.k][i]; }, 0); });
+    var bud = years.map(function (y) { var from = Math.max(D.start, y * 12), to = y * 12 + 11; return budgetLeft(from, to); });
+    var part = by("partner"), intr = by("interest");
+    var close = years.map(function (y) { var last = -1; r.months.forEach(function (m, i) { if (Math.floor(m / 12) === y) last = i; }); return r.bal[last]; });
+    var head = years.map(function (y) { var c = 0, n = 0; r.months.forEach(function (m, i) { if (Math.floor(m / 12) === y && r.hc[i] > 0) { c += r.hc[i]; n++; } }); return n ? c / n : 0; });
+    var cols = years.map(function (y) { return y === Math.floor(D.start / 12) ? ymLabel(D.start) + "–Dec " + y : String(y); });
+    set("y-head", "<tr><th></th>" + cols.map(function (c) { return "<th class='num'>" + c + "</th>"; }).join("") + "<th class='num'>Total</th></tr>");
+    function row(label, arr, cls, fmt, sw) {
+      return "<tr class='" + (cls || "") + "'><td class='lab'>" + (sw ? "<i class='sw' style='background:" + sw + "'></i>" : "") + label + "</td>" +
+        arr.map(function (v) { return "<td class='num'>" + (fmt || full)(v) + "</td>"; }).join("") +
+        "<td class='num'>" + (cls === "sub" && label.indexOf("Closing") === 0 ? "" : (fmt || full)(sum(arr))) + "</td></tr>";
+    }
+    var diff = tot.map(function (v, i) { return bud[i] - v; });
+    set("y-body",
+      row("Average SeaFeed cattle on feed", head, "sub", function (v) { return int(v); }).replace(/<td class='num'>[^<]*<\/td><\/tr>$/, "<td class='num'></td></tr>") +
+      GROUPS.map(function (x) { return row(x.label, g[x.k], "", null, x.color); }).join("") +
+      row("Modelled spend", tot, "tot") +
+      row("Agreed Budget, same months", bud, "sub") +
+      row("Under (over) budget", diff, "sub", function (v) { return (v < 0 ? "<span class='bad'>(" + full(-v).slice(1) + ")</span>" : full(v)); }) +
+      row("Partner cash in", part, "") + row("Interest", intr, "") +
+      row("Closing funds", close, "tot").replace(/<td class='num'>[^<]*<\/td><\/tr>$/, "<td class='num'></td></tr>"));
+  }
+
+  /* ---------- saved scenarios (private table LEL_Fin_Scenarios) ---------- */
+  var SCEN = { url: null, list: [] };
+  function findScenTable() {
+    return getJSON(PORTAL + "/search?q=" + encodeURIComponent('title:"' + SCEN_TITLE + '" AND type:"Feature Service"') + "&num=5", TOKEN.token)
+      .then(function (j) { var it = (j.results || []).filter(function (i) { return i.title === SCEN_TITLE; })[0]; SCEN.url = it ? it.url.replace(/\/$/, "") + "/0" : null; return SCEN.url; });
+  }
+  function loadScen() {
+    if (!SCEN.url) { set("scenList", "<li class='muted small'>The LEL_Fin_Scenarios table has not been set up yet, so scenarios cannot be saved.</li>"); $("saveScen").disabled = true; return Promise.resolve(); }
+    return getJSON(SCEN.url + "/query?where=1%3D1&outFields=*&orderByFields=saved_at%20DESC&resultRecordCount=200", TOKEN.token).then(function (j) {
+      SCEN.list = rows(j);
+      $("compare").innerHTML = "<option value=''>Nothing</option>" + SCEN.list.map(function (s) { return "<option value='" + s.OBJECTID + "'>" + esc(s.name) + "</option>"; }).join("");
+      set("scenList", SCEN.list.length ? SCEN.list.map(function (s) {
+        return "<li><div><div class='t'>" + esc(s.name) + "</div><div class='s'>" + esc(s.saved_by || "") + " &middot; " + dmy(s.saved_at) +
+          " &middot; ends with " + money(s.end_balance_aud) + (s.runout_label ? " &middot; runs out " + esc(s.runout_label) : "") + "</div></div>" +
+          "<div><button class='btn2' data-load='" + s.OBJECTID + "'>Open</button></div></li>";
+      }).join("") : "<li class='muted small'>No scenarios saved yet.</li>");
+    });
+  }
+  function scenParams(s) { try { var p = JSON.parse(s.params_json); return Object.assign(clone(DEF), p, { partners: Object.assign(clone(DEF.partners), p.partners || {}) }); } catch (e) { return null; } }
+  function wireScen() {
+    $("saveScen").onclick = function () {
+      var name = $("scenName").value.trim(); if (!name) { set("scenMsg", "Give the scenario a name first."); return; }
+      var r = model(P);
+      var attrs = { name: name, params_json: JSON.stringify(P), saved_by: TOKEN.user || "", saved_at: Date.now(),
+        end_balance_aud: Math.round(r.endBal), runout_label: r.runout == null ? "" : ymLabel(r.runout, true), extra_head: P.extraHead || 0 };
+      $("saveScen").disabled = true;
+      postJSON(SCEN.url + "/applyEdits", { adds: JSON.stringify([{ attributes: attrs }]) }, TOKEN.token).then(function (j) {
+        var ok = j.addResults && j.addResults[0] && j.addResults[0].success;
+        set("scenMsg", ok ? "Saved." : "Could not save: " + esc(JSON.stringify(j.addResults && j.addResults[0] && j.addResults[0].error)));
+        $("scenName").value = ""; return loadScen();
+      }).catch(function (e) { set("scenMsg", "Could not save (" + esc(e.message) + "). You may need edit rights on LEL_Fin_Scenarios."); })
+        .then(function () { $("saveScen").disabled = false; });
+    };
+    $("scenList").addEventListener("click", function (e) {
+      var id = e.target.getAttribute("data-load"); if (!id) return;
+      var s = SCEN.list.filter(function (x) { return String(x.OBJECTID) === id; })[0], p = s && scenParams(s);
+      if (!p) return; P = p; fill(); changed(); set("scenMsg", "Opened '" + esc(s.name) + "'. Changes are not saved until you save again.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+    $("compare").onchange = function () {
+      var id = $("compare").value, s = SCEN.list.filter(function (x) { return String(x.OBJECTID) === id; })[0];
+      COMPARE = s ? { name: s.name, p: scenParams(s) } : null; render();
+    };
+  }
+
+  /* ---------- method ---------- */
+  function method() {
+    set("method",
+      "<p><b>Starting point.</b> Funds available today: working capital in Xero (" + money(D.wc) + " at " + dmy(D.snap.snapshot_date) + "). All of the $4M grant is already in, so no more grant cash is modelled. The model runs month by month from " + ymLabel(D.start, true) + ".</p>" +
+      "<p><b>Head on feed.</b> Quarter-end SeaFeed head and cattle farms come from the onboarding roadmap (LEL_Onboarding_Targets, the same figures as the Staff Portal). " +
+        "Today's starting point is the farm directory: " + int(D.beefNow) + " cattle on " + D.beefFarmsNow + " farms and " + int(D.sheepNow) + " sheep. Head moves in a straight line between quarter ends and holds at the last figure until feeding stops. Every SeaFeed mob has a control mob on the standard block (the control mob size).</p>" +
+      "<p><b>Feed.</b> Feed per head per day = dose &times; intake share &times; block price. Full dose is 150 g a day for cattle and 15 g for sheep; measured cattle intake is about 48 g (" + ACTUAL_INTAKE_PCT + "% of dose, to 30 Oct 2026). " +
+        "Block prices are $3.66/kg SeaFeed and $2.35/kg standard ($62.22 and $39.95 per 17 kg block). Freight from Olsons to Tasmania is $500/t for cattle blocks and $600/t for sheep, on both blocks. These are the LEL Budget's Supplement Costs. At full dose this is $1.05 per SeaFeed head-day, the Agreed Budget rate.</p>" +
+      "<p><b>Farms and monitoring.</b> Each new cattle farm costs one OptiWeigh unit ($19,000) plus setup freight ($1,170). Each cattle farm then costs about $3,180 a year (data charges $480, equipment O&amp;M $1,100, pasture testing $1,600). Tissue sampling is about $2.06 per SeaFeed cattle head a year and each new sheep farm $2,500, from the Project Budget sheet. Extra cattle bring one extra farm per 250 head. Contingency is added on feed, freight and farms (10% in the Agreed Budget).</p>" +
+      "<p><b>Wages.</b> Modelled from history: the average of the last 6 months with wages posted in Xero (" + ymLabel(D.w6from) + " to " + ymLabel(D.lastPosted) + "), growing by the wage growth rate. " +
+        (D.unposted ? D.unposted + " month" + (D.unposted > 1 ? "s" : "") + " since then (" + ymLabel(D.lastPosted + 1) + " to " + ymLabel(D.S) + ") have no wages posted yet, so they are paid in the first month unless you untick that box. " : "") +
+        "Governance, communications, travel and bank fees are the average of the last 12 months in Xero. Both stop when the Project ends.</p>" +
+      "<p><b>Partner cash.</b> Each partner's cash commitment in LEL_Fin_Contributions, less what Xero shows received, paid in equal monthly amounts from the first to the last payment month (from March 2027 by default). Interest is earned on the balance at the rate of the last 6 months.</p>" +
+      "<p><b>Extra cattle the funds cover</b> finds the largest number of extra SeaFeed cattle (with their control mob, farms and monitoring) that keeps funds at or above the reserve every month until the Project ends.</p>" +
+      "<p><b>Not modelled:</b> feed stock already on hand, timing of bills, and costs that are not in the Agreed Budget. Edit LEL_Fin_Contributions in ArcGIS Online to change partner commitments.</p>");
+  }
+
+  /* ---------- glue ---------- */
+  var timer = null;
+  function changed() {
+    try { sessionStorage.setItem(DRAFT, JSON.stringify(P)); } catch (e) {}
+    clearTimeout(timer); timer = setTimeout(render, 60);
+  }
+  function init(d) {
+    derive(d);
+    BASE_FEED = run(DEF, { extra: 0 }).feedTotal || 1;
+    P = clone(DEF);
+    try { var dr = JSON.parse(sessionStorage.getItem(DRAFT)); if (dr && dr.q && dr.q.length === DEF.q.length) P = Object.assign(clone(DEF), dr); } catch (e) {}
+    set("fresh", "Funds from Xero as at " + dmy(D.snap.snapshot_date) + ". Costings from the LEL Budget; head from the onboarding roadmap." +
+      (D.roadmapOK ? "" : " <span class='warn'>The roadmap could not be read; enter quarter-end head by hand.</span>"));
+    set("wageSrc", "$ per month &middot; Xero average " + ymLabel(D.w6from) + "–" + ymLabel(D.lastPosted) + ": " + full(DEF.wage));
+    set("catchupLab", D.unposted ? "Pay the " + D.unposted + " month" + (D.unposted > 1 ? "s" : "") + " of wages not yet posted in Xero (" + ymLabel(D.lastPosted + 1) + "–" + ymLabel(D.S) + ") in the first month" : "All wages are posted in Xero");
+    set("ovSrc", "$ per month &middot; Xero, last 12 months: " + full(DEF.overheads));
+    set("intSrc", "% per year on the balance &middot; last 6 months: " + DEF.interest + "%");
+    set("q-note", "Starting point today: " + int(D.beefNow) + " cattle on " + D.beefFarmsNow + " farms, " + int(D.sheepNow) + " sheep (farm directory).");
+    buildPanel(); fill(); method();
+    render();
+    wireScen();
+    findScenTable().then(loadScen).catch(function () { SCEN.url = null; loadScen(); });
+  }
+  start();
+})();
+</script>
+</body>
+</html>
