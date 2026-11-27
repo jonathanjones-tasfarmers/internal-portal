@@ -24,7 +24,7 @@
   <div class="bar">
     <div class="left">
       <span class="brand"><i></i>LEL Finance</span>
-      <nav class="pills" id="nav"><a class="pill on" href="lel-finance.html">Overview</a><a class="pill" href="lel-spend-model.html">Spend Model</a></nav>
+      <nav class="pills" id="nav"><a class="pill on" href="lel-finance.html">Overview</a><a class="pill" href="lel-spend-model.html">Spend Model</a><a class="pill" href="lel-finance-pack.html">Monthly Pack</a></nav>
       <span class="asat"><span class="dot" id="health"></span><span id="asat">Loading&hellip;</span></span>
     </div>
     <div class="right">
@@ -216,25 +216,8 @@
   }
 
   /* ---------- needs attention ---------- */
-  function attention(S, LC, first) {
-    var flags = [];
-    if (D.unposted >= 1) flags.push({ c: "bad", t: "Wages not posted in Xero since " + ymLabel(D.lastPosted) + " (" + D.unposted + " month" + (D.unposted > 1 ? "s" : "") + ")" });
-    (DATA.bills || []).filter(function (b) { return b.days_overdue > 0; }).forEach(function (b) { flags.push({ c: "bad", t: esc(b.supplier) + " bill " + money(b.amount_due_aud) + " is " + b.days_overdue + " days overdue" }); });
-    var gy = D.budgetGroups;
-    var spentG = {}; D.exp.forEach(function (r2) { spentG[r2.group] = (spentG[r2.group] || 0) + r2.amount_aud; });
-    var dayFrac = Math.min(1, new Date(D.snap.snapshot_date || Date.now()).getDate() / 30);
-    F.GROUPS.forEach(function (g) {
-      var pace = F.budgetBetween(gy[g], first, S - 1) + F.budgetBetween(gy[g], S, S) * dayFrac, s = spentG[g] || 0;
-      if (s > pace * 1.1 && s - pace > 10000) flags.push({ c: "warn", t: g + " is " + money(s - pace) + " over budget pace" });
-    });
-    D.partners.filter(function (p) { return !p.inXero && p.target > 0 && !/producer/i.test(p.name); }).forEach(function (p) {
-      flags.push({ c: "warn", t: esc(p.name) + " " + money(p.target) + " not tracked in Xero" });
-    });
-    var soon = Date.now() + 90 * 864e5;
-    (DATA.milestones || []).filter(function (x) { return x.due_date && x.due_date < soon && !/accepted|done|complete/i.test(x.status || ""); })
-      .sort(function (a, b) { return a.due_date - b.due_date; }).forEach(function (x) {
-        flags.push({ c: x.due_date < Date.now() ? "bad" : "warn", t: esc(x.name.replace(/\s*\(clause.*\)/, "")) + " due " + F.dmy(x.due_date) });
-      });
+  function attention() {
+    var flags = F.attention(D, DATA);
     var shown = flags.slice(0, 4);
     set("attn", "<span class='t'>Needs attention</span>" + (shown.length ? shown.map(function (f) { return "<span class='flag " + f.c + "'><i></i>" + f.t + "</span>"; }).join("")
       : "<span class='flag ok'><i></i>Nothing needs attention</span>") + (flags.length > 4 ? "<span class='small muted'>+" + (flags.length - 4) + " more</span>" : ""));
