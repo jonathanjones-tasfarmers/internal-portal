@@ -1192,7 +1192,8 @@
   var HOT_C = 25;            // a 'hot day' for the temperature panel
   var BUDGET_DOSE_G = 90;    // same as the intake cards above
   var BRO_W = 54;            // fixed right-axis width; the temperature panel pads by the same amount so dates line up
-  var BRO_FILL = 'rgba(31,58,82,0.10)', BRO_EDGE = 'rgba(31,58,82,0.30)', BRO_KEY = 'rgba(31,58,82,0.18)', BRO_TEXT = '#5b6d7c';
+  // Bromoform in indigo: mint, slate and orange already mean KleenGrow, Control and heat on this card.
+  var BRO = '#5a4f8f', BRO_FILL = 'rgba(110,94,170,0.15)', BRO_EDGE = 'rgba(110,94,170,0.45)', BRO_KEY = 'rgba(110,94,170,0.30)', BRO_TEXT = '#5a4f8f';
 
   function q(layer, params){
     params.f = 'json';
@@ -1275,7 +1276,7 @@
       var ctx = chart.ctx;
       ctx.save();
       ctx.font = '600 10px Tahoma, Verdana, sans-serif';
-      ctx.fillStyle = NAVY; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillStyle = BRO; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
       chart.data.datasets.forEach(function(ds, i){
         if (!ds._labels || !chart.isDatasetVisible(i)) return;
         chart.getDatasetMeta(i).data.forEach(function(pt, j){
@@ -1382,12 +1383,12 @@
         { label: 'Control', data: ct7, yAxisID: 'y', borderColor: SLATE, backgroundColor: SLATE, borderWidth: 2, pointRadius: 0, tension: 0.3, spanGaps: false, order: 2 },
         { label: 'Budget dose', data: labels.map(function(){ return BUDGET_DOSE_G; }), yAxisID: 'y', borderColor: '#c3ccd3', borderWidth: 1, borderDash: [4, 4], pointRadius: 0, pointHoverRadius: 0, order: 3 },
         { label: 'Bromoform', data: bro, yAxisID: 'yBro', fill: 'origin', backgroundColor: BRO_FILL, borderColor: BRO_EDGE, borderWidth: 1, pointRadius: 0, pointHoverRadius: 0, tension: 0, spanGaps: false, order: 20 },
-        { label: 'Start-of-pallet test', data: startPts, _labels: startPts.map(isTrue), yAxisID: 'yBro', showLine: false, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: NAVY, pointBorderColor: NAVY, order: 0 },
-        { label: 'End-of-pallet test', data: endPts, _labels: endPts.map(isTrue), yAxisID: 'yBro', showLine: false, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: '#ffffff', pointBorderColor: NAVY, pointBorderWidth: 2, order: 0 }
+        { label: 'Start-of-pallet test', data: startPts, _labels: startPts.map(isTrue), yAxisID: 'yBro', showLine: false, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: BRO, pointBorderColor: BRO, order: 0 },
+        { label: 'End-of-pallet test', data: endPts, _labels: endPts.map(isTrue), yAxisID: 'yBro', showLine: false, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: '#ffffff', pointBorderColor: BRO, pointBorderWidth: 2, order: 0 }
       ] },
       plugins: [valueLabels],
       options: baseOptions('g/head/day', function(o){
-        o.scales.yBro = { position: 'right', beginAtZero: true, suggestedMax: Math.max(1000, maxV * 1.25), grid: { display: false }, border: { display: false },
+        o.scales.yBro = { position: 'right', beginAtZero: true, suggestedMax: Math.max(1000, maxV * 1.1), grid: { display: false }, border: { display: false },
           ticks: { font: { size: 9 }, color: BRO_TEXT, maxTicksLimit: 5 },
           title: { display: true, text: 'bromoform mg/kg', font: { size: 10 }, color: BRO_TEXT },
           afterFit: function(a){ a.width = BRO_W; } };
@@ -1408,7 +1409,7 @@
     });
     legend('lbp-ibt-key-intake', [
       { label: 'KleenGrow intake', color: MINT }, { label: 'Control intake', color: SLATE }, { label: 'Budget dose (' + BUDGET_DOSE_G + ' g)', color: '#b4bec6', dash: true },
-      { label: 'Batch bromoform (right axis)', color: BRO_KEY, bar: true }, { label: 'Lab test (filled start, hollow end)', color: NAVY, hollow: true }
+      { label: 'Batch bromoform (right axis)', color: BRO_KEY, bar: true }, { label: 'Lab test (filled start, hollow end)', color: BRO, hollow: true }
     ]);
     document.getElementById('lbp-ibt-bro-empty').style.display = anyBro ? 'none' : 'block';
 
