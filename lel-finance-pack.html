@@ -124,6 +124,10 @@
         </div>
       </div>
 
+      <h2 class="s">Whole Project outlook</h2>
+      <div class="s-sub" id="ol-sub"></div>
+      <div class="tscroll" id="outlook"></div>
+
       <h2 class="s">Partner cash</h2>
       <div class="s-sub">Cash commitments, received in Xero to the end of the month</div>
       <div class="tscroll"><table class="p" id="partners"></table></div>
@@ -253,6 +257,11 @@
       "<tr class='tot'><td>Total</td><td>" + money(T[0]) + "</td><td>" + money(T[1]) + "</td><td class='" + vcls(T[1] - T[0]) + "'>" + signed(T[1] - T[0]) + "</td><td class='gap'></td>" +
       "<td>" + money(T[2]) + "</td><td>" + money(T[3]) + "</td><td class='" + vcls(T[3] - T[2]) + "'>" + signed(T[3] - T[2]) + "</td><td class='gap'></td>" +
       "<td>" + money(T[4]) + "</td><td>" + money(T[5]) + "</td><td>" + (T[5] ? Math.round(T[4] / T[5] * 100) + "%" : "–") + "</td></tr>");
+
+    // whole-Project outlook (as at today)
+    var ol = F.outlook(D, r);
+    set("outlook", F.outlookTable(ol, "p"));
+    set("ol-sub", "As at " + F.dmy(D.snap.snapshot_date) + ": spent to date plus the Spend Model forecast to " + ymLabel(P.projEnd, true) + ", against the whole Agreed Budget");
 
     // attention (as at today)
     var flags = F.attention(D, DATA);

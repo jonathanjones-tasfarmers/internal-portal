@@ -369,6 +369,28 @@
              spent: F.sum(D.exp.map(function (r) { return r.amount_aud; })), interest: interest, interestTarget: intRow.target_aud || 0, next: next };
   };
 
+  /* Whole-Project outlook: Agreed Budget against spent to date plus the forecast to finish (Spend Model default). */
+  F.outlook = function (D, r) {
+    var rows = F.GROUPS.map(function (g) {
+      var budget = F.sum(Object.keys(D.budgetGroups[g]).map(function (y) { return D.budgetGroups[g][y]; }));
+      var spent = F.sum(D.exp.filter(function (x) { return x.group === g && x.ym <= D.S; }).map(function (x) { return x.amount_aud; }));
+      var fc = r.byGroup[g] || 0;
+      return { g: g, budget: budget, spent: spent, forecast: fc, total: spent + fc, variance: budget - spent - fc };
+    });
+    var t = { g: "Total" };
+    ["budget", "spent", "forecast", "total", "variance"].forEach(function (k) { t[k] = F.sum(rows.map(function (x) { return x[k]; })); });
+    return { rows: rows, total: t };
+  };
+  F.outlookTable = function (o, cls) {
+    function row(x, tot) {
+      return "<tr" + (tot ? " class='tot'" : "") + "><td>" + (tot ? "" : "<span class='sw' style='display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;background:" + F.groupColor(x.g) + "'></span>") + x.g + "</td>" +
+        "<td>" + F.money(x.budget) + "</td><td>" + F.money(x.spent) + "</td><td>" + F.money(x.forecast) + "</td><td><b>" + F.money(x.total) + "</b></td>" +
+        "<td class='" + (x.variance >= 0 ? "good" : "bad") + "'>" + F.money(Math.abs(x.variance)) + (x.variance >= 0 ? " under" : " over") + "</td></tr>";
+    }
+    return "<table class='" + (cls || "t") + "'><tr><th>Category</th><th>Agreed Budget</th><th>Spent to date</th><th>Forecast to finish</th><th>Expected total</th><th>Against budget</th></tr>" +
+      o.rows.map(function (x) { return row(x); }).join("") + row(o.total, true) + "</table>";
+  };
+
   /* ---------- chart helpers ---------- */
   F.chartDefaults = function () {
     Chart.defaults.font.family = "Verdana, Tahoma, sans-serif";

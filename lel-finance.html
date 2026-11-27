@@ -85,6 +85,11 @@
       <div class="chart sm" style="height:250px"><canvas id="c-month"></canvas></div>
     </section>
 
+    <section class="c s12">
+      <div class="hd"><div><h2>Whole Project outlook</h2><div class="sub" id="ol-sub">&nbsp;</div></div>
+        <span class="info" tabindex="0" data-tip="Expected total = spent to date (Xero) plus the forecast to Project end from the Spend Model default. Against budget compares that with the whole Agreed Budget. Change the forecast on the Spend Model page.">i</span></div>
+      <div class="tscroll" id="outlook"></div>
+    </section>
     <section class="c s6">
       <div class="hd"><div><h2>Partner cash</h2><div class="sub">Received in Xero against each cash commitment</div></div></div>
       <ul class="prog" id="partners"></ul>
@@ -209,6 +214,10 @@
     attention(S, LC, first, spendBy);
     fundsChart(r, funds, first, NAV, MINT, GREY, RED, AMBER);
     grantCard();
+    var ol = F.outlook(D, r);
+    set("outlook", F.outlookTable(ol));
+    set("ol-sub", "Spent to date plus the forecast to " + ymLabel(P.projEnd, true) + ", against the whole Agreed Budget. Expected to finish " +
+      money(Math.abs(ol.total.variance)) + (ol.total.variance >= 0 ? " under" : " over") + " budget.");
     bullets(from, to, cont0, cont1, label, spendBy);
     monthBars(last18, spendBy, NAV, MINT);
     partners();
