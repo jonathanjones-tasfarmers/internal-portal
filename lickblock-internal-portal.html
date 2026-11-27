@@ -274,7 +274,9 @@
   .lbp-ibt-key-dot.hollow { background: #fff; }
   .lbp-ibt-key-bar { width: 8px; height: 10px; border-radius: 1px; }
   .lbp-ibt-box { position: relative; }
-  .lbp-ibt-box.main { height: 230px; }
+  .lbp-ibt-box.main { height: 300px; }
+  .lbp-ibt-keys-row { margin: 0 2px 8px; }
+  #lbp-ibt-bro-empty { inset: 2px 64px auto auto; padding: 0; font-size: 10.5px; text-align: right; }
   .lbp-ibt-box.small { height: 150px; }
   .lbp-ibt-empty { position: absolute; inset: 0; display: none; text-align: center; padding-top: 55px; font-family: var(--font-display); font-size: 12px; color: var(--text-muted); margin: 0; }
   .lbp-ibt-note { font-family: var(--font-display); font-size: 11px; color: var(--text-muted); margin: 10px 2px 0; line-height: 1.5; }
@@ -317,12 +319,9 @@
       </select>
     </div>
     <div class="lbp-ibt-panel">
-      <div class="lbp-ibt-head"><p class="lbp-ibt-title">Block intake <span>g/head/day, 7-day average</span></p><div class="lbp-ibt-keys" id="lbp-ibt-key-intake"></div></div>
-      <div class="lbp-ibt-box main"><canvas id="lbp-ibt-intake"></canvas></div>
-    </div>
-    <div class="lbp-ibt-panel">
-      <div class="lbp-ibt-head"><p class="lbp-ibt-title">Bromoform in the KleenGrow batch <span>AST lab, mg/kg, by pallet</span></p><div class="lbp-ibt-keys" id="lbp-ibt-key-bro"></div></div>
-      <div class="lbp-ibt-box small"><canvas id="lbp-ibt-bro"></canvas><p class="lbp-ibt-empty" id="lbp-ibt-bro-empty">No lab results for this farm in this window.</p></div>
+      <div class="lbp-ibt-head"><p class="lbp-ibt-title">Block intake and batch bromoform <span>intake g/head/day (7-day average), bromoform AST lab mg/kg by pallet</span></p></div>
+      <div class="lbp-ibt-keys lbp-ibt-keys-row" id="lbp-ibt-key-intake"></div>
+      <div class="lbp-ibt-box main"><canvas id="lbp-ibt-intake"></canvas><p class="lbp-ibt-empty" id="lbp-ibt-bro-empty">No lab bromoform results for this farm in this window.</p></div>
     </div>
     <div class="lbp-ibt-panel">
       <div class="lbp-ibt-head"><p class="lbp-ibt-title">Daily maximum temperature <span id="lbp-ibt-temp-region"></span></p><div class="lbp-ibt-keys" id="lbp-ibt-key-temp"></div></div>
@@ -394,7 +393,7 @@
     <p>KleenGrow&trade; is the Sea Forest product in the lick blocks. The Grant Deed and earlier reports call it SeaFeed&trade;; both names mean the same product. The data layers still label it &ldquo;seafeed&rdquo;.</p>
     <p>Intake is grams of block per head per day over the latest interval between two visits to the same trough or unit. The whole-cohort figure is all block mass placed since the cohort started, per head per day.</p>
     <p>On hand is blocks ordered less blocks used. Days to empty divides on hand by the current use rate. Reorder by allows a 40-day lead time.</p>
-    <p>The intake, bromoform and temperature panels share one date axis and join each farm&rsquo;s cohorts into one timeline. Intake is the latest-interval figure used above, smoothed to a 7-day average; days with no usable figure (before the second visit, or after a unit drops out for lack of visits) are left out, not counted as zero. Bromoform is the AST lab result for each KleenGrow pallet (mean of the outer and inner samples, mg/kg wet matter): a filled dot at the start of a pallet, a hollow dot at the end, a solid line between the two tests and a dotted line while the current pallet is still in use. The methane model uses a fixed 700 mg/kg for every block. Temperature is the daily maximum for the farm&rsquo;s region from Open-Meteo (LEL_Weather_Data); days at or above 25 &deg;C are darker. Because intake is averaged over visit intervals, a hot day shows up in intake only at the next visit.</p>
+    <p>The intake and temperature panels share one date axis and join each farm&rsquo;s cohorts into one timeline. Intake is the latest-interval figure used above, smoothed to a 7-day average; days with no usable figure (before the second visit, or after a unit drops out for lack of visits) are left out, not counted as zero. Bromoform is shaded behind the intake lines on the right-hand axis: the AST lab result for the KleenGrow pallet in use (mean of the outer and inner samples, mg/kg wet matter), with a filled dot at the start-of-pallet test and a hollow dot at the end-of-pallet test. Between a pallet&rsquo;s two tests the shading runs straight from one result to the other; the current pallet is held at its last result. The methane model uses a fixed 700 mg/kg for every block. Temperature is the daily maximum for the farm&rsquo;s region from Open-Meteo (LEL_Weather_Data); days at or above 25 &deg;C are darker. Because intake is averaged over visit intervals, a hot day shows up in intake only at the next visit.</p>
     <p>Sources: LEL_Lick_Block_Usage_History (fed daily by 06. Lick_Block_Portal_Feed.py) &middot; LEL_LickBlock_Placements &middot; orders logged directly in ArcGIS Online (LEL_Lick_Block_Orders) &middot; LEL_Lickblock_Sampling_Public (lab bromoform) &middot; LEL_Weather_Data (Open-Meteo).</p>
   </div></details>
   <p class="lp-footer">Not for external distribution</p>
@@ -1192,6 +1191,9 @@
   var state = { data: null, charts: {} };
   var HOT_C = 25;            // a 'hot day' for the temperature panel
   var BUDGET_DOSE_G = 90;    // same as the intake cards above
+  var BRO_W = 54;            // fixed right-axis width; the temperature panel pads by the same amount so dates line up
+  // Bromoform in indigo: mint, slate and orange already mean KleenGrow, Control and heat on this card.
+  var BRO = '#5a4f8f', BRO_FILL = 'rgba(110,94,170,0.15)', BRO_EDGE = 'rgba(110,94,170,0.45)', BRO_KEY = 'rgba(110,94,170,0.30)', BRO_TEXT = '#5a4f8f';
 
   function q(layer, params){
     params.f = 'json';
@@ -1274,7 +1276,7 @@
       var ctx = chart.ctx;
       ctx.save();
       ctx.font = '600 10px Tahoma, Verdana, sans-serif';
-      ctx.fillStyle = NAVY; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillStyle = BRO; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
       chart.data.datasets.forEach(function(ds, i){
         if (!ds._labels || !chart.isDatasetVisible(i)) return;
         chart.getDatasetMeta(i).data.forEach(function(pt, j){
@@ -1347,75 +1349,71 @@
     var sf = sfAll.slice(from), sf7 = sf7All.slice(from), ct7 = ct7All.slice(from), ct = ctAll.slice(from);
     function tipTitle(items){ return items.length ? keyLong(labels[items[0].dataIndex]) : ''; }
 
-    // ---- Panel 1: intake ----
+    // ---- Panel 1: intake, with the KleenGrow batch's bromoform shaded behind it on a second axis ----
+    var pallets = palletsFor(d.lab[farm]);
+    function palletOn(k){
+      var cur = null;
+      pallets.forEach(function(p){ if (p.start.day <= k) cur = p; });   // a new pallet wins on its start day
+      return cur;
+    }
+    var broInfo = labels.map(function(k){
+      var p = palletOn(k);
+      if (!p) return null;
+      if (p.end && k > p.end.day) return null;   // finished and no newer pallet yet
+      var v = p.start.v, how = 'held';
+      if (k === p.start.day) how = 'start';
+      else if (p.end) {
+        var sa = keyMs(p.start.day), sb = keyMs(p.end.day);
+        v = p.start.v + (p.end.v - p.start.v) * (sb > sa ? (keyMs(k) - sa) / (sb - sa) : 1);
+        how = k === p.end.day ? 'end' : 'between';
+      }
+      return { v: v, how: how, pallet: p };
+    });
+    var bro = broInfo.map(function(b){ return b ? b.v : null; });
+    var startPts = labels.map(function(k){ var p = pallets.filter(function(x){ return x.start.day === k; })[0]; return p ? p.start.v : null; });
+    var endPts = labels.map(function(k){ var p = pallets.filter(function(x){ return x.end && x.end.day === k; })[0]; return p ? p.end.v : null; });
+    var maxV = Math.max.apply(null, [0].concat(bro.filter(function(v){ return v != null; }), endPts.filter(function(v){ return v != null; })));
+    var anyBro = maxV > 0;
+    var isTrue = function(v){ return v != null; };
+
     draw('intake', 'lbp-ibt-intake', {
       type: 'line',
       data: { labels: xl, datasets: [
-        { label: 'KleenGrow', data: sf7, borderColor: MINT, backgroundColor: MINT, borderWidth: 2.5, pointRadius: 0, tension: 0.3, spanGaps: false },
-        { label: 'Control', data: ct7, borderColor: SLATE, backgroundColor: SLATE, borderWidth: 2, pointRadius: 0, tension: 0.3, spanGaps: false },
-        { label: 'Budget dose', data: labels.map(function(){ return BUDGET_DOSE_G; }), borderColor: '#c3ccd3', borderWidth: 1, borderDash: [4, 4], pointRadius: 0, pointHoverRadius: 0 }
+        { label: 'KleenGrow', data: sf7, yAxisID: 'y', borderColor: MINT, backgroundColor: MINT, borderWidth: 2.5, pointRadius: 0, tension: 0.3, spanGaps: false, order: 1 },
+        { label: 'Control', data: ct7, yAxisID: 'y', borderColor: SLATE, backgroundColor: SLATE, borderWidth: 2, pointRadius: 0, tension: 0.3, spanGaps: false, order: 2 },
+        { label: 'Budget dose', data: labels.map(function(){ return BUDGET_DOSE_G; }), yAxisID: 'y', borderColor: '#c3ccd3', borderWidth: 1, borderDash: [4, 4], pointRadius: 0, pointHoverRadius: 0, order: 3 },
+        { label: 'Bromoform', data: bro, yAxisID: 'yBro', fill: 'origin', backgroundColor: BRO_FILL, borderColor: BRO_EDGE, borderWidth: 1, pointRadius: 0, pointHoverRadius: 0, tension: 0, spanGaps: false, order: 20 },
+        { label: 'Start-of-pallet test', data: startPts, _labels: startPts.map(isTrue), yAxisID: 'yBro', showLine: false, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: BRO, pointBorderColor: BRO, order: 0 },
+        { label: 'End-of-pallet test', data: endPts, _labels: endPts.map(isTrue), yAxisID: 'yBro', showLine: false, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: '#ffffff', pointBorderColor: BRO, pointBorderWidth: 2, order: 0 }
       ] },
-      options: baseOptions('g/head/day', function(o){
-        o.plugins.tooltip.callbacks = { title: tipTitle, label: function(c){
-          if (c.datasetIndex === 2) return 'Budget dose: ' + BUDGET_DOSE_G + ' g';
-          var raw = (c.datasetIndex === 0 ? sf : ct)[c.dataIndex];
-          return c.dataset.label + ': ' + Math.round(c.parsed.y) + ' g (7-day avg' + (raw != null ? ', latest interval ' + Math.round(raw) + ' g' : '') + ')';
-        } };
-      })
-    });
-    legend('lbp-ibt-key-intake', [{ label: 'KleenGrow', color: MINT }, { label: 'Control', color: SLATE }, { label: 'Budget dose (' + BUDGET_DOSE_G + ' g)', color: '#b4bec6', dash: true }]);
-
-    // ---- Panel 2: lab bromoform by pallet ----
-    var pallets = palletsFor(d.lab[farm]);
-    var idx = {}; labels.forEach(function(k, i){ idx[k] = i; });
-    var broSets = [], maxV = 0, tested = [];
-    pallets.forEach(function(p, i){
-      var next = pallets[i + 1];
-      var data = labels.map(function(){ return null; }), lab = labels.map(function(){ return false; });
-      var pts = labels.map(function(){ return 0; }), fill = labels.map(function(){ return NAVY; });
-      function put(day, v, hollow){
-        if (idx[day] == null) return;
-        data[idx[day]] = v; lab[idx[day]] = true; pts[idx[day]] = 4.5; fill[idx[day]] = hollow ? '#ffffff' : NAVY;
-      }
-      put(p.start.day, p.start.v, false);
-      tested.push({ day: p.start.day, v: p.start.v, id: p.id, stage: 'start' });
-      maxV = Math.max(maxV, p.start.v);
-      if (p.end) { put(p.end.day, p.end.v, true); tested.push({ day: p.end.day, v: p.end.v, id: p.id, stage: 'end' }); maxV = Math.max(maxV, p.end.v); }
-      // Lines: solid between a pallet's two tests; dotted "still in use" line for the current pallet.
-      var a = p.start.day, b = p.end ? p.end.day : (next ? null : last);
-      if (b) {
-        var ia = idx[a] != null ? idx[a] : (a < labels[0] ? 0 : null), ib = idx[b] != null ? idx[b] : null;
-        if (ia != null && ib != null && ia !== ib) {
-          var va = p.start.v, vb = p.end ? p.end.v : p.start.v;
-          var sa = keyMs(a), sb = keyMs(b);
-          for (var i2 = ia; i2 <= ib; i2++) if (data[i2] == null) data[i2] = va + (vb - va) * ((keyMs(labels[i2]) - sa) / (sb - sa));
-        }
-      }
-      broSets.push({ label: 'Pallet ' + p.id, data: data, _labels: lab, _pallet: p, borderColor: NAVY, borderWidth: 1.5,
-        borderDash: p.end ? [] : [3, 4], pointRadius: pts, pointHoverRadius: pts.map(function(r){ return r ? 6 : 0; }),
-        pointBackgroundColor: fill, pointBorderColor: NAVY, pointBorderWidth: 2, spanGaps: false });
-    });
-    var anyBro = broSets.some(function(s){ return s.data.some(function(v){ return v != null; }); });
-    broSets.push({ label: 'Model assumption', data: labels.map(function(){ return 700; }), borderColor: '#c3ccd3', borderWidth: 1, borderDash: [4, 4], pointRadius: 0, pointHoverRadius: 0 });
-    draw('bro', 'lbp-ibt-bro', {
-      type: 'line',
-      data: { labels: xl, datasets: broSets },
       plugins: [valueLabels],
-      options: baseOptions('mg/kg', function(o){
-        o.scales.y.suggestedMax = Math.max(1000, maxV * 1.2);
+      options: baseOptions('g/head/day', function(o){
+        o.scales.yBro = { position: 'right', beginAtZero: true, suggestedMax: Math.max(1000, maxV * 1.1), grid: { display: false }, border: { display: false },
+          ticks: { font: { size: 9 }, color: BRO_TEXT, maxTicksLimit: 5 },
+          title: { display: true, text: 'bromoform mg/kg', font: { size: 10 }, color: BRO_TEXT },
+          afterFit: function(a){ a.width = BRO_W; } };
+        // the test dots repeat the shaded series' value, so leave them out of the tooltip
+        o.plugins.tooltip.filter = function(it){ return it.parsed.y != null && it.datasetIndex < 4; };
         o.plugins.tooltip.callbacks = { title: tipTitle, label: function(c){
-          if (!c.dataset._pallet) return 'Model assumes 700 mg/kg';
-          var p = c.dataset._pallet, k = labels[c.dataIndex];
-          if (k === p.start.day) return 'Pallet ' + p.id + ' start-of-pallet test: ' + Math.round(c.parsed.y) + ' mg/kg';
-          if (p.end && k === p.end.day) return 'Pallet ' + p.id + ' end-of-pallet test: ' + Math.round(c.parsed.y) + ' mg/kg';
-          return 'Pallet ' + p.id + (p.end ? ' (between tests): ~' : ' (in use, last test): ') + Math.round(c.parsed.y) + ' mg/kg';
+          var v = Math.round(c.parsed.y);
+          if (c.datasetIndex === 2) return 'Budget dose: ' + BUDGET_DOSE_G + ' g';
+          if (c.datasetIndex === 3) {
+            var b = broInfo[c.dataIndex];
+            var how = { start: 'start-of-pallet test', end: 'end-of-pallet test', between: 'between tests', held: 'last test, still in use' }[b.how];
+            return 'Bromoform, pallet ' + b.pallet.id + ': ' + (b.how === 'between' ? '~' : '') + v + ' mg/kg (' + how + ')';
+          }
+          var raw = (c.datasetIndex === 0 ? sf : ct)[c.dataIndex];
+          return c.dataset.label + ': ' + v + ' g (7-day avg' + (raw != null ? ', latest interval ' + Math.round(raw) + ' g' : '') + ')';
         } };
       })
     });
-    legend('lbp-ibt-key-bro', [{ label: 'Start-of-pallet test', color: NAVY }, { label: 'End-of-pallet test', color: NAVY, hollow: true }, { label: 'Model assumption (700)', color: '#b4bec6', dash: true }]);
+    legend('lbp-ibt-key-intake', [
+      { label: 'KleenGrow intake', color: MINT }, { label: 'Control intake', color: SLATE }, { label: 'Budget dose (' + BUDGET_DOSE_G + ' g)', color: '#b4bec6', dash: true },
+      { label: 'Batch bromoform (right axis)', color: BRO_KEY, bar: true }, { label: 'Lab test (filled start, hollow end)', color: BRO, hollow: true }
+    ]);
     document.getElementById('lbp-ibt-bro-empty').style.display = anyBro ? 'none' : 'block';
 
-    // ---- Panel 3: temperature ----
+    // ---- Panel 2: temperature ----
     var tv = labels.map(function(k){ return fw[k] ? fw[k].t : null; });
     var hasTemp = tv.some(function(v){ return v != null; });
     draw('temp', 'lbp-ibt-temp', {
@@ -1425,6 +1423,7 @@
       ] },
       options: baseOptions('°C max', function(o){
         o.scales.y.suggestedMax = 30;
+        o.layout.padding.right = BRO_W + 8;   // line up with the intake panel's right axis
         o.plugins.tooltip.callbacks = { title: tipTitle, label: function(c){
           var w = fw[labels[c.dataIndex]];
           return 'Max ' + c.parsed.y.toFixed(1) + ' °C' + (w && w.heat && w.heat !== 'none' ? ' (' + w.heat + ' heat stress)' : '');
