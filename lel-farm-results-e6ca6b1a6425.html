@@ -325,7 +325,6 @@ aside.rail{border:0;background:transparent;height:auto}
     <button data-p="p6">Pasture</button>
     <button data-p="p7g" class="g-only">Progress</button>
     <button data-p="p7p" class="p-only">Progress</button>
-    <button data-p="p8">Method</button>
   </nav>
 </aside>
 <main>
@@ -512,47 +511,6 @@ aside.rail{border:0;background:transparent;height:auto}
       <li><span class="p">→</span>A full finishing period before economic conclusions</li></ul></div>
   </div>
   <div class="card" style="margin-top:var(--gap)"><h4>Milestones against the Grant Deed</h4><table class="ms"></table><p class="note">Status as at 17 November 2026: Milestones 3 and 4 accepted by the Grantor (acceptance dates to be added). The Deed allows milestones to complete about eight weeks after the dates shown (clause 4.1(d)). The Grant Deed refers to the product as SeaFeed; the website uses KleenGrow.</p></div>
-</section>
-
-<!-- P8 -->
-<section class="page" id="p8">
-  <h2>Sources and method</h2>
-  <p class="sub">Where each figure comes from, and how it is calculated.</p>
-  <div class="card" style="margin-bottom:var(--gap)"><h4>Product name</h4><p class="note" style="font-size:13px;margin:0">KleenGrow™ is the Sea Forest product fed in the lick-block program. It is called SeaFeed™ in the Grant Deed and in earlier project reports. Both names refer to the same product.</p></div>
-  <div class="card" style="margin-bottom:var(--gap)"><h4>Data sources</h4>
-    <table class="ms dsrc">
-    <tr><th>Content</th><th>Source</th><th>Access</th><th>Updates</th></tr>
-    <tr><td>Weight and ADG</td><td>OptiWeigh walk-over liveweight monitoring (OptiWeigh_Cattle_Weights). 14-day rolling ADG is a per-animal regression slope averaged across animals, with a 95% interval; 30-day and 90-day ADG are OptiWeigh's own windows.</td><td><span class="chip done">PUBLIC</span></td><td>Daily</td></tr>
-    <tr><td>Intake and blocks put out</td><td>Lick block visit records entered by the farms (Survey123). Intake = mass of blocks put out ÷ (head × days to the next visit), so blocks are assumed used up by the next visit.</td><td><span class="chip pend">PUBLIC VIEW</span></td><td>Daily</td></tr>
-    <tr><td>Methane abatement</td><td>Modelled. Baseline methane from Charmley et al. (2016): 20.7 g CH₄ per kg dry matter intake, with intake at 2.5% of liveweight (Sea Forest's 2 to 3% guidance). Abatement comes from the bromoform each animal eats per kg of dry matter: block intake × 700 mg bromoform per kg of KleenGrow block ÷ dry matter intake. That dose goes through the beef dose-response from a peer-reviewed meta-analysis (Goloja et al. 2026, BMC Agriculture 2:4): reduction = −0.00322 + 0.02351 × mg bromoform per kg DMI, held at the top of the data behind it (35.7 mg/kg, 83.6%). A mob with no liveweight has no dry matter intake estimate, so no modelled abatement. Measured methane (AgScent) is not yet included.</td><td><span class="chip done">PUBLIC</span></td><td>Daily</td></tr>
-    <tr><td>CO₂e abated and illustrative value</td><td>Cumulative modelled CH₄ abated per head × head count × 28 (GWP100, AR5). Value uses a $32.50/t CO₂e reference price (midpoint of the $30 to $35/t ACCU range in EY's Australian Carbon Market Outlook 2026, as used in Progress Report 5). No carbon credits have been generated or sold.</td><td><span class="chip done">PUBLIC</span></td><td>Daily</td></tr>
-    <tr><td>Cost and net return</td><td>Block cost from the project cost model (LEL_Economics_Data). Value of extra gain at $4.85/kg liveweight (MLA National Heavy Steer Indicator, 29 Oct 2026), less the full KleenGrow cost (no subsidy), over the matched days, because the project asks whether KleenGrow is feasible for producers without support. The farmer's 60.23% share under the project co-contribution is shown as a secondary figure. Abatement value is shown separately and is not in the net return.</td><td><span class="chip done">PUBLIC</span></td><td>By hand</td></tr>
-    <tr><td>Bromoform in blocks</td><td>AST laboratory results (mg/kg, wet matter basis; analyte confirmed as bromoform on 16 Nov 2026), loaded into LEL_Lickblock_Sampling.</td><td><span class="chip pend">PUBLIC VIEW</span></td><td>By hand</td></tr>
-    <tr><td>Pasture quality</td><td>Forage Lab Australia NIR results (crude protein, aNDF, metabolisable energy), loaded into LEL_Pasture_Quality. Satellite greenness is Sentinel-2 NDVI; weather is Open-Meteo regional data.</td><td><span class="chip pend">PUBLIC VIEW</span></td><td>By hand</td></tr>
-    <tr><td>Paddocks and unit locations</td><td>Paddock_Boundaries, LEL_Unit_Location_Daily, LEL_Unit_Moves (OptiWeigh GPS is the unit's position, not the mob's).</td><td><span class="chip c">PRIVATE</span></td><td>Daily</td></tr>
-    </table></div>
-  <div class="card" style="margin-bottom:var(--gap)"><h4>The record trail, from animal to result</h4>
-    <ul class="tick">
-      <li id="p6bw"><span class="y">●</span><div><b>Animals identified and weighed automatically</b><br><small>OptiWeigh walk-over weighing links each liveweight to an animal and a mob, daily.</small></div></li>
-      <li><span class="y">●</span><div><b>Each mob tied to its treatment</b><br><small>Treatment is recorded by QR code at every lick block visit, so visits count by the treatment, not the unit.</small></div></li>
-      <li><span class="y">●</span><div><b>Blocks put out and cost recorded</b><br><small>Lick block visits are logged, giving blocks per 100 head per week and the cost per head.</small></div></li>
-      <li><span class="y">●</span><div><b>Blocks sampled in the laboratory</b><br><small>Bromoform is tested in the outer and inner layers of each block.</small></div></li>
-      <li><span class="y">●</span><div><b>Pasture quality sampled</b><br><small>Forage Lab Australia NIR analysis of paddock samples, 4 November 2026.</small></div></li>
-      <li><span class="y">●</span><div><b>Modelled methane abatement calculated daily</b><br><small>From block intake, using the method below.</small></div></li>
-      <li><span class="n">○</span><div><b>Independent verification of abatement</b><br><small>Not yet done. Abatement is modelled, not measured on the animal.</small></div></li>
-    </ul>
-    <p class="note">The figures on this site are rebuilt from these records. Any correction to a record is backed up before it is applied.</p></div>
-  <div class="grid g2">
-    <div class="card"><h4>How comparisons are made</h4><ul class="tick">
-      <li><span class="y">✓</span>KleenGrow and control mobs are compared over the same dates and the same number of days</li>
-      <li><span class="y">✓</span>Daily ADG swings by hundreds of g/day, so the page counts the days on which the two mobs' 95% bands separate, not just the difference in means</li>
-      <li><span class="p">!</span>Mobs are not randomised: start weights, paddocks and start dates differ</li>
-      <li><span class="p">!</span>Intake is a supply measure: the records cannot show whether cattle would have eaten more if more blocks had been put out</li></ul></div>
-    <div class="card"><h4>What is modelled and what is measured</h4><ul class="tick">
-      <li><span class="y">✓</span>Measured: liveweight, ADG, blocks put out, bromoform in the blocks, pasture quality</li>
-      <li><span class="p">!</span>Modelled: methane abatement, CO₂e abated and its illustrative value</li>
-      <li><span class="n">✗</span>Not yet measured: methane at the animal (AgScent), residues in beef, animal-health event counts</li></ul></div>
-  </div>
 </section>
 
 </main></div>
@@ -917,7 +875,7 @@ const PQ='<div class="card"><h4>Pasture quality, 4 Nov (Forage Lab Australia, NI
 CFG.bw.p6g=CFG.bw.p6g.replace(/<div class="card"><h4>Pasture quality[\s\S]*$/,PQ);
 CFG.bw.p6p=CFG.bw.p6p.replace(/<div class="card"><h4>Pasture quality[\s\S]*$/,PQ);
 
-const SRC={p1:'Sources: OptiWeigh liveweight (ADG and 95% bands), lick block visit records (intake), 700 mg/kg block bromoform, Goloja et al. 2026 dose-response and Charmley et al. 2016 (modelled abatement), MLA National Heavy Steer Indicator 29 Oct 2026 and EY ACM 2026 reference price (values). See Sources and method.',
+const SRC={p1:'Sources: OptiWeigh liveweight (ADG and 95% bands), lick block visit records (intake), 700 mg/kg block bromoform, Goloja et al. 2026 dose-response and Charmley et al. 2016 (modelled abatement), MLA National Heavy Steer Indicator 29 Oct 2026 and EY ACM 2026 reference price (values).',
  p2:'Sources: OptiWeigh (liveweight, 14-day rolling ADG with 95% band, 30-day and 90-day ADG). Matched dates and days for both mobs.',
  p3:'Sources: lick block visit records (intake, blocks put out), modelled abatement (700 mg/kg block bromoform, Goloja et al. 2026 dose-response, Charmley et al. 2016 baseline), Sea Forest guidance of about 1 block per 20 head, AST laboratory bromoform results (mg/kg WMB).',
  p4g:'Sources: LEL_Economics_Data (cost), economic analysis workbook (net return at full cost and $4.85/kg MLA NHSI; farmer 60.23% share shown as secondary), EY ACM 2026 reference price for illustrative abatement value.',
@@ -928,7 +886,6 @@ function addSrc(){for(const [id,t] of Object.entries(SRC)){const el=document.get
 function renderExtra(){
   const s=S(), d=D[F];
   addSrc();
-  const pw=document.getElementById('p6bw');if(pw&&F=='trt')pw.innerHTML='<span class="p">○</span><div><b>Automatic weighing</b><br><small>OptiWeigh units are not yet installed here, so there is no liveweight record yet.</small></div>';
   const f1=document.getElementById('feedtxt');if(f1)f1.textContent=s.feed[coh]||'';
   const u=document.getElementById('upt');if(u)u.textContent=s.upt;
   document.getElementById('bronote').textContent=s.bronote;
@@ -970,7 +927,7 @@ const MS=[['1','Foundation Activities','19 Jun to 27 Sep 2024','Project plan and
 ['4','On-Farm Activities and Reporting, Phase 2','Jul to Aug 2026','Continuous grazing on Program farms for beef and sheep; formal Progress Report by 30 Sep 2026','Drawdown 3: $800,000','done','COMPLETE','Progress Report 5 accepted by the Grantor'],
 ['5','On-Farm Activities and Reporting, Phase 3','Sep 2026 to 31 Dec 2028','Long-term pasture-based beef and sheep/wool cohorts; bi-annual Progress and Data Reports','Not drawdown-linked','live','IN PROGRESS','Under way following acceptance of Milestone 4'],
 ['6','Final Project Report and Publication','Jan to 1 Feb 2029','Final Report, audited Financial Acquittal, producer handbook, economic feasibility calculator, viability report','Drawdown 4: $200,000','pend','DUE 1 FEB 2029','Not started']];
-document.querySelectorAll('table.ms:not(.dsrc)').forEach(t=>t.innerHTML='<tr><th>Milestone</th><th>Period</th><th>Deliverables</th><th>Funding</th><th>Status</th></tr>'+MS.map(m=>`<tr><td>${m[0]}. ${m[1]}</td><td>${m[2]}</td><td>${m[3]}</td><td>${m[4]}</td><td><span class="chip ${m[5]}">${m[6]}</span><br><span class="note">${m[7]}</span></td></tr>`).join(''));
+document.querySelectorAll('table.ms').forEach(t=>t.innerHTML='<tr><th>Milestone</th><th>Period</th><th>Deliverables</th><th>Funding</th><th>Status</th></tr>'+MS.map(m=>`<tr><td>${m[0]}. ${m[1]}</td><td>${m[2]}</td><td>${m[3]}</td><td>${m[4]}</td><td><span class="chip ${m[5]}">${m[6]}</span><br><span class="note">${m[7]}</span></td></tr>`).join(''));
 /* label wide text tables so they stack on phones */
 function labelTables(){document.querySelectorAll('table').forEach(tb=>{const r0=tb.rows[0];if(!r0||r0.cells.length<4)return;tb.classList.add('stk');r0.classList.add('hd');const h=[...r0.cells].map(c=>c.textContent.trim());[...tb.rows].slice(1).forEach(r=>[...r.cells].forEach((c,i)=>c.setAttribute('data-label',h[i]||'')))})}
 /* ===== Open-cohort figures computed from the data (added 23 Nov 2026) =====
