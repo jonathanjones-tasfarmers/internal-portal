@@ -54,7 +54,7 @@
       <div class="spark"><canvas id="sp3"></canvas></div>
     </section>
     <section class="c s3">
-      <div class="lab" style="display:flex;justify-content:space-between">Funds last until <span class="info" tabindex="0" data-tip="From the Spend Model's default scenario: roadmap head on feed, today's intake, wages from Xero history, partner cash from March 2027.">i</span></div>
+      <div class="lab" style="display:flex;justify-content:space-between">Headroom at Project end <span class="info" tabindex="0" data-tip="Funds left at Project end above the reserve, from the Spend Model's default scenario: roadmap head on feed, today's intake, wages from Xero history, partner cash from March 2027. This is what is free to reinvest.">i</span></div>
       <div class="big tab" id="k4"><span class="skel"></span></div>
       <div id="k4c"></div>
       <div class="spark"><canvas id="sp4"></canvas></div>
@@ -70,11 +70,9 @@
       <div class="chart"><canvas id="c-funds"></canvas></div>
     </section>
     <section class="c s4">
-      <div class="hd"><div><h2>Where the money went</h2><div class="sub" id="dn-sub">&nbsp;</div></div></div>
-      <div class="donut-wrap">
-        <div class="donut"><canvas id="c-donut"></canvas><div class="mid"><span class="small muted">Total</span><b id="dn-total" class="tab">–</b></div></div>
-        <ul class="legend" id="dn-legend"></ul>
-      </div>
+      <div class="hd"><div><h2>Grant Deed</h2><div class="sub">Drawdowns accepted (cleared to spend) against Project spend</div></div>
+        <span class="info" tabindex="0" data-tip="The $4M grant is already in the bank, but the Grant Deed clears it for use as each drawdown milestone is accepted. Status comes from the LEL_Fin_Milestones table.">i</span></div>
+      <div id="grant"></div>
     </section>
 
     <section class="c s7">
@@ -112,7 +110,7 @@
   $("theme").onclick = F.toggleTheme;
   if (F.inFrame) $("nav").hidden = true;
 
-  var DATA = null, D = null, PERIOD = "fy", CH = {}, VIS = { actual: true, forecast: true, range: true, budget: true };
+  var DATA = null, D = null, PERIOD = "fy", CH = {}, VIS = { actual: true, forecast: true, budget: true };
   try { PERIOD = localStorage.getItem("lelFinPeriod") || "fy"; } catch (e) {}
   Array.prototype.forEach.call(document.querySelectorAll("#period .pill"), function (b) {
     b.classList.toggle("on", b.getAttribute("data-p") === PERIOD);
@@ -202,13 +200,15 @@
 
     // tile 4: forecast from the Spend Model default
     var P = D.DEF, r = F.model(D, P);
-    set("k4", r.runout == null ? "Past " + ymLabel(P.projEnd) : "<span class='bad'>" + ymLabel(r.runout) + "</span>");
-    set("k4c", "<span class='chip " + (r.endBal >= P.reserve ? "good" : r.endBal >= 0 ? "warn" : "bad") + "'>" + money(r.endBal) + " left at " + ymLabel(P.projEnd) + "</span>");
+    var head = r.endBal - P.reserve;
+    set("k4", head >= 0 ? money(head) : "<span class='bad'>-" + money(-head) + "</span>");
+    set("k4c", "<span class='chip " + (head >= 0 ? "good" : "bad") + "'>" + (head >= 0 ? "above" : "below") + " the " + money(P.reserve) + " reserve</span> " +
+      (r.runout == null ? "<span class='small muted'>funds last to " + ymLabel(P.projEnd) + "</span>" : "<span class='small bad'>runs out " + ymLabel(r.runout) + "</span>"));
     CH.sp4 = F.sparkline($("sp4"), r.bal.filter(function (_, i) { return r.months.at(i) <= P.projEnd; }), "#3aa989", false);
 
     attention(S, LC, first, spendBy);
     fundsChart(r, funds, first, NAV, MINT, GREY, RED, AMBER);
-    donut(from, to, label);
+    grantCard();
     bullets(from, to, cont0, cont1, label, spendBy);
     monthBars(last18, spendBy, NAV, MINT);
     partners();
@@ -216,25 +216,24 @@
   }
 
   /* ---------- needs attention ---------- */
+  var ATTN_ALL = false;
   function attention() {
     var flags = F.attention(D, DATA);
-    var shown = flags.slice(0, 4);
+    var shown = ATTN_ALL ? flags : flags.slice(0, 4);
     set("attn", "<span class='t'>Needs attention</span>" + (shown.length ? shown.map(function (f) { return "<span class='flag " + f.c + "'><i></i>" + f.t + "</span>"; }).join("")
-      : "<span class='flag ok'><i></i>Nothing needs attention</span>") + (flags.length > 4 ? "<span class='small muted'>+" + (flags.length - 4) + " more</span>" : ""));
+      : "<span class='flag ok'><i></i>Nothing needs attention</span>") + (flags.length > 4 ? "<button class='link' id='attn-more'>" + (ATTN_ALL ? "Show fewer" : "+" + (flags.length - 4) + " more") + "</button>" : ""));
+    if ($("attn-more")) $("attn-more").onclick = function () { ATTN_ALL = !ATTN_ALL; attention(); };
   }
 
   /* ---------- funds: actual and forecast ---------- */
   function fundsChart(r, funds, first, NAV, MINT, GREY, RED, AMBER) {
     var P = D.DEF, S = D.S, end = P.projEnd + 1;
-    var lo = F.model(D, P, 0, { intake: 2 }), hi = F.model(D, P, 0, { intake: 25 / F.ACTUAL_INTAKE_PCT });
     var bp = F.budgetPath(D, P, r);
     var months = []; for (var m = first; m <= end; m++) months.push(m);
     function fc(arr) { return months.map(function (x) { if (x === S) return D.wc; var i = r.months.indexOf(x); return i < 0 ? null : arr[i]; }); }
     var ds = [
       { key: "actual", label: "Actual", data: months.map(function (x) { return x <= S ? funds[x] : null; }), borderColor: NAV, borderWidth: 2.4, pointRadius: 0, tension: 0.2 },
       { key: "forecast", label: "Forecast", data: fc(r.bal), borderColor: MINT, borderWidth: 2.4, pointRadius: 0, tension: 0.2 },
-      { key: "range", label: "Range high", data: fc(hi.bal), borderColor: "transparent", pointRadius: 0, fill: "+1", backgroundColor: "rgba(58,169,137,.14)" },
-      { key: "range", label: "Range low", data: fc(lo.bal), borderColor: "transparent", pointRadius: 0, fill: false },
       { key: "budget", label: "Agreed Budget path", data: fc(bp), borderColor: GREY, borderDash: [5, 4], borderWidth: 1.6, pointRadius: 0 }
     ];
     ds.forEach(function (x) { x.hidden = !VIS[x.key]; });
@@ -244,27 +243,31 @@
         scales: (function () { var a = F.axes(); a.y.suggestedMin = 0; return a; })() },
       plugins: [F.hline(0, RED, [2, 3]), F.hline(P.reserve, AMBER, [6, 4], "reserve " + money(P.reserve)), F.vline(function () { return months.indexOf(S); }, "today")]
     });
-    var chips = [["actual", "Actual", NAV, ""], ["forecast", "Forecast", MINT, ""], ["range", "Range", "rgba(58,169,137,.4)", ""], ["budget", "Budget", GREY, "dash"]];
+    var chips = [["actual", "Actual", NAV, ""], ["forecast", "Forecast", MINT, ""], ["budget", "Budget", GREY, "dash"]];
     set("fc-chips", chips.map(function (c) { return "<button class='tog" + (VIS[c[0]] ? " on" : "") + "' data-k='" + c[0] + "'><i style='background:" + c[2] + "'></i>" + c[1] + "</button>"; }).join(""));
     Array.prototype.forEach.call(document.querySelectorAll("#fc-chips .tog"), function (b) {
       b.onclick = function () { var k = b.getAttribute("data-k"); VIS[k] = !VIS[k]; b.classList.toggle("on", VIS[k]);
         CH.funds.data.datasets.forEach(function (x) { if (x.key === k) x.hidden = !VIS[k]; }); CH.funds.update("none"); };
     });
-    set("fc-sub", "Forecast from the Spend Model default. Range: intake 25% to 64% of dose. Ends " + money(r.endBal) + " at " + ymLabel(P.projEnd, true) + ".");
+    set("fc-sub", "Forecast from the Spend Model default (try other cases there). Ends " + money(r.endBal) + " at " + ymLabel(P.projEnd, true) + ".");
   }
 
-  /* ---------- donut ---------- */
-  function donut(from, to, label) {
-    var by = {}; D.exp.filter(function (x) { return x.ym >= from && x.ym <= to; }).forEach(function (x) { by[x.group] = (by[x.group] || 0) + x.amount_aud; });
-    var gs = F.GROUPS.filter(function (g) { return (by[g] || 0) > 0; }), tot = sum(gs.map(function (g) { return by[g]; }));
-    CH.donut = new Chart($("c-donut"), {
-      type: "doughnut", data: { labels: gs, datasets: [{ data: gs.map(function (g) { return by[g]; }), backgroundColor: gs.map(F.groupColor), borderWidth: 0, spacing: 2, borderRadius: 4 }] },
-      options: { maintainAspectRatio: false, cutout: "70%", plugins: { legend: { display: false }, tooltip: F.tip(function (v) { return full(v); }) } }
-    });
-    CH.donut.options.plugins.tooltip.callbacks.label = function (c) { return " " + c.label + ": " + full(c.parsed); };
-    set("dn-total", money(tot)); set("dn-sub", label);
-    set("dn-legend", gs.map(function (g) { return "<li><span><span class='sw' style='background:" + F.groupColor(g) + "'></span>" + g + "</span><b class='tab'>" + money(by[g]) +
-      " <span class='muted small'>" + Math.round(by[g] / tot * 100) + "%</span></b></li>"; }).join("") || "<li class='muted'>No spend in this period</li>");
+  /* ---------- Grant Deed ---------- */
+  function grantCard() {
+    var g = F.grant(D, DATA), tot = g.total || 1;
+    var pSpent = Math.min(100, g.spent / tot * 100), pClear = Math.min(100, g.cleared / tot * 100);
+    var head = g.cleared - g.spent;
+    var dd = g.drawdowns.map(function (x) {
+      var st = x.status || "", cls = /accepted/i.test(st) ? "good" : /check/i.test(st) ? "warn" : "";
+      return "<li><span>" + esc((x.name || "").replace(/:.*/, "")) + " <span class='muted small'>" + money(x.amount_aud) + "</span></span><span class='chip " + cls + "'>" + esc(st || "–") + "</span></li>";
+    }).join("");
+    set("grant",
+      "<div style='display:flex;align-items:baseline;gap:10px;flex-wrap:wrap'><span class='big tab' style='margin:0'>" + money(g.cleared) + "</span><span class='small muted'>cleared of " + money(g.total) + "</span></div>" +
+      "<div class='track' style='margin:12px 0 6px;height:12px'><span style='width:" + pClear + "%;background:var(--mint)'></span><span style='width:" + pSpent + "%'></span></div>" +
+      "<div class='small muted' style='display:flex;justify-content:space-between'><span>Spent " + money(g.spent) + "</span><span class='" + (head >= 0 ? "good" : "bad") + "'>" + money(Math.abs(head)) + (head >= 0 ? " cleared, not yet spent" : " spent ahead of drawdowns") + "</span></div>" +
+      "<ul class='legend' style='margin-top:10px'>" + dd + "</ul>" +
+      "<div class='small muted' style='margin-top:8px'>Grant interest " + money(g.interest) + (g.interestTarget ? " of " + money(g.interestTarget) + " budgeted" : "") +
+      (g.next ? ". Next: " + esc(g.next.name.replace(/\s*\(clause.*\)/, "")) + ", " + F.dmy(g.next.due_date) : "") + ".</div>");
   }
 
   /* ---------- budget bullets with drill-down ---------- */

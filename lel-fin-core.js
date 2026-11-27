@@ -161,7 +161,9 @@
     var S = F.ym(new Date(snap.snapshot_date || Date.now()));
     var mrows = d.monthly.map(function (r) { r.ym = F.ym(new Date(r.month)); r.group = F.group(r.category); return r; });
     var exp = mrows.filter(function (r) { return r.kind === "expense"; });
-    var inc = mrows.filter(function (r) { return r.kind === "income"; });
+    /* In-kind is booked in Xero as income but is not cash, so it is kept out of every cash figure (PM review, 27 Nov 2026). */
+    var inKind = mrows.filter(function (r) { return r.kind === "income" && /in-kind/i.test(r.account); });
+    var inc = mrows.filter(function (r) { return r.kind === "income" && !/in-kind/i.test(r.account); });
 
     var wageBy = {}; exp.filter(function (r) { return /wages/i.test(r.account); }).forEach(function (r) { wageBy[r.ym] = (wageBy[r.ym] || 0) + r.amount_aud; });
     var posted = Object.keys(wageBy).map(Number).filter(function (m) { return wageBy[m] > 0 && m <= S; }).sort(function (a, b) { return a - b; });
@@ -194,7 +196,7 @@
       .map(function (q) { return { y: q.y, q: q.q, cattle: q.cattle || 0, sheep: q.sheep || 0, farms: q.farms || 0, sheepFarms: q.sheepFarms || 0 }; });
 
     var budget = {}; d.budget.forEach(function (b) { budget[b.year] = (budget[b.year] || 0) + b.budget_aud; });
-    var D = { snap: snap, S: S, start: S + 1, horizon: 2029 * 12 + 11, wc: wc, lastPosted: lastPosted, unposted: Math.max(0, S - lastPosted), w6from: lastPosted - 5,
+    var D = { inKind: inKind, snap: snap, S: S, start: S + 1, horizon: 2029 * 12 + 11, wc: wc, lastPosted: lastPosted, unposted: Math.max(0, S - lastPosted), w6from: lastPosted - 5,
               beefNow: beefNow, sheepNow: sheepNow, beefFarmsNow: live.filter(function (f) { return f.species === "Beef"; }).length,
               sheepFarmsNow: live.filter(function (f) { return f.species === "Sheep"; }).length, budget: budget,
               budgetGroups: F.budgetByGroupYear(d.budget), partners: partners, roadmapOK: d.targets.length > 0,
@@ -329,15 +331,42 @@
       var pace = F.budgetBetween(gy[g], first, S - 1) + F.budgetBetween(gy[g], S, S) * dayFrac, s = spentG[g] || 0;
       if (s > pace * 1.1 && s - pace > 10000) flags.push({ c: "warn", t: g + " is " + F.money(s - pace) + " over budget pace" });
     });
-    D.partners.filter(function (p) { return !p.inXero && p.target > 0 && !/producer/i.test(p.name); }).forEach(function (p) {
-      flags.push({ c: "warn", t: F.esc(p.name) + " " + F.money(p.target) + " not tracked in Xero" });
+    var notX = D.partners.filter(function (p) { return !p.inXero && p.target > 0; });
+    var prod = notX.filter(function (p) { return /producer/i.test(p.name); });
+    notX.filter(function (p) { return !/producer/i.test(p.name); }).forEach(function (p) {
+      flags.push({ c: "warn", t: F.esc(p.name) + " " + F.money(p.target) + " cash not set up in Xero" });
     });
+    if (prod.length) flags.push({ c: "warn", t: "Producer contributions " + F.money(F.sum(prod.map(function (p) { return p.target; }))) + " not set up in Xero" });
+    D.partners.filter(function (p) { return p.inXero && p.received > 0 && p.left > 0 && p.left < p.target * 0.1; }).forEach(function (p) {
+      flags.push({ c: "warn", t: F.esc(p.name) + "'s last " + F.money(p.left) + " of cash not yet received" });
+    });
+    var ik = (data.contrib || []).filter(function (c) { return c.kind === "in-kind" && c.target_aud > 0; });
+    if (ik.length) {
+      var lastIK = D.inKind.length ? Math.max.apply(null, D.inKind.map(function (r) { return r.ym; })) : null;
+      var ikGot = F.sum(D.inKind.map(function (r) { return r.amount_aud; })), ikTot = F.sum(ik.map(function (c) { return c.target_aud; }));
+      if (lastIK == null || S - lastIK > 6) flags.push({ c: "warn", t: "In-kind not recorded " + (lastIK == null ? "yet" : "since " + F.ymLabel(lastIK)) + " (" + F.money(ikGot) + " of " + F.money(ikTot) + ")" });
+    }
+    var unconf = (data.milestones || []).filter(function (x) { return x.kind === "drawdown" && (/check/i.test(x.status || "") || (!x.accepted_date && /accepted/i.test(x.status || ""))); });
+    if (unconf.length) flags.push({ c: "warn", t: unconf.length + " drawdown" + (unconf.length > 1 ? "s" : "") + " without a confirmed date or status (" + unconf.map(function (x) { return F.esc(x.row_key || x.key || ""); }).join(", ") + ")" });
     var soon = Date.now() + 90 * 864e5;
     (data.milestones || []).filter(function (x) { return x.due_date && x.due_date < soon && !/accepted|done|complete/i.test(x.status || ""); })
       .sort(function (a, b) { return a.due_date - b.due_date; }).forEach(function (x) {
         flags.push({ c: x.due_date < Date.now() ? "bad" : "warn", t: F.esc(x.name.replace(/\s*\(clause.*\)/, "")) + " due " + F.dmy(x.due_date) });
       });
     return flags;
+  };
+
+  /* Grant Deed: drawdowns accepted (cleared to spend) against Project spend to date. */
+  F.grant = function (D, data) {
+    var dd = (data.milestones || []).filter(function (x) { return x.kind === "drawdown"; });
+    var acc = dd.filter(function (x) { return /accepted/i.test(x.status || ""); });
+    var grantRow = (data.contrib || []).filter(function (c) { return /grant/i.test(c.partner) && !/interest/i.test(c.partner) && c.kind === "cash"; })[0] || {};
+    var interest = F.sum(D.inc.filter(function (r) { return /interest/i.test(r.account); }).map(function (r) { return r.amount_aud; }));
+    var intRow = (data.contrib || []).filter(function (c) { return /interest/i.test(c.partner); })[0] || {};
+    var next = (data.milestones || []).filter(function (x) { return x.due_date && x.due_date > Date.now() && !/accepted|done|complete/i.test(x.status || ""); })
+      .sort(function (a, b) { return a.due_date - b.due_date; })[0] || null;
+    return { drawdowns: dd, cleared: F.sum(acc.map(function (x) { return x.amount_aud || 0; })), total: grantRow.target_aud || F.sum(dd.map(function (x) { return x.amount_aud || 0; })),
+             spent: F.sum(D.exp.map(function (r) { return r.amount_aud; })), interest: interest, interestTarget: intRow.target_aud || 0, next: next };
   };
 
   /* ---------- chart helpers ---------- */
