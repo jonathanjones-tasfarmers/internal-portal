@@ -90,16 +90,12 @@
       <div id="a4c"></div>
     </section>
 
-    <section class="c s8">
+    <section class="c s12">
       <div class="hd">
         <div><h2>Funds forecast</h2><div class="sub" id="fc-sub">&nbsp;</div></div>
         <div class="chips" id="fc-chips"></div>
       </div>
       <div class="chart" style="height:290px"><canvas id="c-funds"></canvas></div>
-    </section>
-    <section class="c s4">
-      <div class="hd"><div><h2>What moves the answer most</h2><div class="sub">Change in funds at Project end if each driver is 20% lower or higher</div></div></div>
-      <div class="chart" style="height:290px"><canvas id="c-tornado"></canvas></div>
     </section>
 
     <section class="c s7">
@@ -132,6 +128,11 @@
             <h2 style="font-family:var(--display);font-size:13px;margin:0 0 4px">Head on SeaFeed each month</h2>
             <div class="sub small muted" style="margin-bottom:8px">Cattle and sheep in this scenario, including extra cattle</div>
             <div class="chart sm"><canvas id="c-head"></canvas></div>
+          </div>
+          <div class="s12" style="grid-column:span 12;min-width:0">
+            <h2 style="font-family:var(--display);font-size:13px;margin:0 0 4px">What moves the answer most</h2>
+            <div class="sub small muted" style="margin-bottom:8px">Change in funds at Project end if each driver is 20% lower or higher</div>
+            <div class="chart" style="height:240px"><canvas id="c-tornado"></canvas></div>
           </div>
         </div>
       </details>
@@ -233,7 +234,7 @@
       var i = e.target.getAttribute("data-q"), f = e.target.getAttribute("data-f"), v = parseFloat(e.target.value);
       if (i == null || isNaN(v)) return; P.q[i][f] = v; update();
     });
-    $("adv").addEventListener("toggle", function () { if ($("adv").open) headChart(F.model(D, P)); });
+    $("adv").addEventListener("toggle", function () { if ($("adv").open) { var r = F.model(D, P); headChart(r); destroy(["tornado"]); tornado(r, "#3aa989", "#c0392b"); } });
   }
 
   /* ---------- render ---------- */
@@ -280,10 +281,9 @@
       "<div class='small muted' style='margin-top:8px'>" + money(r.feedTotal) + " on feed and freight to Project end</div>");
 
     fundsChart(r, NAV, MINT, GREY, RED, AMBER);
-    tornado(r, MINT, RED);
     waterfall(r, NAV, MINT, RED);
     years(r);
-    if ($("adv").open) headChart(r);
+    if ($("adv").open) { headChart(r); tornado(r, "#3aa989", "#c0392b"); }
     if (SCEN.list) renderScen(r);
   }
 
