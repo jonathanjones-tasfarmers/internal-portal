@@ -48,7 +48,8 @@
        fine, so it doesn't become permanent visual noise.
     3. Farm card grid: one card per farm with usage history (currently
        Bowood Farm, Eastbourne Farm), each with:
-         - Farm name + "Next visit due" (from LEL_Farm_Directory).
+         - Farm name (the "Next visit due" pill was removed 2026-11-27:
+           staff no longer log farm visits on the portal).
          - ADG advantage (KleenGrow vs Control, same g/day-advantage-%
            formula the public site uses), colour-flagged on a swing vs
            the previous reading.
@@ -72,7 +73,7 @@
       (Eastbourne Farm has none yet: it only appears in the trial-wide
       "All Farms" aggregate so far). Eastbourne's card shows "Not enough
       data yet" for ADG and cost/kg gain instead of blank or a fetch error.
-    - LEL_Farm_Directory currently has next_visit_due set for Eastbourne
+    - (Removed 2026-11-27 with the visit pill.) LEL_Farm_Directory had next_visit_due set for Eastbourne
       Farm but not Bowood Farm (null). Bowood's card shows "Not yet
       scheduled" with a link to set one, instead of a blank date.
 
@@ -80,7 +81,7 @@
   the dynamic farm list and the supply/reorder maths: same REORDER_LEAD_
   DAYS / SOON_THRESHOLD_DAYS logic as before), LEL_Economics_Data (ADG +
   cost/kg gain, filtered to real farm_name values only, i.e. excluding
-  "All Farms (Trial Aggregate)"), LEL_Farm_Directory (next_visit_due).
+  "All Farms (Trial Aggregate)"). Farm visits are no longer shown (2026-11-27).
 
   Deploy: upload to the same GitHub repo as lickblock-internal-portal.html
   (jonathanjones-tasfarmers/internal-portal), same filename as before, so
@@ -145,8 +146,6 @@
   .sp-farm-name { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: var(--text-heading); margin: 0; }
   .sp-farm-region { font-size: 11.5px; color: var(--text-muted); margin: 2px 0 0; }
   .sp-visit-pill { flex: none; font-family: var(--font-display); font-size: 10.5px; font-weight: 700; text-align: right; padding: 4px 10px; border-radius: 999px; white-space: nowrap; background: var(--tf-slate-100); color: var(--text-muted); }
-  .sp-visit-pill.overdue { background: oklch(from var(--tf-red) l c h / 0.14); color: var(--tf-red); }
-  .sp-visit-pill.soon { background: oklch(from var(--tf-warning) l c h / 0.16); color: var(--tf-warning); }
 
   .sp-metric-row { display: flex; gap: 22px; flex-wrap: wrap; padding: 10px 0 12px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 12px; }
   .sp-metric-label { font-family: var(--font-display); font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin: 0 0 4px; }
@@ -233,7 +232,7 @@
 <div class="sp-farms-head">
   <div>
     <p class="sp-section-label">Your farms</p>
-    <p class="sp-section-sub">Visits, weight gain and lick block supply for each farm's current cohort.</p>
+    <p class="sp-section-sub">Weight gain and lick block supply for each farm's current cohort.</p>
   </div>
   <a class="sp-ask-btn" id="sp-ask-btn" href="https://jonathanjones-tasfarmers.github.io/internal-portal/staff-assistant-embed.html" target="_blank" rel="noopener" aria-controls="sp-ask-panel" aria-expanded="false">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
@@ -248,7 +247,7 @@
 
 <div class="sp-farm-grid" id="sp-farm-grid">
   <div class="sp-farm-card" aria-hidden="true">
-    <div class="sp-farm-top"><span class="pp-skel pp-skel-md" style="height:16px;"></span><span class="pp-skel pp-skel-sm" style="height:19px;border-radius:999px;"></span></div>
+    <div class="sp-farm-top"><span class="pp-skel pp-skel-md" style="height:16px;"></span></div>
     <div class="sp-metric-row">
       <div><p class="sp-metric-label">ADG advantage</p><p class="sp-metric-value"><span class="pp-skel pp-skel-sm" style="height:18px;"></span></p></div>
       <div><p class="sp-metric-label">Cost per kg gain</p><p class="sp-metric-value"><span class="pp-skel pp-skel-md" style="height:13px;"></span></p></div>
@@ -260,7 +259,7 @@
     </div>
   </div>
   <div class="sp-farm-card" aria-hidden="true">
-    <div class="sp-farm-top"><span class="pp-skel pp-skel-md" style="height:16px;"></span><span class="pp-skel pp-skel-sm" style="height:19px;border-radius:999px;"></span></div>
+    <div class="sp-farm-top"><span class="pp-skel pp-skel-md" style="height:16px;"></span></div>
     <div class="sp-metric-row">
       <div><p class="sp-metric-label">ADG advantage</p><p class="sp-metric-value"><span class="pp-skel pp-skel-sm" style="height:18px;"></span></p></div>
       <div><p class="sp-metric-label">Cost per kg gain</p><p class="sp-metric-value"><span class="pp-skel pp-skel-md" style="height:13px;"></span></p></div>
@@ -321,7 +320,6 @@
   var SOON_THRESHOLD_DAYS = 14;
   // ADG swing flags removed 2026-10-02 (per Jono): OptiWeigh's data is trusted and a
   // big move in ADG advantage is a real result, not something to flag.
-  var VISIT_SOON_DAYS = 14;      // flag "next visit due" amber inside this many days, red if overdue
 
   // Hand-written "Coming soon" cards for farms with no Usage History rows yet.
   // Emptied 2026-10-26: TRT Pastoral started logging lick block usage on
@@ -434,17 +432,6 @@
       return [];
     });
   }
-  function fetchDirectory(){
-    return q(DIRECTORY_URL, {
-      where: "1=1",
-      outFields: "trial_site,next_visit_due,last_visit_date",
-      resultRecordCount: "200", f: "json"
-    }).then(function(data){ return data.features.map(function(f){ return f.attributes; }); }).catch(function(err){
-      console.error('Farm Directory fetch failed:', err);
-      return [];
-    });
-  }
-
   function fmtDate(ms){
     if (ms == null) return '–';
     return new Date(ms).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -521,7 +508,7 @@
     return ((sfRate - ctRate) / ctRate) * 100;
   }
 
-  function renderAlertBanner(reorderRows, directoryByFarm){
+  function renderAlertBanner(reorderRows){
     var banner = document.getElementById('sp-alert-banner');
     var textEl = document.getElementById('sp-alert-text');
     var items = [];
@@ -562,7 +549,7 @@
       '<p class="sp-supply-reorder ' + row.status + '">' + reorderText + '</p>';
   }
 
-  function renderFarmCard(farm, reorderRows, econByKey, econPrevByKey, directoryRow){
+  function renderFarmCard(farm, reorderRows, econByKey, econPrevByKey){
     var sfReorder = reorderRows.find(function(r){ return r.farm === farm && r.treatment === 'seafeed'; });
     var ctReorder = reorderRows.find(function(r){ return r.farm === farm && r.treatment === 'control'; });
 
@@ -610,21 +597,10 @@
       costClass = '';
     }
 
-    var visitMs = directoryRow ? directoryRow.next_visit_due : null;
-    var visitPillClass = '', visitText = 'Not yet scheduled';
-    if (visitMs != null) {
-      var visitDays = (visitMs - Date.now()) / 86400000;
-      visitPillClass = visitDays < 0 ? 'overdue' : (visitDays <= VISIT_SOON_DAYS ? 'soon' : '');
-      visitText = visitDays < 0
-        ? 'Visit overdue, ' + Math.ceil(-visitDays) + (Math.ceil(-visitDays) === 1 ? ' day' : ' days')
-        : 'Next visit ' + fmtDate(visitMs);
-    }
-
     return '' +
       '<div class="sp-farm-card">' +
         '<div class="sp-farm-top">' +
           '<div><p class="sp-farm-name">' + baseFarm(farm) + '</p>' + (cohortLabel(farm) ? '<p class="sp-farm-region">' + cohortLabel(farm) + '</p>' : '') + '</div>' +
-          '<span class="sp-visit-pill ' + visitPillClass + '">' + visitText + '</span>' +
         '</div>' +
         '<div class="sp-metric-row">' +
           '<div>' +
@@ -666,14 +642,12 @@
     fetchUsageHistory(),
     fetchOrders(),
     fetchEconByFarm(),
-    fetchDirectory(),
     fetchAdgComparison()
   ]).then(function(results){
     var usageHistory = results[0];
     var orders = results[1];
     var econRows = results[2];
-    var directoryRows = results[3];
-    OW_ROWS = results[4] || [];
+    OW_ROWS = results[3] || [];
 
     var farms = Array.from(new Set(usageHistory.map(function(r){ return r.trial_site; }))).sort();
     farms = LELPortal.split(farms).current; // closed cohorts are in each page's Archive (2026-11-25)
@@ -689,19 +663,16 @@
       else if (!econPrevByKey[key]) econPrevByKey[key] = r;
     });
 
-    var directoryByFarm = {};
-    directoryRows.forEach(function(r){ directoryByFarm[r.trial_site] = r; });
-
     var grid = document.getElementById('sp-farm-grid');
     if (!farms.length) {
       grid.innerHTML = '<p class="sp-empty-note">No farms are logging lick block usage yet. Run 06. Lick_Block_Portal_Feed.py to populate this.</p>' + PENDING_FARMS.map(renderPendingCard).join('');
     } else {
       grid.innerHTML = farms.map(function(farm){
-        return renderFarmCard(farm, reorderRows, econByKey, econPrevByKey, directoryByFarm[farm] || directoryByFarm[baseFarm(farm)]);
+        return renderFarmCard(farm, reorderRows, econByKey, econPrevByKey);
       }).join('') + PENDING_FARMS.map(renderPendingCard).join('');
     }
 
-    renderAlertBanner(reorderRows, directoryByFarm);
+    renderAlertBanner(reorderRows);
 
     var usageDates = usageHistory.map(function(r){ return r.snapshot_date; }).filter(function(v){ return v != null; });
     var freshnessEl = document.getElementById('sp-freshness');

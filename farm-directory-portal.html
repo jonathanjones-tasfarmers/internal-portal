@@ -195,10 +195,6 @@
         color: var(--text-heading);
         margin: 0;
       }
-      .fd-days-ago {
-        color: var(--text-muted);
-        font-weight: 400;
-      }
 
       .fd-info-grid {
         display: grid;
@@ -231,12 +227,7 @@
       .fd-value a:hover {
         text-decoration: underline;
       }
-      .fd-value.overdue {
-        color: var(--tf-red);
-        font-weight: 700;
-      }
 
-      .fd-visit-btn,
       .fd-add-btn {
         font-family: var(--font-display);
         font-size: 12px;
@@ -249,7 +240,6 @@
         cursor: pointer;
         margin-bottom: 10px;
       }
-      .fd-visit-btn:hover,
       .fd-add-btn:hover {
         border-color: var(--tf-seafeed);
       }
@@ -897,7 +887,7 @@
   <body>
     <div class="lp-title">
   <h1>Farms</h1>
-  <p>Every farm in the Project, when it was last visited, and onboarding progress against the funded plan.</p>
+  <p>Every farm in the Project and onboarding progress against the funded plan.</p>
 </div>
 
     <div class="fd-page">
@@ -945,14 +935,6 @@
               <span class="fd-label">Address</span
               ><span class="pp-skel pp-skel-lg"></span>
             </div>
-            <div>
-              <span class="fd-label">Last visit</span
-              ><span class="pp-skel pp-skel-sm"></span>
-            </div>
-            <div>
-              <span class="fd-label">Next visit due</span
-              ><span class="pp-skel pp-skel-sm"></span>
-            </div>
           </div>
         </div>
         <div class="fd-card" aria-hidden="true">
@@ -979,14 +961,6 @@
             <div class="fd-span-2">
               <span class="fd-label">Address</span
               ><span class="pp-skel pp-skel-lg"></span>
-            </div>
-            <div>
-              <span class="fd-label">Last visit</span
-              ><span class="pp-skel pp-skel-sm"></span>
-            </div>
-            <div>
-              <span class="fd-label">Next visit due</span
-              ><span class="pp-skel pp-skel-sm"></span>
             </div>
           </div>
         </div>
@@ -1023,7 +997,7 @@
     <p>KleenGrow&trade; is the Sea Forest product in the lick blocks. The Grant Deed and earlier reports call it SeaFeed&trade;; both names mean the same product. The data layers still label it &ldquo;seafeed&rdquo;.</p>
         <p>Farms come from lick block usage (LEL_Lick_Block_Usage_History) and the Farm Directory table. A farm&rsquo;s later cohorts (&ldquo;&hellip; - Cohort 2&rdquo;) show on that farm&rsquo;s card, not as farms of their own. Contact details stay private in ArcGIS Online (LEL_Farm_Directory) and are edited there when signed in, along with species, committed head, stage and go-live quarter.</p>
         <p>Pasture quality is Forage Lab Australia NIR analysis of paddock samples for each mob (LEL_Pasture_Quality): crude protein and aNDF (fibre) as % of dry matter, and metabolisable energy (ME) in MJ per kg of dry matter. Higher protein and ME, and lower fibre, mean better feed. One sampling is a snapshot of that day only.</p>
-        <p>A visit is overdue once its next-visit date has passed. Targets are cumulative farms and head per quarter from LEL_Onboarding_Targets, seeded from the funded budget and edited directly in ArcGIS Online. A farm counts as committed when its stage is Active, or when it has lick block usage and no stage set.</p>
+        <p>Targets are cumulative farms and head per quarter from LEL_Onboarding_Targets, seeded from the funded budget and edited directly in ArcGIS Online. A farm counts as committed when its stage is Active, or when it has lick block usage and no stage set.</p>
       </div></details>
       <p class="lp-footer">Not for external distribution</p>
     </div>
@@ -1035,8 +1009,6 @@
 
         var DIRECTORY_URL =
           "https://services6.arcgis.com/RkRGg1mAki7yG3EG/arcgis/rest/services/LEL_Farm_Directory_view/FeatureServer/0/query";
-
-        var DEFAULT_VISIT_INTERVAL_DAYS = 28;
 
         var FARM_COLORS = ["#1f3a52"]; // one colour for every farm (2026-11-25)
 
@@ -1088,7 +1060,7 @@
           return q(DIRECTORY_URL, {
             where: "1=1",
             outFields:
-              "OBJECTID,trial_site,last_visit_date,next_visit_due,species,committed_head_count,pipeline_stage,target_go_live_quarter",
+              "OBJECTID,trial_site,species,committed_head_count,pipeline_stage,target_go_live_quarter",
             resultRecordCount: "500",
             f: "json",
           })
@@ -1113,12 +1085,6 @@
             month: "short",
             year: "numeric",
           });
-        }
-        function toDateInputValue(ms) {
-          var d = new Date(ms);
-          var mm = String(d.getUTCMonth() + 1).padStart(2, "0");
-          var dd = String(d.getUTCDate()).padStart(2, "0");
-          return d.getUTCFullYear() + "-" + mm + "-" + dd;
         }
         function farmColor(farm, allFarms) {
           var idx = allFarms.indexOf(farm);
@@ -1151,19 +1117,6 @@
           return (
             '<span class="fd-stage-badge ' + cls + '">' + stage + "</span>"
           );
-        }
-
-        function daysAgoText(ms) {
-          if (ms == null) return "";
-          var startOfToday = new Date();
-          startOfToday.setHours(0, 0, 0, 0);
-          var startOfThat = new Date(ms);
-          startOfThat.setHours(0, 0, 0, 0);
-          var days = Math.round((startOfToday - startOfThat) / 86400000);
-          if (days === 0) return "today";
-          if (days === 1) return "1 day ago";
-          if (days > 1) return days + " days ago";
-          return "in " + Math.abs(days) + " day" + (days === -1 ? "" : "s"); // future-dated, edge case
         }
 
         function loadAll() {
@@ -1215,21 +1168,8 @@
           currentAllFarms = allFarms;
 
           var alertItems = [];
-          var now = Date.now();
           allFarms.forEach(function (farm) {
-            var row = byFarm[farm];
-            if (!row) {
-              alertItems.push(farm + ": no directory entry yet");
-              return;
-            }
-            if (row.next_visit_due != null && row.next_visit_due < now) {
-              alertItems.push(
-                farm +
-                  ": visit overdue (was due " +
-                  fmtDate(row.next_visit_due) +
-                  ")",
-              );
-            }
+            if (!byFarm[farm]) alertItems.push(farm + ": no directory entry yet");
           });
 
           if (!allFarms.length) {
@@ -1257,7 +1197,7 @@
               "<strong>" +
               alertItems.length +
               " " +
-              (alertItems.length === 1 ? "visit needs" : "visits need") +
+              (alertItems.length === 1 ? "farm needs" : "farms need") +
               " attention:</strong><ul>" +
               alertItems
                 .map(function (s) {
@@ -1272,10 +1212,6 @@
         }
 
         function filledCardHtml(prefix, farm, color, row, hasUsageHistory, cohort) {
-          var overdue =
-            row.next_visit_due != null && row.next_visit_due < Date.now();
-          var lastVisitAgo = daysAgoText(row.last_visit_date);
-          var nextDueAgo = daysAgoText(row.next_visit_due);
           var stage = effectivePipelineStage(row, hasUsageHistory);
           return (
             '<div class="fd-card" style="border-top-color:' + color + ';">' +
@@ -1286,11 +1222,6 @@
             '  <div><span class="fd-label">Committed head</span><span class="fd-value">' +
             (row.committed_head_count != null ? row.committed_head_count : "–") + "</span></div>" +
             (row.target_go_live_quarter ? '  <div><span class="fd-label">Go-live quarter</span><span class="fd-value">' + row.target_go_live_quarter + "</span></div>" : "") +
-            '  <div><span class="fd-label">Last visit</span><span class="fd-value">' + fmtDate(row.last_visit_date) +
-            (lastVisitAgo ? ' <span class="fd-days-ago">(' + lastVisitAgo + ")</span>" : "") + "</span></div>" +
-            '  <div><span class="fd-label">Next visit due</span><span class="fd-value' + (overdue ? " overdue" : "") + '">' +
-            (overdue ? "Overdue, " + daysAgoText(row.next_visit_due).replace(" ago", "") + '<span class="fd-days-ago"> (was ' + fmtDate(row.next_visit_due) + ")</span>"
-                     : fmtDate(row.next_visit_due) + (nextDueAgo ? ' <span class="fd-days-ago">(' + nextDueAgo + ")</span>" : "")) + "</span></div>" +
             "</div>" +
             "</div>"
           );
