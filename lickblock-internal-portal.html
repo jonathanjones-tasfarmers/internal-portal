@@ -261,8 +261,22 @@
   .pp-skel-md { width:64px; }
   .pp-skel-sm { width:40px; }
   @media (prefers-reduced-motion: reduce) { .pp-skel { animation: none !important; } }
-  .lbp-ibt-box { position: relative; height: 340px; }
-  @media (max-width: 720px) { .lbp-ibt-box { height: 300px; } }
+  .lbp-ibt-panel { padding: 14px 0 6px; border-top: 1px solid var(--border-subtle); }
+  .lbp-filters + .lbp-ibt-panel { border-top: 0; padding-top: 4px; }
+  .lbp-ibt-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; margin: 0 2px 6px; }
+  .lbp-ibt-title { font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--text-heading); margin: 0; }
+  .lbp-ibt-title span { font-weight: 400; font-size: 11px; color: var(--text-muted); margin-left: 4px; }
+  .lbp-ibt-keys { display: flex; flex-wrap: wrap; gap: 4px 14px; font-family: var(--font-display); font-size: 10.5px; color: var(--text-muted); }
+  .lbp-ibt-key { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .lbp-ibt-key-line { width: 16px; border-top: 2.5px solid; }
+  .lbp-ibt-key-line.dash { border-top: 1.5px dashed; }
+  .lbp-ibt-key-dot { width: 7px; height: 7px; border-radius: 50%; border: 2px solid; background: #1f3a52; }
+  .lbp-ibt-key-dot.hollow { background: #fff; }
+  .lbp-ibt-key-bar { width: 8px; height: 10px; border-radius: 1px; }
+  .lbp-ibt-box { position: relative; }
+  .lbp-ibt-box.main { height: 230px; }
+  .lbp-ibt-box.small { height: 150px; }
+  .lbp-ibt-empty { position: absolute; inset: 0; display: none; text-align: center; padding-top: 55px; font-family: var(--font-display); font-size: 12px; color: var(--text-muted); margin: 0; }
   .lbp-ibt-note { font-family: var(--font-display); font-size: 11px; color: var(--text-muted); margin: 10px 2px 0; line-height: 1.5; }
 </style>
 <link rel="stylesheet" href="portal-common.css" />
@@ -297,12 +311,23 @@
     <div class="lbp-filters">
       <select id="lbp-ibt-farm" aria-label="Choose a farm"></select>
       <select id="lbp-ibt-range" aria-label="Choose a time range">
-        <option value="0">Whole Project</option>
         <option value="90">Last 90 days</option>
+        <option value="0">Whole Project</option>
         <option value="30">Last 30 days</option>
       </select>
     </div>
-    <div class="lbp-ibt-box"><canvas id="lbp-ibt-chart"></canvas></div>
+    <div class="lbp-ibt-panel">
+      <div class="lbp-ibt-head"><p class="lbp-ibt-title">Block intake <span>g/head/day, 7-day average</span></p><div class="lbp-ibt-keys" id="lbp-ibt-key-intake"></div></div>
+      <div class="lbp-ibt-box main"><canvas id="lbp-ibt-intake"></canvas></div>
+    </div>
+    <div class="lbp-ibt-panel">
+      <div class="lbp-ibt-head"><p class="lbp-ibt-title">Bromoform in the KleenGrow batch <span>AST lab, mg/kg, by pallet</span></p><div class="lbp-ibt-keys" id="lbp-ibt-key-bro"></div></div>
+      <div class="lbp-ibt-box small"><canvas id="lbp-ibt-bro"></canvas><p class="lbp-ibt-empty" id="lbp-ibt-bro-empty">No lab results for this farm in this window.</p></div>
+    </div>
+    <div class="lbp-ibt-panel">
+      <div class="lbp-ibt-head"><p class="lbp-ibt-title">Daily maximum temperature <span id="lbp-ibt-temp-region"></span></p><div class="lbp-ibt-keys" id="lbp-ibt-key-temp"></div></div>
+      <div class="lbp-ibt-box small"><canvas id="lbp-ibt-temp"></canvas></div>
+    </div>
     <p class="lbp-ibt-note" id="lbp-ibt-note">Loading&hellip;</p>
   </div>
 
@@ -369,7 +394,7 @@
     <p>KleenGrow&trade; is the Sea Forest product in the lick blocks. The Grant Deed and earlier reports call it SeaFeed&trade;; both names mean the same product. The data layers still label it &ldquo;seafeed&rdquo;.</p>
     <p>Intake is grams of block per head per day over the latest interval between two visits to the same trough or unit. The whole-cohort figure is all block mass placed since the cohort started, per head per day.</p>
     <p>On hand is blocks ordered less blocks used. Days to empty divides on hand by the current use rate. Reorder by allows a 40-day lead time.</p>
-    <p>The intake, bromoform and temperature chart joins each farm&rsquo;s cohorts into one timeline. Intake is the same latest-interval figure as above, so it moves in steps when a trough is revisited; days with no usable figure (before the second visit, or after a unit drops out for lack of visits) are left blank, not shown as zero. Bromoform is the AST lab result for the KleenGrow pallet in use (mean of the outer and inner samples, mg/kg wet matter). A pallet&rsquo;s line runs straight from its start-of-pallet result to its end-of-pallet result; the current pallet is held at its last result until it is tested again. The methane model uses a fixed 700 mg/kg for every block. Temperature is the daily maximum for the farm&rsquo;s region from Open-Meteo (LEL_Weather_Data). Because intake is averaged over visit intervals, a hot day shows up in intake only at the next visit.</p>
+    <p>The intake, bromoform and temperature panels share one date axis and join each farm&rsquo;s cohorts into one timeline. Intake is the latest-interval figure used above, smoothed to a 7-day average; days with no usable figure (before the second visit, or after a unit drops out for lack of visits) are left out, not counted as zero. Bromoform is the AST lab result for each KleenGrow pallet (mean of the outer and inner samples, mg/kg wet matter): a filled dot at the start of a pallet, a hollow dot at the end, a solid line between the two tests and a dotted line while the current pallet is still in use. The methane model uses a fixed 700 mg/kg for every block. Temperature is the daily maximum for the farm&rsquo;s region from Open-Meteo (LEL_Weather_Data); days at or above 25 &deg;C are darker. Because intake is averaged over visit intervals, a hot day shows up in intake only at the next visit.</p>
     <p>Sources: LEL_Lick_Block_Usage_History (fed daily by 06. Lick_Block_Portal_Feed.py) &middot; LEL_LickBlock_Placements &middot; orders logged directly in ArcGIS Online (LEL_Lick_Block_Orders) &middot; LEL_Lickblock_Sampling_Public (lab bromoform) &middot; LEL_Weather_Data (Open-Meteo).</p>
   </div></details>
   <p class="lp-footer">Not for external distribution</p>
@@ -1164,7 +1189,9 @@
   };
   var MINT = '#3aa989', SLATE = '#a9b8c4', NAVY = '#1f3a52', TEMP_ORANGE = '#c9782e', MUTED = '#73818c';
   var DAY = 86400000;
-  var state = { data: null, chart: null };
+  var state = { data: null, charts: {} };
+  var HOT_C = 25;            // a 'hot day' for the temperature panel
+  var BUDGET_DOSE_G = 90;    // same as the intake cards above
 
   function q(layer, params){
     params.f = 'json';
@@ -1221,32 +1248,75 @@
     });
   }
 
-  // Daily bromoform for the KleenGrow pallet in use: straight line start -> end result within a pallet,
-  // current pallet held at its last result. Returns { day: { v, tested: bool, pallet } }.
-  function bromoSeries(farmLab, lastDay){
-    var pallets = Object.keys(farmLab || {}).map(function(id){
+  // KleenGrow pallets (= batches) with their start and end lab results, oldest first.
+  function palletsFor(farmLab){
+    return Object.keys(farmLab || {}).map(function(id){
       var p = farmLab[id];
       var start = p.start ? { day: p.start.day, v: mean(p.start.vals) } : null;
       var end = p.end ? { day: p.end.day, v: mean(p.end.vals) } : null;
       return { id: id, start: start || end, end: start ? end : null };
     }).filter(function(p){ return p.start; }).sort(function(a, b){ return a.start.day < b.start.day ? -1 : 1; });
-    var out = {}, ends = {};
-    pallets.forEach(function(p, i){
-      var next = pallets[i + 1];
-      var stop = p.end ? p.end.day : (next ? next.start.day : lastDay);
-      var t0 = keyMs(p.start.day), t1 = keyMs(stop);
-      for (var t = t0; t <= t1; t += DAY){
-        var k = new Date(t).toISOString().slice(0, 10);
-        if (out[k] && out[k].tested) continue;   // a new pallet's start result on the same day as the old pallet's end
-        var v = p.end ? p.start.v + (p.end.v - p.start.v) * (t1 > t0 ? (t - t0) / (t1 - t0) : 0) : p.start.v;
-        var tested = k === p.start.day;
-        // On a changeover day show the pallet starting, not the one finishing.
-        if (next && k === next.start.day && k !== p.start.day) continue;
-        out[k] = { v: v, tested: tested, pallet: p.id };
-      }
-      if (p.end) ends[p.end.day] = { v: p.end.v, pallet: p.id };
+  }
+
+  // Trailing 7-day mean of the days that have a figure (null when the week has none).
+  function rolling(vals, n){
+    return vals.map(function(_, i){
+      var s = 0, c = 0;
+      for (var j = Math.max(0, i - n + 1); j <= i; j++) if (vals[j] != null) { s += vals[j]; c++; }
+      return c ? s / c : null;
     });
-    return { line: out, ends: ends };
+  }
+
+  // Writes each lab result's value above its point on the bromoform panel.
+  var valueLabels = {
+    id: 'lbpIbtValueLabels',
+    afterDatasetsDraw: function(chart){
+      var ctx = chart.ctx;
+      ctx.save();
+      ctx.font = '600 10px Tahoma, Verdana, sans-serif';
+      ctx.fillStyle = NAVY; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      chart.data.datasets.forEach(function(ds, i){
+        if (!ds._labels || !chart.isDatasetVisible(i)) return;
+        chart.getDatasetMeta(i).data.forEach(function(pt, j){
+          var v = ds.data[j];
+          if (v != null && ds._labels[j]) ctx.fillText(Math.round(v), pt.x, pt.y - 7);
+        });
+      });
+      ctx.restore();
+    }
+  };
+
+  var AXIS_W = 46;   // fixed left-axis width so the three panels' dates line up
+  function baseOptions(yTitle, extra){
+    var tick = { font: { size: 9 }, color: MUTED };
+    var o = {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      interaction: { mode: 'index', intersect: false },
+      layout: { padding: { right: 8 } },
+      plugins: { legend: { display: false }, tooltip: { filter: function(it){ return it.parsed.y != null; } } },
+      scales: {
+        x: { ticks: Object.assign({ maxTicksLimit: window.innerWidth < 560 ? 4 : 7, autoSkip: true, maxRotation: 0 }, tick), grid: { display: false }, border: { color: '#dde4e9' } },
+        y: { beginAtZero: true, ticks: Object.assign({ maxTicksLimit: 5 }, tick), grid: { color: '#eef2f4' }, border: { display: false },
+             title: { display: true, text: yTitle, font: { size: 10 }, color: MUTED },
+             afterFit: function(a){ a.width = AXIS_W; } }
+      }
+    };
+    if (extra) extra(o);
+    return o;
+  }
+  function draw(key, canvasId, config){
+    if (state.charts[key]) state.charts[key].destroy();
+    state.charts[key] = new Chart(document.getElementById(canvasId), config);
+  }
+  function legend(id, items){
+    document.getElementById(id).innerHTML = items.map(function(it){
+      var mark = it.dash
+        ? '<span class="lbp-ibt-key-line dash" style="border-color:' + it.color + '"></span>'
+        : it.hollow ? '<span class="lbp-ibt-key-dot hollow" style="border-color:' + it.color + '"></span>'
+        : it.bar ? '<span class="lbp-ibt-key-bar" style="background:' + it.color + '"></span>'
+        : '<span class="lbp-ibt-key-line" style="border-color:' + it.color + '"></span>';
+      return '<span class="lbp-ibt-key">' + mark + it.label + '</span>';
+    }).join('');
   }
 
   function render(){
@@ -1259,79 +1329,119 @@
     var cs = d.cohortStarts[farm] || {};
     days = days.concat(Object.keys(cs).map(function(c){ return cs[c]; }));
     if (!days.length){
-      if (state.chart){ state.chart.destroy(); state.chart = null; }
+      Object.keys(state.charts).forEach(function(k){ state.charts[k].destroy(); delete state.charts[k]; });
       note.textContent = 'No intake history yet for this farm.';
       return;
     }
     days.sort();
     var first = days[0], last = days[days.length - 1];
-    if (range) {
-      var cut = new Date(keyMs(last) - (range - 1) * DAY).toISOString().slice(0, 10);
-      if (cut > first) first = cut;
-    }
-    var bs = bromoSeries(d.lab[farm], last), bro = bs.line, ends = bs.ends;
-    var labels = [];
-    for (var t = keyMs(first); t <= keyMs(last); t += DAY) labels.push(new Date(t).toISOString().slice(0, 10));
-    function col(t){ return labels.map(function(k){ var o = (fi[t] || {})[k]; return o ? o.g : null; }); }
-    var bv = labels.map(function(k){ return bro[k] ? bro[k].v : null; });
-    var bpts = labels.map(function(k){ return bro[k] && bro[k].tested ? 4 : 0; });
-    var tv = labels.map(function(k){ return fw[k] ? fw[k].t : null; });
-    var ev = labels.map(function(k){ return ends[k] ? ends[k].v : null; });
-    var hasBro = bv.some(function(v){ return v != null; }), hasTemp = tv.some(function(v){ return v != null; });
+    // Build the full history first (so the 7-day averages at the start of a short window are right), then cut.
+    var all = [];
+    for (var t = keyMs(first); t <= keyMs(last); t += DAY) all.push(new Date(t).toISOString().slice(0, 10));
+    function col(tr){ return all.map(function(k){ var o = (fi[tr] || {})[k]; return o ? o.g : null; }); }
+    var sfAll = col('seafeed'), ctAll = col('control');
+    var sf7All = rolling(sfAll, 7), ct7All = rolling(ctAll, 7);
+    var from = 0;
+    if (range) { var cut = new Date(keyMs(last) - (range - 1) * DAY).toISOString().slice(0, 10); from = Math.max(0, all.indexOf(cut)); }
+    var labels = all.slice(from), xl = labels.map(keyLabel);
+    var sf = sfAll.slice(from), sf7 = sf7All.slice(from), ct7 = ct7All.slice(from), ct = ctAll.slice(from);
+    function tipTitle(items){ return items.length ? keyLong(labels[items[0].dataIndex]) : ''; }
 
-    var datasets = [
-      { label: 'KleenGrow intake (g/hd/day)', data: col('seafeed'), borderColor: MINT, backgroundColor: MINT, yAxisID: 'y', stepped: true, borderWidth: 2, pointRadius: 0, spanGaps: false, order: 1 },
-      { label: 'Control intake (g/hd/day)', data: col('control'), borderColor: SLATE, backgroundColor: SLATE, yAxisID: 'y', stepped: true, borderWidth: 2, pointRadius: 0, spanGaps: false, order: 2 }
-    ];
-    if (hasBro) datasets.push({ label: 'KleenGrow batch bromoform (mg/kg)', data: bv, borderColor: NAVY, backgroundColor: NAVY, yAxisID: 'yBro', borderWidth: 2, borderDash: [6, 4], pointRadius: bpts, pointHoverRadius: bpts.map(function(r){ return r ? 6 : 0; }), pointBackgroundColor: NAVY, spanGaps: false, order: 0 });
-    if (ev.some(function(v){ return v != null; })) datasets.push({ label: 'End-of-pallet result (mg/kg)', data: ev, yAxisID: 'yBro', showLine: false, pointStyle: 'rectRot', pointRadius: 5, pointHoverRadius: 7, borderColor: NAVY, backgroundColor: '#ffffff', borderWidth: 2, order: 0 });
-    if (hasTemp) datasets.push({ label: 'Max temperature (°C)', data: tv, borderColor: 'rgba(201,120,46,0.55)', backgroundColor: TEMP_ORANGE, yAxisID: 'yTemp', borderWidth: 1.25, pointRadius: 0, tension: 0.25, spanGaps: true, order: 3 });
-
-    if (state.chart) state.chart.destroy();
-    var tick = { font: { size: 9 }, color: MUTED };
-    state.chart = new Chart(document.getElementById('lbp-ibt-chart'), {
+    // ---- Panel 1: intake ----
+    draw('intake', 'lbp-ibt-intake', {
       type: 'line',
-      data: { labels: labels.map(keyLabel), datasets: datasets },
-      options: {
-        responsive: true, maintainAspectRatio: false, animation: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          legend: { position: 'top', align: 'start', labels: { boxWidth: 6, usePointStyle: true, pointStyle: 'circle', font: { size: 10 }, color: MUTED, sort: function(a, b){ return a.datasetIndex - b.datasetIndex; } } },
-          tooltip: { callbacks: {
-            title: function(items){ return items.length ? keyLong(labels[items[0].dataIndex]) : ''; },
-            label: function(ctx){
-              var k = labels[ctx.dataIndex], v = ctx.parsed.y;
-              if (v == null) return null;
-              if (ctx.dataset.yAxisID === 'yBro' && ctx.dataset.showLine === false) return 'Pallet ' + ends[k].pallet + ' end-of-pallet lab result: ' + Math.round(v) + ' mg/kg';
-              if (ctx.dataset.yAxisID === 'yBro') {
-                var b = bro[k];
-                return 'Bromoform, pallet ' + b.pallet + ': ' + Math.round(v) + ' mg/kg' + (b.tested ? ' (start-of-pallet lab result)' : ' (between tests)');
-              }
-              if (ctx.dataset.yAxisID === 'yTemp') { var w = fw[k]; return 'Max temperature: ' + v.toFixed(1) + ' °C' + (w && w.heat && w.heat !== 'none' ? ' (' + w.heat + ' heat stress)' : ''); }
-              return ctx.dataset.label.replace(' (g/hd/day)', '') + ': ' + Math.round(v) + ' g/hd/day';
-            }
-          } }
-        },
-        scales: {
-          x: { ticks: Object.assign({ maxTicksLimit: 8, autoSkip: true, maxRotation: 0 }, tick), grid: { display: false }, border: { display: false } },
-          y: { position: 'left', beginAtZero: true, title: { display: true, text: 'g/head/day', font: { size: 10 }, color: MUTED }, ticks: tick, grid: { color: '#eef2f4' }, border: { display: false } },
-          yBro: { display: hasBro, position: 'right', beginAtZero: true, title: { display: true, text: 'Bromoform mg/kg', font: { size: 10 }, color: NAVY }, ticks: Object.assign({}, tick, { color: NAVY }), grid: { display: false }, border: { display: false } },
-          yTemp: { display: hasTemp, position: 'right', title: { display: true, text: 'Max °C', font: { size: 10 }, color: TEMP_ORANGE }, ticks: Object.assign({}, tick, { color: TEMP_ORANGE }), grid: { display: false }, border: { display: false } }
+      data: { labels: xl, datasets: [
+        { label: 'KleenGrow', data: sf7, borderColor: MINT, backgroundColor: MINT, borderWidth: 2.5, pointRadius: 0, tension: 0.3, spanGaps: false },
+        { label: 'Control', data: ct7, borderColor: SLATE, backgroundColor: SLATE, borderWidth: 2, pointRadius: 0, tension: 0.3, spanGaps: false },
+        { label: 'Budget dose', data: labels.map(function(){ return BUDGET_DOSE_G; }), borderColor: '#c3ccd3', borderWidth: 1, borderDash: [4, 4], pointRadius: 0, pointHoverRadius: 0 }
+      ] },
+      options: baseOptions('g/head/day', function(o){
+        o.plugins.tooltip.callbacks = { title: tipTitle, label: function(c){
+          if (c.datasetIndex === 2) return 'Budget dose: ' + BUDGET_DOSE_G + ' g';
+          var raw = (c.datasetIndex === 0 ? sf : ct)[c.dataIndex];
+          return c.dataset.label + ': ' + Math.round(c.parsed.y) + ' g (7-day avg' + (raw != null ? ', latest interval ' + Math.round(raw) + ' g' : '') + ')';
+        } };
+      })
+    });
+    legend('lbp-ibt-key-intake', [{ label: 'KleenGrow', color: MINT }, { label: 'Control', color: SLATE }, { label: 'Budget dose (' + BUDGET_DOSE_G + ' g)', color: '#b4bec6', dash: true }]);
+
+    // ---- Panel 2: lab bromoform by pallet ----
+    var pallets = palletsFor(d.lab[farm]);
+    var idx = {}; labels.forEach(function(k, i){ idx[k] = i; });
+    var broSets = [], maxV = 0, tested = [];
+    pallets.forEach(function(p, i){
+      var next = pallets[i + 1];
+      var data = labels.map(function(){ return null; }), lab = labels.map(function(){ return false; });
+      var pts = labels.map(function(){ return 0; }), fill = labels.map(function(){ return NAVY; });
+      function put(day, v, hollow){
+        if (idx[day] == null) return;
+        data[idx[day]] = v; lab[idx[day]] = true; pts[idx[day]] = 4.5; fill[idx[day]] = hollow ? '#ffffff' : NAVY;
+      }
+      put(p.start.day, p.start.v, false);
+      tested.push({ day: p.start.day, v: p.start.v, id: p.id, stage: 'start' });
+      maxV = Math.max(maxV, p.start.v);
+      if (p.end) { put(p.end.day, p.end.v, true); tested.push({ day: p.end.day, v: p.end.v, id: p.id, stage: 'end' }); maxV = Math.max(maxV, p.end.v); }
+      // Lines: solid between a pallet's two tests; dotted "still in use" line for the current pallet.
+      var a = p.start.day, b = p.end ? p.end.day : (next ? null : last);
+      if (b) {
+        var ia = idx[a] != null ? idx[a] : (a < labels[0] ? 0 : null), ib = idx[b] != null ? idx[b] : null;
+        if (ia != null && ib != null && ia !== ib) {
+          var va = p.start.v, vb = p.end ? p.end.v : p.start.v;
+          var sa = keyMs(a), sb = keyMs(b);
+          for (var i2 = ia; i2 <= ib; i2++) if (data[i2] == null) data[i2] = va + (vb - va) * ((keyMs(labels[i2]) - sa) / (sb - sa));
         }
       }
+      broSets.push({ label: 'Pallet ' + p.id, data: data, _labels: lab, _pallet: p, borderColor: NAVY, borderWidth: 1.5,
+        borderDash: p.end ? [] : [3, 4], pointRadius: pts, pointHoverRadius: pts.map(function(r){ return r ? 6 : 0; }),
+        pointBackgroundColor: fill, pointBorderColor: NAVY, pointBorderWidth: 2, spanGaps: false });
     });
+    var anyBro = broSets.some(function(s){ return s.data.some(function(v){ return v != null; }); });
+    broSets.push({ label: 'Model assumption', data: labels.map(function(){ return 700; }), borderColor: '#c3ccd3', borderWidth: 1, borderDash: [4, 4], pointRadius: 0, pointHoverRadius: 0 });
+    draw('bro', 'lbp-ibt-bro', {
+      type: 'line',
+      data: { labels: xl, datasets: broSets },
+      plugins: [valueLabels],
+      options: baseOptions('mg/kg', function(o){
+        o.scales.y.suggestedMax = Math.max(1000, maxV * 1.2);
+        o.plugins.tooltip.callbacks = { title: tipTitle, label: function(c){
+          if (!c.dataset._pallet) return 'Model assumes 700 mg/kg';
+          var p = c.dataset._pallet, k = labels[c.dataIndex];
+          if (k === p.start.day) return 'Pallet ' + p.id + ' start-of-pallet test: ' + Math.round(c.parsed.y) + ' mg/kg';
+          if (p.end && k === p.end.day) return 'Pallet ' + p.id + ' end-of-pallet test: ' + Math.round(c.parsed.y) + ' mg/kg';
+          return 'Pallet ' + p.id + (p.end ? ' (between tests): ~' : ' (in use, last test): ') + Math.round(c.parsed.y) + ' mg/kg';
+        } };
+      })
+    });
+    legend('lbp-ibt-key-bro', [{ label: 'Start-of-pallet test', color: NAVY }, { label: 'End-of-pallet test', color: NAVY, hollow: true }, { label: 'Model assumption (700)', color: '#b4bec6', dash: true }]);
+    document.getElementById('lbp-ibt-bro-empty').style.display = anyBro ? 'none' : 'block';
 
+    // ---- Panel 3: temperature ----
+    var tv = labels.map(function(k){ return fw[k] ? fw[k].t : null; });
+    var hasTemp = tv.some(function(v){ return v != null; });
+    draw('temp', 'lbp-ibt-temp', {
+      type: 'bar',
+      data: { labels: xl, datasets: [
+        { label: 'Max temperature', data: tv, backgroundColor: tv.map(function(v){ return v != null && v >= HOT_C ? TEMP_ORANGE : 'rgba(201,120,46,0.35)'; }), borderWidth: 0, barPercentage: 1, categoryPercentage: 0.9 }
+      ] },
+      options: baseOptions('°C max', function(o){
+        o.scales.y.suggestedMax = 30;
+        o.plugins.tooltip.callbacks = { title: tipTitle, label: function(c){
+          var w = fw[labels[c.dataIndex]];
+          return 'Max ' + c.parsed.y.toFixed(1) + ' °C' + (w && w.heat && w.heat !== 'none' ? ' (' + w.heat + ' heat stress)' : '');
+        } };
+      })
+    });
+    legend('lbp-ibt-key-temp', [{ label: 'Day at or above ' + HOT_C + ' °C', color: TEMP_ORANGE, bar: true }, { label: 'Cooler day', color: 'rgba(201,120,46,0.35)', bar: true }]);
+    document.getElementById('lbp-ibt-temp-region').textContent = region || '';
+
+    // ---- Note ----
     var bits = [];
     var cohortList = Object.keys(cs).map(Number).sort().filter(function(c){ return c > 1; });
-    if (cohortList.length) bits.push(cohortList.map(function(c){ return 'Cohort ' + c + ' from ' + keyLong(cs[c]); }).join('; ') + '.');
-    var tests = Object.keys(bro).filter(function(k){ return bro[k].tested; }).concat(Object.keys(ends)).filter(function(k){ return k >= first; }).sort();
-    if (tests.length) {
-      var lk = tests[tests.length - 1], lb = (bro[lk] && bro[lk].tested) ? bro[lk] : ends[lk];
-      bits.push('Latest lab result: pallet ' + lb.pallet + ', ' + Math.round(lb.v) + ' mg/kg on ' + keyLong(lk) + ' (the methane model assumes 700).');
-    } else bits.push(hasBro ? 'No lab test in this window; the line shows the last result held forward.' : 'No KleenGrow lab bromoform results for this farm yet.');
-    if (!hasTemp) bits.push('No weather series for this farm' + (region ? '' : ' (add it to the region map)') + '.');
-    else bits.push('Temperature is for the ' + region + ' region.');
-    bits.push('Click a legend item to hide or show it.');
+    if (cohortList.length) bits.push(cohortList.map(function(c){ return 'Cohort ' + c + ' started ' + keyLong(cs[c]); }).join('; ') + '.');
+    var hot = labels.filter(function(k){ return fw[k] && fw[k].t >= HOT_C; }).length;
+    if (hasTemp) bits.push(hot + ' day' + (hot === 1 ? '' : 's') + ' at or above ' + HOT_C + ' °C in this window.');
+    else bits.push('No weather series for this farm' + (region ? '' : ' (add it to the region map)') + '.');
+    bits.push('Hover any panel for the figures on that day.');
     note.textContent = bits.join(' ');
   }
 
