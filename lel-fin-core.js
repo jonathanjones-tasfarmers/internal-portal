@@ -306,6 +306,40 @@
     });
   };
 
+  /* ---------- shared views of the actuals ---------- */
+  /* Monthly spend, net cash flow and month-end funds (worked back from today's funds using Xero monthly flows). */
+  F.history = function (D) {
+    var spendBy = {}, netBy = {}, all = D.exp.concat(D.inc);
+    D.exp.forEach(function (r) { spendBy[r.ym] = (spendBy[r.ym] || 0) + r.amount_aud; netBy[r.ym] = (netBy[r.ym] || 0) - r.amount_aud; });
+    D.inc.forEach(function (r) { netBy[r.ym] = (netBy[r.ym] || 0) + r.amount_aud; });
+    var first = all.length ? Math.min.apply(null, all.map(function (r) { return r.ym; })) : D.S;
+    var funds = {}, run = D.wc; funds[D.S] = D.wc;
+    for (var m = D.S; m > first - 1; m--) { run -= (netBy[m] || 0); funds[m - 1] = run; }
+    return { spendBy: spendBy, netBy: netBy, funds: funds, first: first };
+  };
+  /* Things the Project team should act on, most urgent first: [{c: "bad"|"warn", t: html}] */
+  F.attention = function (D, data) {
+    var flags = [], S = D.S, first = F.history(D).first;
+    if (D.unposted >= 1) flags.push({ c: "bad", t: "Wages not posted in Xero since " + F.ymLabel(D.lastPosted) + " (" + D.unposted + " month" + (D.unposted > 1 ? "s" : "") + ")" });
+    (data.bills || []).filter(function (b) { return b.days_overdue > 0; }).forEach(function (b) { flags.push({ c: "bad", t: F.esc(b.supplier) + " bill " + F.money(b.amount_due_aud) + " is " + b.days_overdue + " days overdue" }); });
+    var gy = D.budgetGroups, spentG = {};
+    D.exp.forEach(function (r) { spentG[r.group] = (spentG[r.group] || 0) + r.amount_aud; });
+    var dayFrac = Math.min(1, new Date(D.snap.snapshot_date || Date.now()).getDate() / 30);
+    F.GROUPS.forEach(function (g) {
+      var pace = F.budgetBetween(gy[g], first, S - 1) + F.budgetBetween(gy[g], S, S) * dayFrac, s = spentG[g] || 0;
+      if (s > pace * 1.1 && s - pace > 10000) flags.push({ c: "warn", t: g + " is " + F.money(s - pace) + " over budget pace" });
+    });
+    D.partners.filter(function (p) { return !p.inXero && p.target > 0 && !/producer/i.test(p.name); }).forEach(function (p) {
+      flags.push({ c: "warn", t: F.esc(p.name) + " " + F.money(p.target) + " not tracked in Xero" });
+    });
+    var soon = Date.now() + 90 * 864e5;
+    (data.milestones || []).filter(function (x) { return x.due_date && x.due_date < soon && !/accepted|done|complete/i.test(x.status || ""); })
+      .sort(function (a, b) { return a.due_date - b.due_date; }).forEach(function (x) {
+        flags.push({ c: x.due_date < Date.now() ? "bad" : "warn", t: F.esc(x.name.replace(/\s*\(clause.*\)/, "")) + " due " + F.dmy(x.due_date) });
+      });
+    return flags;
+  };
+
   /* ---------- chart helpers ---------- */
   F.chartDefaults = function () {
     Chart.defaults.font.family = "Verdana, Tahoma, sans-serif";
