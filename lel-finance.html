@@ -245,7 +245,7 @@
     var P = D.DEF, S = D.S, end = P.projEnd + 1;
     var lo = F.model(D, P, 0, { intake: 2 }), hi = F.model(D, P, 0, { intake: 25 / F.ACTUAL_INTAKE_PCT });
     var bp = F.budgetPath(D, P, r);
-    var months = []; for (var m = first - 1; m <= end; m++) months.push(m);
+    var months = []; for (var m = first; m <= end; m++) months.push(m);
     function fc(arr) { return months.map(function (x) { if (x === S) return D.wc; var i = r.months.indexOf(x); return i < 0 ? null : arr[i]; }); }
     var ds = [
       { key: "actual", label: "Actual", data: months.map(function (x) { return x <= S ? funds[x] : null; }), borderColor: NAV, borderWidth: 2.4, pointRadius: 0, tension: 0.2 },
